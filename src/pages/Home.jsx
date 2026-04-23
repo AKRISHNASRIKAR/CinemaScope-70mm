@@ -1,93 +1,107 @@
 import { useEffect, useState } from "react";
 import { Box, CircularProgress, Alert } from "@mui/material";
-import Banner from "@/components/sections/Banner";
-import PopularMoviesSection from "@/components/sections/PopularMoviesSection";
+import Hero from "@/components/sections/Hero";
+import StatsBlock from "@/components/sections/StatsBlock";
+import GenreRow from "@/components/sections/GenreRow";
+import { GENRE_SECTIONS } from "@/lib/constants";
 
-const Home = () => {
-  const [movies, setMovies] = useState([]);
+/* ── per-genre data fetcher (keeps Home clean) ─────────────────── */
+const useMoviesByGenre = (genreIds) => {
+  const [films,   setFilms]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  const API_BASE_URL = import.meta.env.VITE_BASE_URL;
-  const API_KEY = import.meta.env.VITE_API_KEY;
+  const BASE = import.meta.env.VITE_BASE_URL;
+  const KEY  = import.meta.env.VITE_API_KEY;
 
   useEffect(() => {
-    const fetchWithTimeout = async (url, timeout = 5000) => {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
+    if (!genreIds?.length) return;
+    const ids = genreIds.join(",");
+    fetch(`${BASE}/discover/movie?api_key=${KEY}&with_genres=${ids}&language=en-US&sort_by=popularity.desc`)
+      .then((r) => r.json())
+      .then((d) => setFilms(d.results || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [genreIds.join(",")]); // eslint-disable-line
 
-      try {
-        const response = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        });
-        clearTimeout(id);
-        return response;
-      } catch (error) {
-        clearTimeout(id);
-        throw error;
-      }
-    };
+  return { films, loading };
+};
 
+/* ── thin wrapper so each GenreRow fetches its own data ─────────── */
+const GenreSection = ({ section }) => {
+  const { films, loading } = useMoviesByGenre(section.genreIds);
+  if (loading || !films.length) return null;
+  return (
+    <GenreRow
+      genre={section.genre}
+      tagline={section.tagline}
+      films={films}
+      alignment={section.alignment}
+      theme={section.theme}
+    />
+  );
+};
+
+/* ── main page ───────────────────────────────────────────────────── */
+const Home = () => {
+  const [movies,  setMovies]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+
+  const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+  const API_KEY      = import.meta.env.VITE_API_KEY;
+
+  useEffect(() => {
     const fetchMovies = async () => {
       try {
-        if (!API_BASE_URL || !API_KEY) {
-          throw new Error("Missing environment variables");
-        }
-
-        const url = `${API_BASE_URL}/movie/popular?api_key=${API_KEY}&language=en-US`;
-        const response = await fetchWithTimeout(url);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        if (!API_BASE_URL || !API_KEY) throw new Error("Missing env vars");
+        const res = await fetch(
+          `${API_BASE_URL}/movie/popular?api_key=${API_KEY}&language=en-US`,
+          { headers: { Accept: "application/json" } }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         setMovies(data.results);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error details:", error);
-        setError(`Failed to load movies: ${error.message}`);
+      } catch (e) {
+        setError(e.message);
+      } finally {
         setLoading(false);
       }
     };
-
     fetchMovies();
   }, [API_BASE_URL, API_KEY]);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <CircularProgress sx={{ color: "#c9a843" }} />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box mt={2}>
-        <Alert severity="error">
-          {error} <br />
-          Please check the console for more details.
-        </Alert>
+      <Box mt={2} px={4}>
+        <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
+  const featuredFilm  = movies[0]    ?? null;
+  const carouselFilms = movies.slice(1, 8);
+
   return (
-    <div className="min-h-screen">
-      <div className="pt-6 pb-5 px-4">
-        <Box className="mb-8 m-3">
-          <Banner movies={movies} />
-        </Box>
-      </div>
-      <div className="mt-8">
-        <PopularMoviesSection movies={movies} />
-      </div>
-    </div>
+    <main className="min-h-screen bg-base">
+      {/* ── Hero — full viewport, navbar floats over it ── */}
+      <Hero film={featuredFilm} relatedFilms={carouselFilms} />
+
+      {/* ── Stats block ── */}
+      <StatsBlock featuredFilm={featuredFilm} />
+
+      {/* ── Genre rows — each fetches its own data ── */}
+      {GENRE_SECTIONS.map((section) => (
+        <GenreSection key={section.id} section={section} />
+      ))}
+    </main>
   );
 };
 

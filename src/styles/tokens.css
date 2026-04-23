@@ -1,24 +1,99 @@
 /*
-  Design Tokens — CSS Custom Properties
-  ──────────────────────────────────────
-  All colors, typography, spacing, shadows, and border-radius values
-  should be defined here as CSS custom properties before the UI phase begins.
-
-  Example:
-  :root {
-    --color-bg-primary:   #121212;
-    --color-bg-surface:   #1e1e1e;
-    --color-accent:       #facc15;
-    --color-text-primary: #ffffff;
-    --color-text-muted:   rgba(255, 255, 255, 0.6);
-
-    --font-body:          'Inter', Arial, sans-serif;
-    --font-size-sm:       0.875rem;
-    --font-size-base:     1rem;
-
-    --radius-card:        0.75rem;
-    --radius-btn:         0.5rem;
-
-    --shadow-card:        0 4px 24px rgba(0, 0, 0, 0.4);
-  }
+  src/styles/tokens.css
+  CinemaScope Design Tokens — Tailwind v4 @theme block.
+  Every variable here generates a real Tailwind utility class.
+  Usage: bg-base, text-gold, font-display, text-hero, shadow-card, etc.
+  ─────────────────────────────────────────────────────────────────────
+  RULES:
+  - --color-gold is ONLY for ratings, CTAs, and active tab indicators
+  - Never use hardcoded hex values in components — use these tokens
+  ─────────────────────────────────────────────────────────────────────
 */
+
+@theme {
+
+  /* ── COLORS ────────────────────────────────────────────────────────
+     Generates: bg-{name}  text-{name}  border-{name}  fill-{name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  /* Backgrounds */
+  --color-base:          #090909;   /* true page root */
+  --color-surface:       #111111;   /* cards, input fields */
+  --color-elevated:      #1c1c1c;   /* dropdowns, tooltips */
+
+  /* Genre section backgrounds */
+  --color-section-dark:  #0f0f0f;   /* dark genre rows */
+  --color-section-mid:   #181e2c;   /* mid-tone rows (comedy / blue-dark) */
+  --color-section-light: #f5f5f0;   /* light genre rows */
+
+  /* Accent — ONLY ratings / CTAs / active states */
+  --color-gold:    #c9a843;
+  --color-gold-lt: #ddb84e;         /* gold hover */
+
+  /* Text on dark backgrounds */
+  --color-white:       #ffffff;
+  --color-muted:       #8a8a8a;     /* metadata, secondary labels */
+  --color-faint:       #4a4a4a;     /* extremely subtle text */
+
+  /* Text on light backgrounds */
+  --color-ink:         #111111;
+  --color-ink-muted:   #777777;
+
+  /* Borders */
+  --color-border:        rgba(255, 255, 255, 0.10);
+  --color-border-light:  rgba(0, 0, 0, 0.10);
+  --color-border-active: #c9a843;
+
+  /* ── TYPOGRAPHY ────────────────────────────────────────────────────
+     Generates: font-{name}   text-{size-name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  /* Font families */
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "DM Mono", "Courier New", monospace;
+
+  /* Font sizes */
+  --text-hero:    clamp(3.5rem, 7vw,  7rem);    /* Hero film title */
+  --text-section: clamp(2rem,   4vw,  4.5rem);  /* Genre row headings */
+  --text-stat:    clamp(3rem,   5vw,  5.5rem);  /* Stats block numbers */
+  --text-tag:     0.625rem;                     /* 10px — genre chips */
+  --text-meta:    0.6875rem;                    /* 11px — metadata row */
+  --text-caption: 0.75rem;                      /* 12px — card captions */
+  --text-nav:     0.6875rem;                    /* 11px — navbar links */
+
+  /* ── SHADOWS ───────────────────────────────────────────────────────
+     Generates: shadow-{name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  --shadow-card:       0 8px  32px rgba(0, 0, 0, 0.50);
+  --shadow-card-hover: 0 20px 60px rgba(0, 0, 0, 0.75);
+  --shadow-navbar:     0 1px  0   rgba(255, 255, 255, 0.04);
+
+  /* ── BLUR ──────────────────────────────────────────────────────────
+     Generates: blur-{name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  --blur-navbar:  12px;
+  --blur-overlay: 4px;
+
+  /* ── BORDER RADIUS ─────────────────────────────────────────────────
+     Generates: rounded-{name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  --radius-card:   0.375rem;   /* 6px — film cards */
+  --radius-circle: 9999px;     /* play button */
+
+  /* ── ANIMATION ─────────────────────────────────────────────────────
+     Generates: duration-{name}   ease-{name}
+  ─────────────────────────────────────────────────────────────────── */
+
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+  --duration-search: 350ms;
+
+  --ease-cinematic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-snap:      cubic-bezier(0.40, 0.00, 0.20, 1.00);
+
+}

@@ -1,135 +1,227 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
 import { logoURL } from "@/lib/constants";
 import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close";
+
+const NAV_LINKS = ["MOVIES", "TV", "AT HOME", "CORPORATE"];
 
 const Header = () => {
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const { user, isAuthenticated, logout } = useAuth0();
   const navigate = useNavigate();
+  const searchInputRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
-  const handleSearch = () => {
-    const trimmedQuery = searchQuery.trim();
-    if (trimmedQuery) {
-      navigate(`/search/${trimmedQuery.split(" ").join("-")}`);
-      setSearchQuery("");
+  /* ── Search handlers ─────────────────────────────────────────── */
+  const openSearch = () => {
+    setSearchExpanded(true);
+    setTimeout(() => searchInputRef.current?.focus(), 20);
+  };
+
+  const closeSearch = useCallback(() => {
+    setSearchExpanded(false);
+    setSearchQuery("");
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    const q = searchQuery.trim();
+    if (q) {
+      navigate(`/search/${q.split(" ").join("-")}`);
+      closeSearch();
     }
+  }, [searchQuery, navigate, closeSearch]);
+
+  const handleSearchKey = (e) => {
+    if (e.key === "Enter") handleSearch();
+    if (e.key === "Escape") closeSearch();
   };
 
-  const handleLogout = () => {
-    logout({ returnTo: window.location.origin });
-    setIsProfileMenuOpen(false);
-  };
+  /* ── ESC anywhere collapses search ──────────────────────────── */
+  useEffect(() => {
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        closeSearch();
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [closeSearch]);
 
-  const handleProfileNavigation = () => {
-    navigate("/profile");
-    setIsProfileMenuOpen(false);
-  };
-
-  const handleLogoClick = () => {
-    navigate("/");
-  };
+  /* ── Click-outside closes profile menu ──────────────────────── */
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   return (
-    <header className="bg-black text-white px-4 py-4 rounded-2xl">
-      {/* Main Navigation Bar */}
-      <nav className="bg-black/75 rounded-2xl flex items-center justify-between px-8 md:px-8 py-3 min-h-[54px]">
-        {/* Logo Section */}
+    <header className="fixed top-0 left-0 right-0 z-50">
+      <nav
+        className="
+          flex items-center justify-between
+          px-8 md:px-12 py-4
+          bg-black/15 backdrop-blur-md
+          shadow-navbar
+        "
+      >
+        {/* ── Logo ────────────────────────────────────────────── */}
         <div
-          onClick={handleLogoClick}
-          className="cursor-pointer flex-shrink-0 rounded-xl"
+          onClick={() => navigate("/")}
+          className="cursor-pointer flex-shrink-0"
         >
           <img
             src={logoURL}
-            alt="CINEMASCOPE logo"
-            className="w-23 p-2 h-full px-4"
+            alt="CinemaScope"
+            className="h-7 w-auto object-contain"
           />
         </div>
 
-        {/* Desktop Search Bar (Hidden on Mobile) */}
-        <div className="hidden sm:flex items-center space-x-6 flex-1 justify-center max-w-3xl ml-4">
-          <div className="relative w-full max-w-lg">
-            <input
-              type="text"
-              placeholder="Search for a movie or actor..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="w-full h-8 bg-[#121116] rounded-lg px-4 pr-10 text-white placeholder-white/70 text-sm border-2 border-transparent focus:outline-none transition-colors"
-            />
+        {/* ── Center nav links (desktop) ───────────────────────── */}
+        <div className="hidden md:flex items-center gap-10">
+          {NAV_LINKS.map((link) => (
             <button
-              onClick={handleSearch}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors p-1"
+              key={link}
+              className="
+                font-body font-medium uppercase
+                tracking-[0.18em] text-nav
+                text-white/60 hover:text-white
+                transition-colors duration-normal
+                cursor-pointer bg-transparent border-none
+              "
             >
-              <SearchIcon />
+              {link}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* Profile Section */}
-        <div className="relative">
-          <button
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className="flex items-center space-x-2 px-4 pr-4 hover:bg-gray-800 rounded-lg transition-colors p-2"
-          >
-            {isAuthenticated ? (
-              <>
+        {/* ── Right: Search + Profile ──────────────────────────── */}
+        <div className="flex items-center gap-3">
+
+          {/* Search row */}
+          <div className="flex items-center gap-2">
+            {/* Expandable input */}
+            <div
+              className={`
+                overflow-hidden transition-[width,opacity]
+                ease-cinematic duration-search
+                ${searchExpanded ? "w-44 opacity-100" : "w-0 opacity-0"}
+              `}
+            >
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKey}
+                placeholder="Search films, people…"
+                className="
+                  w-full bg-transparent
+                  border-b border-white/35 focus:border-white/80
+                  text-white text-sm placeholder-white/35
+                  pb-1 font-body
+                  outline-none transition-colors duration-normal
+                "
+              />
+            </div>
+
+            {/* Search / Close icon */}
+            <button
+              onClick={searchExpanded ? (searchQuery ? handleSearch : closeSearch) : openSearch}
+              aria-label={searchExpanded ? "Close search" : "Open search"}
+              className="
+                text-white/60 hover:text-white
+                transition-colors duration-fast p-1
+                cursor-pointer
+              "
+            >
+              {searchExpanded
+                ? <CloseIcon sx={{ fontSize: 18 }} />
+                : <SearchIcon sx={{ fontSize: 18 }} />
+              }
+            </button>
+          </div>
+
+          {/* Profile avatar */}
+          {isAuthenticated && (
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen((v) => !v)}
+                className="flex items-center gap-2 group cursor-pointer"
+              >
                 <img
                   src={user.picture}
                   alt={user.name}
-                  className="w-9 h-9 rounded-full"
+                  className="
+                    w-8 h-8 rounded-circle object-cover
+                    ring-1 ring-white/20 group-hover:ring-white/60
+                    transition-all duration-normal
+                  "
                 />
-                <span className="text-xs font-semibold hidden md:block p-2 px-2">
-                  {user.name}
-                </span>
-              </>
-            ) : (
-              <span className="text-sm font-semibold px-5">Sign In</span>
-            )}
-          </button>
+              </button>
 
-          {/* Profile Dropdown */}
-          {isProfileMenuOpen && isAuthenticated && (
-            <div className="absolute md:hidden right-0 top-full mt-2 w-32 font-semibold bg-gray-800 border-gray-700 rounded-xl shadow-lg z-50">
-              <button
-                onClick={handleProfileNavigation}
-                className="w-full text-center px-4 py-2 text-sm hover:bg-black transition-colors"
-              >
-                Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full text-center px-4 py-2 text-sm hover:bg-gray-800 transition-colors border-t border-gray-700"
-              >
-                Sign Out
-              </button>
+              {/* Dropdown */}
+              {isProfileMenuOpen && (
+                <div
+                  className="
+                    absolute right-0 top-full mt-3
+                    w-36 bg-elevated rounded-card
+                    shadow-card border border-border
+                    overflow-hidden z-50
+                  "
+                >
+                  <button
+                    onClick={() => { navigate("/profile"); setIsProfileMenuOpen(false); }}
+                    className="
+                      w-full text-left px-4 py-2.5
+                      text-caption text-white/75 hover:text-white
+                      hover:bg-white/5 transition-colors duration-fast
+                      font-body
+                    "
+                  >
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => { logout({ returnTo: window.location.origin }); setIsProfileMenuOpen(false); }}
+                    className="
+                      w-full text-left px-4 py-2.5
+                      text-caption text-white/75 hover:text-white
+                      hover:bg-white/5 transition-colors duration-fast
+                      border-t border-border font-body
+                    "
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Sign in (unauthenticated) */}
+          {!isAuthenticated && (
+            <button
+              onClick={() => navigate("/login")}
+              className="
+                font-body font-medium uppercase
+                tracking-[0.15em] text-nav
+                text-white/60 hover:text-white
+                transition-colors duration-normal
+              "
+            >
+              SIGN IN
+            </button>
           )}
         </div>
       </nav>
-
-      {/* Mobile Search Bar - Increased Height & Spacing */}
-      <div className="w-full sm:hidden mt-6 mb-8 px-5 pb-12">
-        <div className="relative w-full flex items-center justify-center">
-          <input
-            type="text"
-            placeholder="Search for a movie or actor..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="w-[88%] h-11 bg-[#121116] rounded-lg text-white placeholder-gray-400 text-sm text-center px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
-          />
-          <button
-            onClick={handleSearch}
-            className="absolute right-10 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors p-1"
-          >
-            <SearchIcon />
-          </button>
-        </div>
-      </div>
     </header>
   );
 };
