@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, CircularProgress, Alert } from "@mui/material";
-import Banner from "../components/common/Banner";
-import PopularMoviesSection from "../components/common/PopularMoviesSection";
-import "../index.css";
+import Banner from "@/components/sections/Banner";
+import PopularMoviesSection from "@/components/sections/PopularMoviesSection";
 
 const Home = () => {
   const [movies, setMovies] = useState([]);

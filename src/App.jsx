@@ -1,14 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Auth0Provider, withAuthenticationRequired } from "@auth0/auth0-react";
-import Home from "./pages/Home";
-import LoginPage from "./components/LoginPage";
-import Header from "./components/common/Navbar";
-import Profile from "./pages/Profile";
-import FilmPage from "./pages/FilmPage"; // Import the FilmPage component
-import SearchPage from "./pages/SearchPage";
-import Person from "./pages/Person";
-
-import "./App.css";
+import { withAuthenticationRequired } from "@auth0/auth0-react";
+import Home from "@/pages/Home";
+import LoginPage from "@/pages/LoginPage";
+import Header from "@/components/layout/Navbar";
+import Profile from "@/pages/Profile";
+import FilmPage from "@/pages/FilmPage";
+import SearchPage from "@/pages/SearchPage";
+import Person from "@/pages/Person";
 
 const ProtectedRoute = ({ component, ...args }) => {
   const Component = withAuthenticationRequired(component, args);
@@ -37,7 +35,7 @@ function App() {
         />{" "}
         {/* Person route */}
         <Route path="/search/:query" element={<SearchPage />} />{" "}
-        {/* SearchPage routr */}
+        {/* SearchPage route */}
       </Routes>
     </Router>
   );

@@ -2,29 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-
-// TMDB Genre mapping (you can fetch this from /genre/movie/list endpoint)
-const GENRE_MAP = {
-  28: "Action",
-  12: "Adventure",
-  16: "Animation",
-  35: "Comedy",
-  80: "Crime",
-  99: "Documentary",
-  18: "Drama",
-  10751: "Family",
-  14: "Fantasy",
-  36: "History",
-  27: "Horror",
-  10402: "Music",
-  9648: "Mystery",
-  10749: "Romance",
-  878: "Sci-Fi",
-  10770: "TV Movie",
-  53: "Thriller",
-  10752: "War",
-  37: "Western",
-};
+import { GENRE_MAP } from "@/lib/constants";
 
 const Banner = ({ movies }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
