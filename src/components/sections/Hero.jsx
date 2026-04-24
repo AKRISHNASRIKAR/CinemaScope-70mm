@@ -1,15 +1,13 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HeroCarousel from "./HeroCarousel";
-import PlayButton from "@/components/ui/PlayButton";
 import { GENRE_MAP } from "@/lib/constants";
 
-/* ── helpers ─────────────────────────────────────────────── */
-const fmtRuntime = (min) => {
-  if (!min) return null;
-  return `${Math.floor(min / 60)}H ${min % 60}MIN`;
-};
+const INTERVAL = 3000;
+const PAUSE_AFTER_CLICK = 8000;
+const FADE_MS = 800;
 
 const getGenres = (film) => {
   if (film.genres?.length) return film.genres.slice(0, 3).map((g) => g.name);
@@ -18,41 +16,94 @@ const getGenres = (film) => {
   return [];
 };
 
-/* ── component ───────────────────────────────────────────── */
 const Hero = ({ film, relatedFilms = [] }) => {
+  /* The `film` prop was the single featured film — now we build a rotation
+     array from it + relatedFilms (reuse the same pool). */
+  const allFilms = film ? [film, ...relatedFilms.slice(0, 6)] : [];
   const navigate = useNavigate();
-  if (!film) return null;
 
-  const backdrop = film.backdrop_path
-    ? `https://image.tmdb.org/t/p/original${film.backdrop_path}`
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [fadeClass, setFadeClass] = useState("opacity-100");
+  const timerRef = useRef(null);
+  const pauseRef = useRef(null);
+
+  const total = allFilms.length;
+  const current = allFilms[activeIdx] || null;
+
+  /* ── transition helper ─────────────────────────────────── */
+  const goTo = useCallback(
+    (idx) => {
+      setFadeClass("opacity-0");
+      setTimeout(() => {
+        setActiveIdx(idx % total);
+        setFadeClass("opacity-100");
+      }, FADE_MS / 2);
+    },
+    [total]
+  );
+
+  /* ── auto-advance ──────────────────────────────────────── */
+  const startAuto = useCallback(() => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      goTo((prev) => prev); // we'll use functional update below
+      setFadeClass("opacity-0");
+      setTimeout(() => {
+        setActiveIdx((prev) => (prev + 1) % total);
+        setFadeClass("opacity-100");
+      }, FADE_MS / 2);
+    }, INTERVAL);
+  }, [total]);
+
+  useEffect(() => {
+    if (total <= 1) return;
+    startAuto();
+    return () => clearInterval(timerRef.current);
+  }, [total, startAuto]);
+
+  /* ── manual navigation (pauses auto for 8s) ──────────── */
+  const navigate_ = useCallback(
+    (idx) => {
+      clearInterval(timerRef.current);
+      clearTimeout(pauseRef.current);
+      goTo(idx);
+      pauseRef.current = setTimeout(startAuto, PAUSE_AFTER_CLICK);
+    },
+    [goTo, startAuto]
+  );
+
+  const goPrev = () => navigate_((activeIdx - 1 + total) % total);
+  const goNext = () => navigate_((activeIdx + 1) % total);
+
+  if (!current) return null;
+
+  const backdrop = current.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${current.backdrop_path}`
     : null;
-
-  const genres  = getGenres(film);
-  const year    = film.release_date?.slice(0, 4) ?? "";
-  const rating  = film.vote_average ? film.vote_average.toFixed(1) : null;
-  const runtime = fmtRuntime(film.runtime);
+  const genres = getGenres(current);
+  const year = current.release_date?.slice(0, 4) ?? "";
+  const rating = current.vote_average ? current.vote_average.toFixed(1) : null;
 
   return (
-    <section className="relative w-full h-screen overflow-hidden bg-base">
+    <section className="relative w-full h-screen overflow-hidden bg-base group/hero">
 
-      {/* ── Backdrop ─────────────────────────────────────── */}
+      {/* ── Backdrop (crossfade via opacity) ─── */}
       {backdrop && (
         <img
+          key={current.id}
           src={backdrop}
-          alt={film.title}
-          className="absolute inset-0 w-full h-full object-cover object-center"
+          alt={current.title}
+          className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity ease-cinematic ${fadeClass}`}
+          style={{ transitionDuration: `${FADE_MS}ms` }}
         />
       )}
 
-      {/* ── Vignettes ────────────────────────────────────── */}
-      {/* Bottom-heavy gradient — deepens the bottom-left corner */}
+      {/* ── Vignettes ─── */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-      {/* Left-heavy gradient */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/30 to-transparent" />
-      {/* Top fade so navbar text is readable */}
       <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/40 to-transparent" />
 
-      {/* ── Film grain overlay ────────────────────────────── */}
+      {/* ── Film grain ─── */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none opacity-[0.07] mix-blend-overlay"
@@ -63,58 +114,93 @@ const Hero = ({ film, relatedFilms = [] }) => {
         }}
       />
 
-      {/* ── ADD TO WATCHLIST — top right ─────────────────── */}
-      <div className="absolute top-24 right-10 z-10">
-        <button className="flex items-center gap-2 text-gold hover:text-gold-lt transition-colors duration-normal group cursor-pointer">
-          <FavoriteBorderIcon
-            sx={{ fontSize: 17 }}
-            className="group-hover:scale-110 transition-transform duration-fast"
-          />
-          <span className="font-body font-medium tracking-[0.18em] text-nav uppercase">
-            Add to Watchlist
-          </span>
-        </button>
-      </div>
+      {/* ── Prev / Next arrows ─── */}
+      {total > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            aria-label="Previous film"
+            className="
+              absolute left-4 top-1/2 -translate-y-1/2 z-20
+              flex items-center justify-center rounded-full
+              bg-black/40 backdrop-blur-sm border border-white/10
+              text-white/60 hover:text-white hover:bg-black/60
+              transition-all duration-normal cursor-pointer
+              sm:opacity-0 sm:group-hover/hero:opacity-100
+            "
+            style={{ width: "clamp(2.5rem, 4vw, 3.5rem)", height: "clamp(2.5rem, 4vw, 3.5rem)" }}
+          >
+            <ChevronLeftIcon sx={{ fontSize: "clamp(1.2rem, 2vw, 1.8rem)" }} />
+          </button>
+          <button
+            onClick={goNext}
+            aria-label="Next film"
+            className="
+              absolute right-4 top-1/2 -translate-y-1/2 z-20
+              flex items-center justify-center rounded-full
+              bg-black/40 backdrop-blur-sm border border-white/10
+              text-white/60 hover:text-white hover:bg-black/60
+              transition-all duration-normal cursor-pointer
+              sm:opacity-0 sm:group-hover/hero:opacity-100
+            "
+            style={{ width: "clamp(2.5rem, 4vw, 3.5rem)", height: "clamp(2.5rem, 4vw, 3.5rem)" }}
+          >
+            <ChevronRightIcon sx={{ fontSize: "clamp(1.2rem, 2vw, 1.8rem)" }} />
+          </button>
+        </>
+      )}
 
-      {/* ── Center play button ────────────────────────────── */}
-      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-        <div className="flex flex-col items-center gap-3 pointer-events-auto">
-          {runtime && (
-            <span className="font-mono tracking-[0.22em] text-tag text-white/45 uppercase">
-              {runtime}
-            </span>
-          )}
-          <PlayButton onClick={() => navigate(`/film/${film.id}`)} />
+      {/* ── Dot indicators ─── */}
+      {total > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center" style={{ gap: "clamp(0.35rem, 0.6vw, 0.5rem)" }}>
+          {allFilms.map((f, i) => (
+            <button
+              key={f.id}
+              onClick={() => navigate_(i)}
+              aria-label={`Go to film ${i + 1}`}
+              className={`
+                rounded-full transition-all duration-normal cursor-pointer border-none
+                ${i === activeIdx
+                  ? "bg-gold"
+                  : "bg-white/25 hover:bg-white/50"
+                }
+              `}
+              style={{
+                width:  i === activeIdx ? "clamp(0.5rem, 0.8vw, 0.6rem)" : "clamp(0.35rem, 0.55vw, 0.4rem)",
+                height: i === activeIdx ? "clamp(0.5rem, 0.8vw, 0.6rem)" : "clamp(0.35rem, 0.55vw, 0.4rem)",
+              }}
+            />
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* ── Bottom-left: Film info ────────────────────────── */}
-      <div className="absolute bottom-14 left-10 lg:left-16 z-10 max-w-[40vw]">
-
+      {/* ── Bottom-left: Film info (fades with backdrop) ─── */}
+      <div
+        className={`absolute z-10 cursor-pointer transition-opacity ease-cinematic ${fadeClass}`}
+        style={{
+          transitionDuration: `${FADE_MS}ms`,
+          bottom: "clamp(2rem, 6vh, 4rem)",
+          left: "clamp(1.5rem, 4vw, 4rem)",
+          maxWidth: "clamp(280px, 45vw, 600px)",
+        }}
+        onClick={() => navigate(`/film/${current.id}`)}
+      >
         {/* Rating */}
         {rating && (
-          <div className="flex items-baseline gap-1.5 mb-4">
-            <span className="font-mono tracking-[0.15em] text-tag text-white/40 uppercase">
-              Rating
-            </span>
-            <span className="font-mono font-semibold text-gold text-xl">
-              {rating}
-            </span>
-            <span className="font-mono text-tag text-white/40">/ 10</span>
+          <div className="flex items-baseline gap-[clamp(0.25rem,0.5vw,0.5rem)] mb-[clamp(0.75rem,1.5vh,1.25rem)]">
+            <span className="font-mono tracking-[0.15em] text-white/40 uppercase" style={{ fontSize: "clamp(0.6rem, 1vw, 0.75rem)" }}>Rating</span>
+            <span className="font-mono font-semibold text-gold" style={{ fontSize: "clamp(1.1rem, 2vw, 1.5rem)" }}>{rating}</span>
+            <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.6rem, 1vw, 0.75rem)" }}>/ 10</span>
           </div>
         )}
 
         {/* Genre tags */}
         {genres.length > 0 && (
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center flex-wrap mb-[clamp(0.5rem,1vh,0.75rem)]" style={{ gap: "clamp(0.4rem, 0.8vw, 0.6rem)" }}>
             {genres.map((genre, i) => (
               <React.Fragment key={genre}>
-                <span className="font-body font-medium tracking-[0.18em] text-tag text-white/50 uppercase">
-                  {genre}
-                </span>
-                {i < genres.length - 1 && (
-                  <span className="text-white/25 text-[9px]">|</span>
-                )}
+                <span className="font-body font-medium tracking-[0.18em] text-white/50 uppercase" style={{ fontSize: "clamp(0.6rem, 1.2vw, 0.85rem)" }}>{genre}</span>
+                {i < genres.length - 1 && <span className="text-white/25" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.65rem)" }}>|</span>}
               </React.Fragment>
             ))}
           </div>
@@ -122,47 +208,46 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
         {/* Title */}
         <h1
-          className="font-display font-bold text-white leading-[0.9] tracking-tight mb-4"
-          style={{ fontSize: "clamp(3rem, 6vw, 6.5rem)" }}
+          className="font-display font-bold text-white leading-[0.9] tracking-tight"
+          style={{ fontSize: "clamp(2rem, 5vw, 5rem)", marginBottom: "clamp(0.5rem, 1.5vh, 1rem)" }}
         >
-          {film.title || film.original_title}
+          {current.title || current.original_title}
         </h1>
 
         {/* Metadata row */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4 font-mono text-meta text-white/40 tracking-[0.06em]">
+        <div
+          className="flex flex-wrap items-center text-white/40 font-mono tracking-[0.06em]"
+          style={{ gap: "clamp(0.3rem, 0.6vw, 0.5rem)", fontSize: "clamp(0.65rem, 1.1vw, 0.8rem)" }}
+        >
           {year && <span>{year}</span>}
-          {film.director && (
+          {current.director && (
             <>
               <span className="text-white/20">|</span>
               <span>
-                <span className="text-white/30 uppercase tracking-[0.1em] text-tag">Director: </span>
-                {film.director}
+                <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)" }}>Director: </span>
+                {current.director}
               </span>
             </>
           )}
-          {film.stars?.length > 0 && (
+          {current.stars?.length > 0 && (
             <>
               <span className="text-white/20">|</span>
               <span>
-                <span className="text-white/30 uppercase tracking-[0.1em] text-tag">Stars: </span>
-                {film.stars.slice(0, 3).join(", ")}
+                <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)" }}>Stars: </span>
+                {current.stars.slice(0, 3).join(", ")}
               </span>
             </>
           )}
         </div>
-
-        {/* Synopsis */}
-        {film.overview && (
-          <p className="font-body font-light text-sm leading-relaxed text-white/55 line-clamp-3">
-            {film.overview}
-          </p>
-        )}
       </div>
 
-      {/* ── Bottom-right: Carousel ────────────────────────── */}
+      {/* ── Bottom-right: Carousel (stays independent) ─── */}
       {relatedFilms.length > 0 && (
-        <div className="absolute bottom-10 right-0 z-10">
-          <HeroCarousel films={relatedFilms} />
+        <div
+          className="absolute z-10 hidden sm:block"
+          style={{ bottom: "clamp(2rem, 5vh, 3rem)", right: 0 }}
+        >
+          <HeroCarousel films={relatedFilms} label="NOW SHOWING" />
         </div>
       )}
     </section>

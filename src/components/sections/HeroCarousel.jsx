@@ -5,57 +5,50 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const VISIBLE = 5;
 
-const HeroCarousel = ({ films = [], label = "PEOPLE ALSO LIKED" }) => {
+const HeroCarousel = ({ films = [], label = "NOW SHOWING" }) => {
   const [start, setStart] = useState(0);
-  const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
 
-  const slice = films.slice(start, start + VISIBLE);
+  const slice   = films.slice(start, start + VISIBLE);
   const canPrev = start > 0;
   const canNext = start + VISIBLE < films.length;
 
   return (
-    <div className="flex flex-col gap-3 px-4 md:px-8 select-none">
-      {/* Label + arrows */}
-      <div className="flex items-center justify-between">
-        <span className="font-mono tracking-[0.22em] text-tag text-white/40 uppercase">
-          {label}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => canPrev && setStart((s) => s - 1)}
-            disabled={!canPrev}
-            className="p-1 text-white/30 hover:text-white disabled:opacity-20 transition-colors duration-fast"
-          >
-            <ChevronLeftIcon sx={{ fontSize: 16 }} />
-          </button>
-          <button
-            onClick={() => canNext && setStart((s) => s + 1)}
-            disabled={!canNext}
-            className="p-1 text-white/30 hover:text-white disabled:opacity-20 transition-colors duration-fast"
-          >
-            <ChevronRightIcon sx={{ fontSize: 16 }} />
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col select-none" style={{ gap: "clamp(0.5rem, 1vh, 0.75rem)", paddingRight: "clamp(1rem, 3vw, 2.5rem)" }}>
+      {/* Label */}
+      <span
+        className="font-mono tracking-[0.22em] text-white/40 uppercase"
+        style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)", paddingLeft: "clamp(0.5rem, 1vw, 1rem)" }}
+      >
+        {label}
+      </span>
 
-      {/* Poster cards */}
-      <div className="flex items-end gap-2.5">
-        {slice.map((film) => {
-          const isSelected = selected === film.id;
-          return (
+      {/* Carousel strip with arrows */}
+      <div className="relative flex items-center">
+        {/* Prev arrow */}
+        <button
+          onClick={() => canPrev && setStart((s) => s - 1)}
+          disabled={!canPrev}
+          className={`
+            absolute -left-3 z-20 flex items-center justify-center rounded-full
+            bg-black/50 backdrop-blur-sm border border-white/10
+            text-white/70 hover:text-white hover:bg-black/70
+            transition-all duration-fast cursor-pointer
+            disabled:opacity-0 disabled:pointer-events-none
+          `}
+          style={{ width: "clamp(1.5rem, 2.5vw, 2rem)", height: "clamp(1.5rem, 2.5vw, 2rem)" }}
+        >
+          <ChevronLeftIcon sx={{ fontSize: "clamp(0.8rem, 1.4vw, 1.1rem)" }} />
+        </button>
+
+        {/* Cards */}
+        <div className="flex items-end" style={{ gap: "clamp(0.4rem, 0.8vw, 0.6rem)", paddingLeft: "clamp(0.5rem, 1vw, 1rem)" }}>
+          {slice.map((film) => (
             <div
               key={film.id}
-              onClick={() => {
-                setSelected(film.id);
-                navigate(`/film/${film.id}`);
-              }}
-              className={`
-                flex-shrink-0 w-[76px] cursor-pointer group
-                transition-transform duration-normal ease-cinematic
-                hover:-translate-y-2
-                ${isSelected ? "ring-1 ring-gold rounded-card" : ""}
-              `}
+              onClick={() => navigate(`/film/${film.id}`)}
+              className="flex-shrink-0 cursor-pointer group transition-transform duration-normal ease-cinematic hover:-translate-y-1.5"
+              style={{ width: "clamp(90px, 10vw, 160px)" }}
             >
               <img
                 src={
@@ -66,12 +59,31 @@ const HeroCarousel = ({ films = [], label = "PEOPLE ALSO LIKED" }) => {
                 alt={film.title}
                 className="w-full aspect-[2/3] object-cover rounded-card shadow-card"
               />
-              <p className="mt-1.5 text-[9px] font-body text-white/50 group-hover:text-white/80 line-clamp-1 transition-colors duration-fast leading-tight">
+              <p
+                className="font-body text-white/50 group-hover:text-white/80 line-clamp-1 transition-colors duration-fast leading-tight"
+                style={{ fontSize: "clamp(0.5rem, 0.85vw, 0.7rem)", marginTop: "clamp(0.3rem, 0.5vh, 0.5rem)" }}
+              >
                 {film.title}
               </p>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Next arrow */}
+        <button
+          onClick={() => canNext && setStart((s) => s + 1)}
+          disabled={!canNext}
+          className={`
+            absolute -right-1 z-20 flex items-center justify-center rounded-full
+            bg-black/50 backdrop-blur-sm border border-white/10
+            text-white/70 hover:text-white hover:bg-black/70
+            transition-all duration-fast cursor-pointer
+            disabled:opacity-0 disabled:pointer-events-none
+          `}
+          style={{ width: "clamp(1.5rem, 2.5vw, 2rem)", height: "clamp(1.5rem, 2.5vw, 2rem)" }}
+        >
+          <ChevronRightIcon sx={{ fontSize: "clamp(0.8rem, 1.4vw, 1.1rem)" }} />
+        </button>
       </div>
     </div>
   );

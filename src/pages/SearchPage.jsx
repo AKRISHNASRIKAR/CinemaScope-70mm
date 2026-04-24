@@ -1,163 +1,290 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
+import Footer from "@/components/layout/Footer";
 
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+const API_KEY  = import.meta.env.VITE_API_KEY;
+
+/* ── Skeleton ─── */
+const SkeletonCard = () => (
+  <div className="animate-pulse">
+    <div className="aspect-[2/3] rounded-card bg-white/5" />
+    <div className="h-3 rounded bg-white/5 mt-3 w-3/4" />
+    <div className="h-2 rounded bg-white/5 mt-1.5 w-1/2" />
+  </div>
+);
+
+const SkeletonPerson = () => (
+  <div className="animate-pulse flex flex-col items-center">
+    <div className="rounded-full bg-white/5" style={{ width: "clamp(60px, 8vw, 100px)", height: "clamp(60px, 8vw, 100px)" }} />
+    <div className="h-3 rounded bg-white/5 mt-3 w-3/4" />
+    <div className="h-2 rounded bg-white/5 mt-1.5 w-1/2" />
+  </div>
+);
+
+/* ── Page ─── */
 const SearchPage = () => {
-  const { query } = useParams();
-  const [movies, setMovies] = useState([]);
-  const [people, setPeople] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { query: routeQuery } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const debounceRef = useRef(null);
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL;
-  const API_KEY = import.meta.env.VITE_API_KEY;
+  // Resolve initial query from route param, then ?q= param
+  const initialQ = routeQuery?.replace(/-/g, " ") || searchParams.get("q") || "";
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      setLoading(true);
-      try {
-        // Fetch movies
-        const movieResponse = await axios.get(
-          `${BASE_URL}/search/movie?api_key=${API_KEY}&language=en-US&query=${query}`
-        );
+  const [inputValue, setInputValue]   = useState(initialQ);
+  const [searchTerm, setSearchTerm]   = useState(initialQ);
+  const [movies, setMovies]           = useState([]);
+  const [people, setPeople]           = useState([]);
+  const [loading, setLoading]         = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError]             = useState(null);
 
-        // Fetch people
-        const peopleResponse = await axios.get(
-          `${BASE_URL}/search/person?api_key=${API_KEY}&language=en-US&query=${query}`
-        );
-
-        setMovies(movieResponse.data.results || []);
-        setPeople(peopleResponse.data.results || []);
-      } catch (error) {
-        console.error("Error fetching search results:", error);
-        setMovies([]);
-        setPeople([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (query) {
-      fetchResults();
+  /* ── Fetch from TMDB /search/multi ─── */
+  const runSearch = useCallback(async (term) => {
+    if (!term.trim()) return;
+    setLoading(true);
+    setError(null);
+    setHasSearched(true);
+    try {
+      const res = await axios.get(
+        `${BASE_URL}/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(term)}&page=1`
+      );
+      const results = res.data.results || [];
+      setMovies(results.filter((r) => r.media_type === "movie"));
+      setPeople(results.filter((r) => r.media_type === "person"));
+    } catch (e) {
+      setError("Something went wrong. Try again.");
+      setMovies([]);
+      setPeople([]);
+    } finally {
+      setLoading(false);
     }
-  }, [query, BASE_URL, API_KEY]);
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <div className="text-xl">Loading search results...</div>
-      </div>
-    );
-  }
+  /* ── Run on mount if query exists ─── */
+  useEffect(() => {
+    if (initialQ) runSearch(initialQ);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Debounced search on typing ─── */
+  const handleInputChange = (val) => {
+    setInputValue(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (val.trim()) {
+        setSearchTerm(val.trim());
+        setSearchParams({ q: val.trim() });
+        runSearch(val.trim());
+      }
+    }, 500);
+  };
+
+  /* ── Enter key ─── */
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      clearTimeout(debounceRef.current);
+      setSearchTerm(inputValue.trim());
+      setSearchParams({ q: inputValue.trim() });
+      runSearch(inputValue.trim());
+    }
+  };
+
+  /* ── Clear ─── */
+  const clearSearch = () => {
+    setInputValue("");
+    setSearchTerm("");
+    setMovies([]);
+    setPeople([]);
+    setHasSearched(false);
+    setSearchParams({});
+    inputRef.current?.focus();
+  };
+
+  const totalResults = movies.length + people.length;
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white p-5">
-      {/* Main Content */}
-      <div className="px-4 sm:px-6 lg:px-8 pb-8 space-y-8 sm:space-y-12">
-        {/* Movies Section */}
-        {movies.length > 0 && (
-          <section>
-            <h2 className="text-xl p-10 sm:text-2xl text-center lg:text-left font-semibold mb-4 sm:mb-6">
-              Movies
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 lg:gap-6">
-              {movies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="group cursor-pointer"
-                  onClick={() => navigate(`/film/${movie.id}`)}
-                >
-                  <div className="relative overflow-hidden rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105">
-                    <img
-                      src={
-                        movie.poster_path
-                          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-                          : "/fallback-image-film.jpg"
-                      }
-                      alt={movie.title || movie.name}
-                      className="w-full aspect-[2/3] object-cover"
-                      loading="lazy"
-                    />
-                    {/* Overlay for better text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-                  <div className="mt-2 px-1">
-                    <h3 className="text-sm sm:text-base font-medium line-clamp-2 group-hover:text-blue-400 transition-colors">
-                      {movie.title || movie.name}
-                    </h3>
-                    {(movie.release_date || movie.first_air_date) && (
-                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                        {new Date(
-                          movie.release_date || movie.first_air_date
-                        ).getFullYear()}
-                      </p>
-                    )}
-                    {movie.vote_average > 0 && (
-                      <p className="text-xs text-yellow-400 mt-1">
-                        ⭐ {movie.vote_average.toFixed(1)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+    <div className="min-h-screen bg-base text-white flex flex-col">
+      <div className="flex-1" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
+        <div className="max-w-screen-xl mx-auto" style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
 
-        {/* People Section */}
-        {people.length > 0 && (
-          <section>
-            <h2 className="p-10 text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
-              Actors & Crew
-            </h2>
-            <div className="p-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-6">
-              {people.map((person) => (
-                <div
-                  key={person.id}
-                  className="group cursor-pointer"
-                  onClick={() => navigate(`/person/${person.id}`)}
+          {/* ══════════════════════════════════════
+              SEARCH BAR
+          ══════════════════════════════════════ */}
+          <div className="max-w-2xl mx-auto" style={{ marginBottom: "clamp(2rem, 4vh, 3rem)" }}>
+            <div className="relative flex items-center">
+              {/* Icon */}
+              <SearchIcon
+                sx={{ fontSize: "clamp(1.1rem, 1.8vw, 1.4rem)" }}
+                className="absolute text-white/30"
+                style={{ left: "clamp(0.75rem, 1.5vw, 1rem)" }}
+              />
+              {/* Input */}
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search films, actors, directors..."
+                className="
+                  w-full bg-surface border border-white/10
+                  focus:border-gold/50 focus:ring-1 focus:ring-gold/20
+                  text-white placeholder-white/25
+                  font-body rounded-card outline-none
+                  transition-all duration-normal
+                "
+                style={{
+                  fontSize: "clamp(0.9rem, 1.8vw, 1.15rem)",
+                  padding: "clamp(0.75rem, 1.5vh, 1rem) clamp(2.5rem, 4vw, 3rem)",
+                }}
+              />
+              {/* Clear button */}
+              {inputValue && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute text-white/30 hover:text-white/70 transition-colors duration-fast cursor-pointer"
+                  style={{ right: "clamp(0.75rem, 1.5vw, 1rem)" }}
                 >
-                  <div className="relative overflow-hidden rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-105">
-                    <img
-                      src={
-                        person.profile_path
-                          ? `https://image.tmdb.org/t/p/w500${person.profile_path}`
-                          : "/fallback-image.jpg"
-                      }
-                      alt={person.name}
-                      className="w-full aspect-[2/3] object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="mt-2 px-1">
-                    <h3 className="text-sm sm:text-base font-medium line-clamp-2 group-hover:text-blue-400 transition-colors">
-                      {person.name}
-                    </h3>
-                    {person.known_for_department && (
-                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                        {person.known_for_department}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  <CloseIcon sx={{ fontSize: "clamp(1rem, 1.5vw, 1.2rem)" }} />
+                </button>
+              )}
             </div>
-          </section>
-        )}
-
-        {/* No Results */}
-        {movies.length === 0 && people.length === 0 && (
-          <div className="text-center py-12 sm:py-16">
-            <div className="text-4xl sm:text-6xl mb-4">
-              <SearchOffIcon className="w-3xl" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-semibold mb-2">
-              No results found
-            </h2>
           </div>
-        )}
+
+          {/* ══════════════════════════════════════
+              RESULTS
+          ══════════════════════════════════════ */}
+
+          {/* Loading */}
+          {loading && (
+            <div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+                {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <p className="font-body text-red-400" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>{error}</p>
+              <button
+                onClick={() => runSearch(searchTerm)}
+                className="mt-4 font-body font-medium text-gold border border-gold/40 hover:bg-gold/10 rounded-card transition-colors duration-normal cursor-pointer"
+                style={{ padding: "clamp(0.4rem, 0.8vh, 0.6rem) clamp(1rem, 2vw, 1.5rem)", fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Results */}
+          {!loading && !error && hasSearched && (
+            <>
+              {/* Header */}
+              <div style={{ marginBottom: "clamp(1.5rem, 3vh, 2rem)" }}>
+                <h1 className="font-display font-bold text-white" style={{ fontSize: "clamp(1.3rem, 2.5vw, 2rem)" }}>
+                  Results for "{searchTerm}"
+                </h1>
+                <p className="font-body text-muted mt-1" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>
+                  {totalResults} result{totalResults !== 1 ? "s" : ""} found
+                </p>
+              </div>
+
+              {/* Movies */}
+              {movies.length > 0 && (
+                <section style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
+                  <h2 className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>Movies</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+                    {movies.map((m) => (
+                      <div key={m.id} onClick={() => navigate(`/film/${m.id}`)} className="group cursor-pointer">
+                        <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
+                          <img
+                            src={m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : "/fallback-image-film.jpg"}
+                            alt={m.title} loading="lazy"
+                            className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105 group-hover:brightness-110"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-normal" />
+                        </div>
+                        <p className="font-body font-medium line-clamp-1 group-hover:text-gold transition-colors duration-fast" style={{ marginTop: "clamp(0.4rem, 0.8vh, 0.6rem)", fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}>
+                          {m.title}
+                        </p>
+                        <div className="flex items-center font-mono text-muted" style={{ gap: "clamp(0.3rem, 0.5vw, 0.4rem)", marginTop: "2px", fontSize: "clamp(0.55rem, 0.85vw, 0.65rem)" }}>
+                          {m.release_date && <span>{m.release_date.slice(0, 4)}</span>}
+                          {m.vote_average > 0 && (
+                            <>
+                              {m.release_date && <span className="text-white/15">·</span>}
+                              <span className="text-gold">⭐ {m.vote_average.toFixed(1)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* People */}
+              {people.length > 0 && (
+                <section style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
+                  <h2 className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>People</h2>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+                    {people.map((p) => (
+                      <div key={p.id} onClick={() => navigate(`/person/${p.id}`)} className="group cursor-pointer text-center">
+                        <div className="mx-auto overflow-hidden rounded-full bg-surface shadow-card aspect-square" style={{ width: "clamp(60px, 8vw, 100px)" }}>
+                          <img
+                            src={p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : "/fallback-image.jpg"}
+                            alt={p.name} loading="lazy"
+                            className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-110 group-hover:brightness-110"
+                          />
+                        </div>
+                        <p className="font-body font-medium line-clamp-1 group-hover:text-gold transition-colors duration-fast" style={{ marginTop: "clamp(0.4rem, 0.8vh, 0.6rem)", fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>
+                          {p.name}
+                        </p>
+                        {p.known_for_department && (
+                          <p className="font-mono text-muted uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.45rem, 0.7vw, 0.55rem)", marginTop: "2px" }}>
+                            {p.known_for_department}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Empty */}
+              {totalResults === 0 && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <SearchOffIcon sx={{ fontSize: "clamp(3rem, 6vw, 5rem)", color: "rgba(255,255,255,0.12)" }} />
+                  <h2 className="font-display font-bold text-white/30 mt-4" style={{ fontSize: "clamp(1.1rem, 2vw, 1.5rem)" }}>
+                    No results found for "{searchTerm}"
+                  </h2>
+                  <p className="font-body text-muted mt-2" style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}>
+                    Try a different search term
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Initial state — no search yet */}
+          {!loading && !error && !hasSearched && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <SearchIcon sx={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", color: "rgba(255,255,255,0.08)" }} />
+              <p className="font-body text-white/25 mt-4" style={{ fontSize: "clamp(0.8rem, 1.3vw, 1rem)" }}>
+                Search for films, actors, and directors
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+      <Footer />
     </div>
   );
 };

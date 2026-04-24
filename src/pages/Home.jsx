@@ -1,47 +1,11 @@
 import { useEffect, useState } from "react";
-import { Box, CircularProgress, Alert } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import Hero from "@/components/sections/Hero";
 import StatsBlock from "@/components/sections/StatsBlock";
 import GenreRow from "@/components/sections/GenreRow";
+import Footer from "@/components/layout/Footer";
 import { GENRE_SECTIONS } from "@/lib/constants";
 
-/* ── per-genre data fetcher (keeps Home clean) ─────────────────── */
-const useMoviesByGenre = (genreIds) => {
-  const [films,   setFilms]   = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const BASE = import.meta.env.VITE_BASE_URL;
-  const KEY  = import.meta.env.VITE_API_KEY;
-
-  useEffect(() => {
-    if (!genreIds?.length) return;
-    const ids = genreIds.join(",");
-    fetch(`${BASE}/discover/movie?api_key=${KEY}&with_genres=${ids}&language=en-US&sort_by=popularity.desc`)
-      .then((r) => r.json())
-      .then((d) => setFilms(d.results || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [genreIds.join(",")]); // eslint-disable-line
-
-  return { films, loading };
-};
-
-/* ── thin wrapper so each GenreRow fetches its own data ─────────── */
-const GenreSection = ({ section }) => {
-  const { films, loading } = useMoviesByGenre(section.genreIds);
-  if (loading || !films.length) return null;
-  return (
-    <GenreRow
-      genre={section.genre}
-      tagline={section.tagline}
-      films={films}
-      alignment={section.alignment}
-      theme={section.theme}
-    />
-  );
-};
-
-/* ── main page ───────────────────────────────────────────────────── */
 const Home = () => {
   const [movies,  setMovies]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,27 +44,30 @@ const Home = () => {
 
   if (error) {
     return (
-      <Box mt={2} px={4}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <div className="min-h-screen bg-base flex items-center justify-center" style={{ padding: "clamp(1rem, 4vw, 2rem)" }}>
+        <p className="text-red-400 font-body" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>{error}</p>
+      </div>
     );
   }
 
-  const featuredFilm  = movies[0]    ?? null;
+  const featuredFilm  = movies[0] ?? null;
   const carouselFilms = movies.slice(1, 8);
 
   return (
     <main className="min-h-screen bg-base">
-      {/* ── Hero — full viewport, navbar floats over it ── */}
       <Hero film={featuredFilm} relatedFilms={carouselFilms} />
-
-      {/* ── Stats block ── */}
       <StatsBlock featuredFilm={featuredFilm} />
-
-      {/* ── Genre rows — each fetches its own data ── */}
       {GENRE_SECTIONS.map((section) => (
-        <GenreSection key={section.id} section={section} />
+        <GenreRow
+          key={section.id}
+          genre={section.genre}
+          tagline={section.tagline}
+          genreIds={section.genreIds}
+          alignment={section.alignment}
+          theme={section.theme}
+        />
       ))}
+      <Footer />
     </main>
   );
 };

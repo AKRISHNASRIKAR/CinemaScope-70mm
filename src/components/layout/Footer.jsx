@@ -1,13 +1,27 @@
-import React from "react";
+const GITHUB_URL = import.meta.env.VITE_GITHUB_URL || "https://github.com";
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#0000003b] items-center-safe rounded-2xl p-10 pt-12 pb-6 px-4 sm:px-6">
-      <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-center items-center p-5">
-        <p className="text-gray-500 text-sm  text-center items-center">
-          © {currentYear} CINEMASCOPE. All rights reserved.
+    <footer className="w-full bg-section-dark border-t border-white/[0.06]">
+      <div
+        className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between"
+        style={{ padding: "clamp(1.25rem, 3vh, 2rem) clamp(1.5rem, 4vw, 4rem)" }}
+      >
+        <p className="font-body text-muted" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>
+          © {year} CinemaScope. Developed by{" "}
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/60 hover:text-gold transition-colors duration-fast"
+          >
+            @Krishna
+          </a>
+        </p>
+        <p className="font-body text-faint mt-2 sm:mt-0" style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)" }}>
+          Powered by TMDB API
         </p>
       </div>
     </footer>

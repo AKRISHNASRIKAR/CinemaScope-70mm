@@ -34,8 +34,8 @@ function App() {
           element={<ProtectedRoute component={Person} />}
         />{" "}
         {/* Person route */}
-        <Route path="/search/:query" element={<SearchPage />} />{" "}
-        {/* SearchPage route */}
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search/:query" element={<SearchPage />} />
       </Routes>
     </Router>
   );

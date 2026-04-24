@@ -1,5 +1,6 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
+import Footer from "@/components/layout/Footer";
 
 const Profile = () => {
   const { user, isAuthenticated, logout } = useAuth0();
@@ -7,41 +8,44 @@ const Profile = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="text-center mt-20">
-        <h2 className="text-xl">You are not logged in.</h2>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="font-body text-muted" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}>You are not logged in.</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* Profile content */}
-
-      <div className="relative items-center z-10 text-center pt-20 text-white m-10">
-        <div className="flex items-center justify-center">
+    <div className="min-h-screen bg-base text-white flex flex-col">
+      <div className="flex-1 flex items-center justify-center" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
+        <div className="text-center" style={{ padding: "clamp(2rem, 5vw, 4rem)" }}>
           <img
             src={user.picture}
             alt="Profile"
-            className="w-24 h-24 rounded-full"
+            className="mx-auto rounded-full ring-2 ring-white/10 shadow-card"
+            style={{ width: "clamp(5rem, 10vw, 7rem)", height: "clamp(5rem, 10vw, 7rem)" }}
           />
-        </div>
-        <h1 className="text-3xl mt-4">{user.name}</h1>
-        <p className="text-gray-400 p-4">{user.email}</p>
-        <div className="mt-6 p-20 gap-4 flex justify-center">
-          <button
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mr-4"
-            onClick={() => navigate("/")}
-          >
-            Home
-          </button>
-          <button
-            className="bg-transparent hover:bg-blue-500 text-blue-500 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded"
-            onClick={() => logout({ returnTo: `${window.location.origin}/` })}
-          >
-            Logout
-          </button>
+          <h1 className="font-display font-bold text-white mt-6" style={{ fontSize: "clamp(1.5rem, 3vw, 2.5rem)" }}>{user.name}</h1>
+          <p className="font-body text-muted mt-2" style={{ fontSize: "clamp(0.75rem, 1.2vw, 0.95rem)" }}>{user.email}</p>
+
+          <div className="flex justify-center mt-10" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+            <button
+              onClick={() => navigate("/")}
+              className="font-body font-medium text-white bg-white/10 hover:bg-white/20 rounded-card transition-colors duration-normal cursor-pointer"
+              style={{ padding: "clamp(0.5rem, 1vh, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)", fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => logout({ returnTo: `${window.location.origin}/` })}
+              className="font-body font-medium text-gold border border-gold/40 hover:bg-gold/10 rounded-card transition-colors duration-normal cursor-pointer"
+              style={{ padding: "clamp(0.5rem, 1vh, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)", fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
