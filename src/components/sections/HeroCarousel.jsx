@@ -14,9 +14,13 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
   useEffect(() => {
     if (!activeFilmId || !stripRef.current) return;
     const el = cardRefs.current[activeFilmId];
-    if (el) {
-      // Use scrollIntoView so the card is centered horizontally
-      el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const container = stripRef.current;
+    if (el && container) {
+      const elLeft = el.offsetLeft;
+      const elWidth = el.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      const targetScroll = elLeft - (containerWidth / 2) + (elWidth / 2);
+      container.scrollTo({ left: targetScroll, behavior: "smooth" });
     }
   }, [activeFilmId]);
 
@@ -42,28 +46,31 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
       </span>
 
       {/* Carousel strip with arrows */}
-      <div className="relative flex items-center">
+      <div className="relative flex items-center group">
 
         {/* Prev arrow — hidden on mobile */}
-        <button
-          onClick={() => scrollBy(-1)}
-          aria-label="Scroll left"
-          className="
-            hidden sm:flex
-            absolute -left-3 z-20 items-center justify-center rounded-full
-            bg-black/50 backdrop-blur-sm border border-white/10
-            text-white/70 hover:text-white hover:bg-black/70
-            transition-all duration-fast cursor-pointer
-          "
-          style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
-        >
-          <ChevronLeftIcon sx={{ fontSize: "clamp(0.8rem,1.4vw,1.1rem)" }} />
-        </button>
+        {films.length > 5 && (
+          <button
+            onClick={() => scrollBy(-1)}
+            aria-label="Scroll left"
+            className="
+              hidden sm:flex
+              absolute -left-3 z-20 items-center justify-center rounded-full
+              bg-black/50 backdrop-blur-sm border border-white/10
+              text-white/70 hover:text-white hover:bg-black/70
+              opacity-30 group-hover:opacity-100
+              transition-all duration-fast cursor-pointer
+            "
+            style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
+          >
+            <ChevronLeftIcon sx={{ fontSize: "clamp(0.8rem,1.4vw,1.1rem)" }} />
+          </button>
+        )}
 
         {/* Scrollable strip */}
         <div
           ref={stripRef}
-          className="flex items-end overflow-x-auto overflow-y-hidden scrollbar-hide"
+          className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide py-4"
           style={{
             gap: "clamp(0.4rem,0.8vw,0.6rem)",
             paddingLeft: "clamp(0.5rem,1vw,1rem)",
@@ -80,7 +87,7 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
                 key={film.id}
                 ref={(el) => { cardRefs.current[film.id] = el; }}
                 onClick={() => navigate(`/film/${film.id}`)}
-                className="flex-shrink-0 cursor-pointer group"
+                className="flex-shrink-0 cursor-pointer group/card"
                 style={{
                   width: "clamp(70px,10vw,120px)",
                   scrollSnapAlign: "start",
@@ -131,20 +138,23 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
         </div>
 
         {/* Next arrow — hidden on mobile */}
-        <button
-          onClick={() => scrollBy(1)}
-          aria-label="Scroll right"
-          className="
-            hidden sm:flex
-            absolute -right-1 z-20 items-center justify-center rounded-full
-            bg-black/50 backdrop-blur-sm border border-white/10
-            text-white/70 hover:text-white hover:bg-black/70
-            transition-all duration-fast cursor-pointer
-          "
-          style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
-        >
-          <ChevronRightIcon sx={{ fontSize: "clamp(0.8rem,1.4vw,1.1rem)" }} />
-        </button>
+        {films.length > 5 && (
+          <button
+            onClick={() => scrollBy(1)}
+            aria-label="Scroll right"
+            className="
+              hidden sm:flex
+              absolute -right-1 z-20 items-center justify-center rounded-full
+              bg-black/50 backdrop-blur-sm border border-white/10
+              text-white/70 hover:text-white hover:bg-black/70
+              opacity-30 group-hover:opacity-100
+              transition-all duration-fast cursor-pointer
+            "
+            style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
+          >
+            <ChevronRightIcon sx={{ fontSize: "clamp(0.8rem,1.4vw,1.1rem)" }} />
+          </button>
+        )}
       </div>
     </div>
   );

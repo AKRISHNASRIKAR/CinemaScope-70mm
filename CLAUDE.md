@@ -179,7 +179,7 @@ src/
 - **Three-Layer Logic:** The Hero uses Layer A (current), Layer B (incoming), and Layer C (permanent vignette).
 - **Silent Preloading:** Next backdrop is preloaded via `img.onload` before the crossfade starts to prevent "flashing" or empty frames.
 - **Staggered Content:** Film metadata (title, genre, etc.) uses `framer-motion` with staggered delays for a premium reveal effect.
-- **Carousel Sync:** The "Now Showing" strip automatically smooth-scrolls the active film into the center of the viewport.
+- **Carousel Sync:** The "Now Showing" strip automatically smooth-scrolls the active film into the center of the viewport (using `scrollLeft` to avoid vertical page jumps).
 
 ### Lazy Loading Strategy
 - **Above the Fold:** Hero backdrops and main film posters use `loading="eager"` and `fetchpriority="high"` for instant LCP.
@@ -187,3 +187,11 @@ src/
 - **IntersectionObserver:** Heavy sections like the **Cast Grid** in `FilmPage` only load their images when the section scrolls into view (with a 200px rootMargin buffer).
 - **Placeholders:** Every lazy image displays a `.skeleton` shimmer effect during load and a contextual icon fallback (Film or Person) on error to prevent layout shift.
 - **No Dependencies:** Most logic uses native browser APIs (`IntersectionObserver`, `loading="lazy"`) to keep the bundle size small.
+
+---
+
+## Global UI & UX Refinements
+
+- **Navbar Height Calculation:** The `Navbar` component measures its actual DOM height on mount and exposes it globally via the CSS custom property `--navbar-height` on the `:root` element. This guarantees perfect offsets for fixed elements like the `BackButton` and sticky filter tabs across all responsive breakpoints.
+- **Accessibility & Motion:** All interactive elements feature a clear `focus-visible` gold outline. The application respects system accessibility settings globally via a `@media (prefers-reduced-motion: reduce)` rule that disables all CSS transitions and animations when requested by the user.
+- **Future Improvements:** For a comprehensive list of planned frontend enhancements, low-effort high-impact tasks, and accessibility goals, see the living suggestions document at [docs/implement.md](./docs/implement.md).

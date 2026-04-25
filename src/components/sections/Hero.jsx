@@ -177,7 +177,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
           src={layerA.src}
           alt=""
           aria-hidden
-          fetchPriority="high"
+          fetchpriority="high"
           loading="eager"
           className="absolute inset-0 w-full h-full object-cover object-center"
           style={{ zIndex: 1, willChange: "opacity" }}
@@ -276,115 +276,119 @@ const Hero = ({ film, relatedFilms = [] }) => {
         </div>
       )}
 
-      {/* ══ Film info — staggered framer-motion reveal ══════════════ */}
-      <div
-        className="absolute cursor-pointer"
-        style={{
-          zIndex: 10,
-          bottom: "clamp(2rem,6vh,4rem)",
-          left:   "clamp(1.5rem,4vw,4rem)",
-          maxWidth: "clamp(280px,45vw,600px)",
-        }}
-        onClick={() => navigate(`/film/${current?.id}`)}
-      >
-        <AnimatePresence mode="wait">
-          <motion.div key={contentKey} style={{ willChange: "opacity, transform" }}>
+      {/* ══ Film info — centered constraint ════════════════════════ */}
+      <div className="absolute inset-0 z-10 pointer-events-none center-container px-4 sm:px-6 lg:px-12">
+        <div className="relative h-full w-full">
+          <div
+            className="absolute pointer-events-auto"
+            style={{
+              bottom: "clamp(2rem,6vh,4rem)",
+              left: 0,
+              maxWidth: "clamp(280px,45vw,600px)",
+            }}
+            onClick={() => navigate(`/film/${current?.id}`)}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div key={contentKey} style={{ willChange: "opacity, transform" }}>
 
-            {/* Genre tags */}
-            {genres.length > 0 && (
-              <motion.div
-                variants={contentVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                custom={0}
-                className="flex items-center flex-wrap mb-[clamp(0.5rem,1vh,0.75rem)]"
-                style={{ gap: "clamp(0.4rem,0.8vw,0.6rem)" }}
-              >
-                {genres.map((genre, i) => (
-                  <React.Fragment key={genre}>
-                    <span
-                      className="font-body font-medium tracking-[0.18em] text-white/50 uppercase"
-                      style={{ fontSize: "clamp(0.6rem,1.2vw,0.85rem)" }}
-                    >
-                      {genre}
-                    </span>
-                    {i < genres.length - 1 && (
-                      <span className="text-white/25" style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)" }}>|</span>
-                    )}
-                  </React.Fragment>
-                ))}
+                {/* Genre tags */}
+                {genres.length > 0 && (
+                  <motion.div
+                    variants={contentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    custom={0}
+                    className="flex items-center flex-wrap mb-[clamp(0.5rem,1vh,0.75rem)]"
+                    style={{ gap: "clamp(0.4rem,0.8vw,0.6rem)" }}
+                  >
+                    {genres.map((genre, i) => (
+                      <React.Fragment key={genre}>
+                        <span
+                          className="font-body font-medium tracking-[0.18em] text-white/50 uppercase hover:text-white transition-colors duration-fast cursor-pointer"
+                          style={{ fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)" }}
+                        >
+                          {genre}
+                        </span>
+                        {i < genres.length - 1 && (
+                          <span className="text-white/25" style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)" }}>|</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </motion.div>
+                )}
+
+                {/* Title */}
+                <motion.h1
+                  variants={contentVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  custom={0.08}
+                  className="text-white leading-[0.9] tracking-tight"
+                  style={{
+                    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+                    fontWeight: 700,
+                    fontSize: "clamp(2rem,5vw,5rem)",
+                    paddingTop: "clamp(0.75rem, 2vw, 1.25rem)",
+                    paddingBottom: "clamp(0.75rem, 2vw, 1.25rem)",
+                    willChange: "opacity, transform",
+                  }}
+                >
+                  {current?.title || current?.original_title}
+                </motion.h1>
+
+                {/* Metadata row */}
+                <motion.div
+                  variants={contentVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  custom={0.16}
+                  className="flex flex-wrap items-center text-white/40 font-mono tracking-[0.06em]"
+                  style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)", fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)" }}
+                >
+                  {year && <span>{year}</span>}
+                  {current?.director && (
+                    <>
+                      <span className="text-white/20">|</span>
+                      <span>
+                        <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Director: </span>
+                        {current.director}
+                      </span>
+                    </>
+                  )}
+                  {current?.stars?.length > 0 && (
+                    <>
+                      <span className="text-white/20">|</span>
+                      <span>
+                        <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Stars: </span>
+                        {current.stars.slice(0, 3).join(", ")}
+                      </span>
+                    </>
+                  )}
+                </motion.div>
+
+                {/* Rating */}
+                {rating && (
+                  <motion.div
+                    variants={contentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    custom={0.22}
+                    className="flex items-baseline gap-[clamp(0.25rem,0.5vw,0.5rem)] mt-[clamp(0.75rem,1.5vh,1.25rem)]"
+                  >
+                    <span className="font-mono tracking-[0.15em] text-white/40 uppercase" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>Rating</span>
+                    <span className="font-mono font-semibold text-gold" style={{ fontSize: "clamp(1.1rem,2vw,1.5rem)" }}>{rating}</span>
+                    <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>/ 10</span>
+                  </motion.div>
+                )}
+
               </motion.div>
-            )}
-
-            {/* Title */}
-            <motion.h1
-              variants={contentVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              custom={0.08}
-              className="text-white leading-[0.9] tracking-tight"
-              style={{
-                fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-                fontWeight: 700,
-                fontSize: "clamp(2rem,5vw,5rem)",
-                marginBottom: "clamp(0.5rem,1.5vh,1rem)",
-                willChange: "opacity, transform",
-              }}
-            >
-              {current?.title || current?.original_title}
-            </motion.h1>
-
-            {/* Metadata row */}
-            <motion.div
-              variants={contentVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              custom={0.16}
-              className="flex flex-wrap items-center text-white/40 font-mono tracking-[0.06em]"
-              style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)", fontSize: "clamp(0.65rem,1.1vw,0.8rem)" }}
-            >
-              {year && <span>{year}</span>}
-              {current?.director && (
-                <>
-                  <span className="text-white/20">|</span>
-                  <span>
-                    <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Director: </span>
-                    {current.director}
-                  </span>
-                </>
-              )}
-              {current?.stars?.length > 0 && (
-                <>
-                  <span className="text-white/20">|</span>
-                  <span>
-                    <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Stars: </span>
-                    {current.stars.slice(0, 3).join(", ")}
-                  </span>
-                </>
-              )}
-            </motion.div>
-
-            {/* Rating */}
-            {rating && (
-              <motion.div
-                variants={contentVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                custom={0.22}
-                className="flex items-baseline gap-[clamp(0.25rem,0.5vw,0.5rem)] mt-[clamp(0.75rem,1.5vh,1.25rem)]"
-              >
-                <span className="font-mono tracking-[0.15em] text-white/40 uppercase" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>Rating</span>
-                <span className="font-mono font-semibold text-gold" style={{ fontSize: "clamp(1.1rem,2vw,1.5rem)" }}>{rating}</span>
-                <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>/ 10</span>
-              </motion.div>
-            )}
-
-          </motion.div>
-        </AnimatePresence>
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {/* ══ Now Showing carousel — passes activeFilmId for scroll sync ══ */}

@@ -1,4 +1,4 @@
-import React, { Suspense, useRef } from "react";
+import React, { Suspense, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -24,15 +24,17 @@ const fmtDate = (dateStr) => {
 /* ── 1. Person Header (Data-driven) ────────────────────────────── */
 const PersonHeader = ({ person_id }) => {
   const { data: person } = useSWR(`/person/${person_id}`, fetcher, { suspense: true });
+  const [isBioExpanded, setIsBioExpanded] = useState(false);
 
   const born = fmtDate(person.birthday);
   const died = fmtDate(person.deathday);
-  const shortBio = person.biography
-    ? person.biography.split(". ").slice(0, 3).join(". ") + "."
-    : null;
-  const fullBio = person.biography && person.biography.split(". ").length > 3
-    ? person.biography.split(". ").slice(3, 6).join(". ") + "."
-    : null;
+  
+  const bioText = person.biography || "";
+  const isLongBio = bioText.length > 400;
+  
+  const displayBio = isLongBio && !isBioExpanded 
+    ? bioText.slice(0, 400) + "..." 
+    : bioText;
 
   return (
     <div className="flex flex-col sm:flex-row" style={{ gap: "clamp(1.5rem, 4vw, 3rem)" }}>
@@ -44,7 +46,7 @@ const PersonHeader = ({ person_id }) => {
             alt={person.name}
             fallbackType="person"
             eager={true}
-            fetchPriority="high"
+            fetchpriority="high"
             className="w-full aspect-[2/3] object-cover object-top sm:aspect-auto sm:h-auto"
             style={{ maxHeight: "clamp(50vw, 60vh, 600px)" }}
           />
@@ -92,21 +94,23 @@ const PersonHeader = ({ person_id }) => {
           {person.name}
         </h1>
 
-        {shortBio && (
-          <p className="font-body text-white/55 leading-relaxed" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)", marginTop: "clamp(1rem, 2vh, 1.5rem)" }}>
-            {shortBio}
-          </p>
-        )}
-
-        {fullBio && (
+        {bioText && (
           <div style={{ marginTop: "clamp(1.5rem, 3vh, 2.5rem)" }}>
             <div className="flex items-center" style={{ gap: "clamp(0.3rem, 0.6vw, 0.5rem)", marginBottom: "clamp(0.5rem, 1vh, 0.75rem)" }}>
               <BookmarkIcon sx={{ fontSize: "clamp(0.9rem, 1.3vw, 1.1rem)", color: "#c9a843" }} />
               <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem, 1.6vw, 1.3rem)" }}>Biography</h2>
             </div>
-            <p className="font-body text-white/40 leading-relaxed" style={{ fontSize: "clamp(0.75rem, 1.2vw, 0.9rem)" }}>
-              {fullBio}
-            </p>
+            <div className="font-body text-white/55 leading-relaxed" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>
+              {displayBio.split("\n").map((para, i) => para.trim() && <p key={i} className="mb-3">{para}</p>)}
+              {isLongBio && (
+                <button 
+                  onClick={() => setIsBioExpanded(!isBioExpanded)}
+                  className="text-gold hover:text-gold-lt transition-colors font-medium cursor-pointer"
+                >
+                  {isBioExpanded ? "Read Less" : "Read More"}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -167,14 +171,16 @@ const FilmographyRow = ({ person_id }) => {
           Known For
         </h2>
 
-        <div className="hidden sm:flex items-center" style={{ gap: "clamp(0.3rem, 0.5vw, 0.5rem)" }}>
-          <button onClick={() => scrollBy(-1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
-            <ChevronLeftIcon />
-          </button>
-          <button onClick={() => scrollBy(1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
-            <ChevronRightIcon />
-          </button>
-        </div>
+        {filmography.length > 5 && (
+          <div className="hidden sm:flex items-center" style={{ gap: "clamp(0.3rem, 0.5vw, 0.5rem)" }}>
+            <button onClick={() => scrollBy(-1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
+              <ChevronLeftIcon />
+            </button>
+            <button onClick={() => scrollBy(1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
+              <ChevronRightIcon />
+            </button>
+          </div>
+        )}
       </div>
 
       <div ref={scrollRef} className="flex overflow-x-auto scrollbar-hide pb-4" style={{ gap: "clamp(0.75rem, 1.5vw, 1.25rem)", scrollBehavior: "smooth" }}>
@@ -210,28 +216,26 @@ const Person = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
-      <div className="flex-1" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
-        <div className="max-w-screen-xl mx-auto" style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
-          
-          <div className="mb-8">
-            <BackButton fallbackRoute="/" label="Back to Films" />
-          </div>
-
-          {/* Header Section */}
-          <ErrorBoundary>
-            <Suspense fallback={<PersonHeaderSkeleton />}>
-              <PersonHeader person_id={person_id} />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Filmography Row */}
-          <ErrorBoundary>
-            <Suspense fallback={<FilmRowSkeleton count={6} />}>
-              <FilmographyRow person_id={person_id} />
-            </Suspense>
-          </ErrorBoundary>
-
+      <div className="flex-1 center-container px-4 sm:px-6 lg:px-12" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
+        
+        <div className="mb-8">
+          <BackButton fallbackRoute="/" label="Back to Films" />
         </div>
+
+        {/* Header Section */}
+        <ErrorBoundary>
+          <Suspense fallback={<PersonHeaderSkeleton />}>
+            <PersonHeader person_id={person_id} />
+          </Suspense>
+        </ErrorBoundary>
+
+        {/* Filmography Row */}
+        <ErrorBoundary>
+          <Suspense fallback={<FilmRowSkeleton count={6} />}>
+            <FilmographyRow person_id={person_id} />
+          </Suspense>
+        </ErrorBoundary>
+
       </div>
       <Footer />
     </div>

@@ -11,6 +11,22 @@ const Header = () => {
   const { user, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
+  const navbarRef = useRef(null);
+
+  useEffect(() => {
+    if (navbarRef.current) {
+      document.documentElement.style.setProperty('--navbar-height', `${navbarRef.current.offsetHeight}px`);
+    }
+    
+    // Optional: Update on resize
+    const handleResize = () => {
+      if (navbarRef.current) {
+        document.documentElement.style.setProperty('--navbar-height', `${navbarRef.current.offsetHeight}px`);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const openSearch = () => {
     setSearchExpanded(true);
@@ -42,7 +58,7 @@ const Header = () => {
   }, [closeSearch]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
+    <header ref={navbarRef} className="fixed top-0 left-0 right-0 z-50">
       <nav className="flex items-center justify-between px-[clamp(1rem,4vw,3rem)] py-[clamp(1rem,2.5vw,1.5rem)] bg-black/15 backdrop-blur-navbar">
 
         {/* ── Spacer left (balances right cluster) ─── */}

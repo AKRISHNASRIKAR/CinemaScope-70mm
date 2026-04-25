@@ -1,11 +1,14 @@
 import React from "react";
+import MovieCreationIcon from "@mui/icons-material/MovieCreation";
 
 /* ── Base Shimmer ──────────────────────────────────────────────── */
-const Shimmer = ({ className = "", style = {} }) => (
+const Shimmer = ({ className = "", style = {}, showIcon = false }) => (
   <div 
-    className={`skeleton rounded-[inherit] ${className}`} 
+    className={`skeleton rounded-[inherit] relative flex items-center justify-center ${className}`} 
     style={{ width: "100%", height: "100%", ...style }} 
-  />
+  >
+    {showIcon && <MovieCreationIcon sx={{ color: "rgba(255,255,255,0.05)", fontSize: "clamp(2rem, 4vw, 3rem)" }} />}
+  </div>
 );
 
 /* ── Film Detail Hero Skeleton ─────────────────────────────────── */
@@ -19,7 +22,7 @@ export const FilmDetailHeroSkeleton = () => (
 
 /* ── Cast Section Skeleton ─────────────────────────────────────── */
 export const CastSectionSkeleton = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 mt-12 pb-12">
+  <div className="center-container px-4 sm:px-8 lg:px-12 mt-12 pb-12">
     <div className="bg-[#0c0c0c] rounded-card p-10">
       <div className="h-8 w-24 bg-white/5 rounded mx-auto mb-12" />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
@@ -39,7 +42,7 @@ export const FilmRowSkeleton = ({ count = 5 }) => (
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="flex-shrink-0 w-[clamp(130px, 18vw, 200px)] flex flex-col">
         <div className="aspect-[2/3] rounded-card bg-white/5 mb-3">
-          <Shimmer />
+          <Shimmer showIcon />
         </div>
         <div className="h-3 w-3/4 bg-white/5 rounded mb-2" />
         <div className="h-2 w-1/2 bg-white/5 rounded" />
@@ -79,7 +82,7 @@ export const FilmGridSkeleton = ({ count = 12 }) => (
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="flex flex-col">
         <div className="aspect-[2/3] rounded-card bg-white/5 mb-3">
-          <Shimmer />
+          <Shimmer showIcon />
         </div>
         <div className="h-3 w-3/4 bg-white/5 rounded mb-2" />
         <div className="h-2 w-1/2 bg-white/5 rounded" />

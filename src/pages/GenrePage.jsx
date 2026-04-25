@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useCallback } from "react";
+import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -105,7 +105,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
 
   return (
     <>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)" }}>
+      <div className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
         {allFilms.map((film) => (
           <FilmCard 
             key={`${film.id}-${page}`} 
@@ -120,7 +120,8 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}
-            className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50 px-10 py-3"
+            className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50"
+            style={{ padding: "0.75rem 2.5rem" }}
           >
             {loadingMore && <CircularProgress size={14} sx={{ color: "#c9a843" }} />}
             {loadingMore ? "Loading…" : "Load More"}
@@ -140,25 +141,42 @@ const GenrePage = () => {
   const [sortBy, setSortBy] = useState(SORT_OPTIONS[0]);
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
   const [heroPosterUrls, setHeroPosterUrls] = useState([]);
+  const [isSticky, setIsSticky] = useState(true);
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSticky(!entry.isIntersecting);
+      },
+      { rootMargin: "0px", threshold: 0 }
+    );
+    if (sentinelRef.current) observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const NAV_HEIGHT = "clamp(3.5rem, 7vw, 5rem)";
 
   return (
-    <div className="min-h-screen bg-base">
+    <div className="min-h-screen bg-base relative">
+      <BackButton fallbackRoute="/" />
       <GenreHero genreName={genreName} heroPosterUrls={heroPosterUrls} navHeight={NAV_HEIGHT} />
 
-      <div className="sticky bg-base/95 backdrop-blur-sm border-b border-white/5" style={{ top: NAV_HEIGHT, zIndex: 30 }}>
-        <div style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
+      <div 
+        className={`${isSticky ? 'sticky' : 'relative'} bg-[#090909] border-b border-white/5 w-full transition-all duration-200`} 
+        style={{ top: isSticky ? "var(--navbar-height, 4rem)" : "auto", zIndex: 30 }}
+      >
+        <div className="center-container px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between flex-wrap" style={{ gap: "clamp(0.5rem, 1vw, 1rem)", padding: "clamp(0.75rem, 1.5vh, 1rem) 0" }}>
             
-            <div className="flex items-center gap-4">
-              <BackButton fallbackRoute="/" label="Back" />
-              <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}>
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none" style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}>
                 {FILTER_TABS.map((tab) => (
                   <button
                     key={tab.label}
                     onClick={() => setFilterTab(tab)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.12em] uppercase rounded-full border transition-all duration-fast cursor-pointer px-4 py-1.5 text-[10px] ${filterTab.label === tab.label ? "bg-gold text-black border-gold" : "bg-transparent text-white/40 border-white/10 hover:text-white"}`}
+                    className={`flex-shrink-0 font-body font-medium tracking-[0.12em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[10px] whitespace-nowrap ${filterTab.label === tab.label ? "text-gold border-gold" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
                   >
                     {tab.label}
                   </button>
@@ -166,14 +184,15 @@ const GenrePage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-white/30 text-[10px] uppercase">Sort</span>
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="font-mono text-white/30 text-[10px] uppercase hidden sm:inline">Sort</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => setSortBy(opt)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.1em] uppercase rounded-full border transition-all duration-fast cursor-pointer px-3 py-1 text-[9px] ${sortBy.value === opt.value ? "bg-gold/20 text-gold border-gold/40" : "bg-transparent text-white/30 border-white/5 hover:text-white"}`}
+                    className={`flex-shrink-0 font-body font-medium tracking-[0.1em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[9px] whitespace-nowrap ${sortBy.value === opt.value ? "text-gold border-gold" : "bg-transparent text-white/30 border-transparent hover:text-white"}`}
+                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
                   >
                     {opt.label}
                   </button>
@@ -184,7 +203,7 @@ const GenrePage = () => {
         </div>
       </div>
 
-      <div style={{ padding: "clamp(1.5rem, 3vw, 2.5rem) clamp(1.5rem, 4vw, 4rem)" }}>
+      <div className="center-container w-full px-4 sm:px-6 lg:px-12 py-10">
         <ErrorBoundary>
           <Suspense fallback={<FilmGridSkeleton />}>
             <GenreGrid 
@@ -196,6 +215,9 @@ const GenrePage = () => {
           </Suspense>
         </ErrorBoundary>
       </div>
+
+      {/* Sentinel for IntersectionObserver */}
+      <div ref={sentinelRef} className="w-full h-1" />
 
       <Footer />
     </div>

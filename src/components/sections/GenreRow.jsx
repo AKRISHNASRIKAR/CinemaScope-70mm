@@ -67,7 +67,7 @@ const GenreRow = ({
 
   return (
     <section className={`w-full ${bgClass}`} style={{ padding: "clamp(2rem, 5vw, 4rem) 0" }}>
-      <div style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
+      <div className="center-container px-4 sm:px-6 lg:px-12">
         <div className={`flex flex-col lg:flex-row ${alignment === "right" ? "lg:flex-row-reverse" : ""}`} style={{ gap: "clamp(1.5rem, 3vw, 3rem)" }}>
           
           <div className="lg:w-[28%] flex flex-col justify-between flex-shrink-0">

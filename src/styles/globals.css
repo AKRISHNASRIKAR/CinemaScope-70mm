@@ -21,16 +21,8 @@ body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-html {
-  scrollbar-width: none;
-}
-
 body {
   overflow-y: scroll;
-}
-
-body::-webkit-scrollbar {
-  display: none;
 }
 
 /* Utility: hide scrollbars while preserving scroll */
@@ -40,6 +32,14 @@ body::-webkit-scrollbar {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Foolproof centering container */
+.center-container {
+  max-width: 80rem !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
 }
 
 /* ── Shimmer skeleton ──────────────────────────────────────────── */
@@ -57,4 +57,36 @@ body::-webkit-scrollbar {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
+}
+
+/* ── Typography & Display Refinements ── */
+h1, h2, h3, h4, h5, h6, .font-display {
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+p, .font-body {
+  line-height: 1.55;
+}
+
+/* ── Interactive States ── */
+button, a {
+  outline: none;
+}
+
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* ── Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

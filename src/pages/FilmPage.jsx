@@ -40,7 +40,7 @@ const FilmHero = ({ id }) => {
             src={backdrop}
             alt={film.title}
             loading="eager"
-            fetchPriority="high"
+            fetchpriority="high"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: "top center" }}
           />
@@ -57,7 +57,7 @@ const FilmHero = ({ id }) => {
         />
       </section>
 
-      <div className="relative -mt-32 z-10 max-w-screen-xl mx-auto" style={{ padding: "0 clamp(1.5rem,4vw,4rem)" }}>
+      <div className="relative -mt-32 z-10 center-container" style={{ padding: "clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem)" }}>
         <div className="flex flex-col md:flex-row" style={{ gap: "clamp(1.5rem,4vw,3rem)" }}>
           <div className="flex-shrink-0 mx-auto md:mx-0" style={{ width: "clamp(180px,25vw,320px)" }}>
             <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card-hover">
@@ -65,7 +65,7 @@ const FilmHero = ({ id }) => {
                 src={posterSrc}
                 alt={film.title}
                 loading="eager"
-                fetchPriority="high"
+                fetchpriority="high"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -96,7 +96,7 @@ const FilmHero = ({ id }) => {
             {film.overview && (
               <div className="mt-8">
                 <h2 className="font-display font-bold text-gold" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>Overview</h2>
-                <p className="font-body text-white/70 leading-relaxed mt-2" style={{ fontSize: "clamp(0.75rem,1.1vw,0.9rem)" }}>{film.overview}</p>
+                <p className="font-body text-white/70 leading-relaxed mt-2 line-clamp-3" style={{ fontSize: "clamp(0.75rem,1.1vw,0.9rem)" }}>{film.overview}</p>
               </div>
             )}
           </div>
@@ -133,7 +133,7 @@ const CastSection = ({ id }) => {
   return (
     <div
       ref={castSectionRef}
-      className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12"
+      className="center-container px-4 sm:px-6 lg:px-12"
       style={{ marginTop: "clamp(2.5rem,5vh,4rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
     >
       <div
@@ -196,8 +196,8 @@ const CastSection = ({ id }) => {
           <div className="flex justify-center" style={{ marginTop: "clamp(1.5rem,3vh,2rem)" }}>
             <button
               onClick={() => setShowAllCast((v) => !v)}
-              className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/60 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card px-8 py-3"
-              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}
+              className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/60 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card"
+              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)", padding: "0.75rem 2rem" }}
             >
               {showAllCast ? <>Show Less <KeyboardArrowUpIcon /></> : <>View Full Cast <KeyboardArrowDownIcon /></>}
             </button>
@@ -216,7 +216,7 @@ const SimilarMovies = ({ id }) => {
   if (movies.length === 0) return null;
 
   return (
-    <div className="max-w-screen-xl mx-auto px-6 lg:px-16 mt-16 pb-12">
+    <div className="center-container px-4 sm:px-6 lg:px-12 mt-16 pb-12">
       <h2 className="font-display font-bold text-white mb-6" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>
         Similar Movies
       </h2>

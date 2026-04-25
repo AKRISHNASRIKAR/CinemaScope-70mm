@@ -1,34 +1,35 @@
 import React from "react";
-import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 
 /**
- * Reusable BackButton component with cinematic glass styling.
- * Smarter than window.history.back() — falls back to a default route
- * if no history exists (e.g. direct entry).
+ * Reusable BackButton component with cinematic styling.
+ * Fixed position below navbar.
  */
-const BackButton = ({ fallbackRoute = "/", label = "Back", className = "" }) => {
+const BackButton = ({ fallbackRoute = "/", className = "" }) => {
   const { goBack } = useBackNavigation(fallbackRoute);
 
   return (
-    <button
-      onClick={goBack}
-      className={`
-        group flex items-center gap-2 px-3 py-1.5 
-        bg-black/20 backdrop-blur-md border border-white/10 
-        rounded-full text-white/60 hover:text-white hover:bg-black/40 
-        transition-all duration-200 ease-out cursor-pointer z-40
-        ${className}
-      `}
+    <div 
+      className="fixed left-0 right-0 z-40 pointer-events-none" 
+      style={{ top: "calc(var(--navbar-height, 4rem) + 16px)" }}
     >
-      <KeyboardBackspaceIcon 
-        sx={{ fontSize: 18 }} 
-        className="transition-transform duration-200 group-hover:-translate-x-1" 
-      />
-      <span className="hidden sm:inline font-body text-sm font-medium tracking-wide">
-        {label}
-      </span>
-    </button>
+      <div className="center-container px-4 sm:px-6 lg:px-12">
+        <button
+          onClick={goBack}
+          className={`
+            pointer-events-auto flex items-center justify-center
+            text-white/70 hover:text-white
+            transition-all duration-200 ease-in-out cursor-pointer
+            hover:-translate-x-1 w-max -ml-2
+            ${className}
+          `}
+          aria-label="Go back"
+        >
+          <ChevronLeftIcon sx={{ fontSize: "clamp(32px, 4vw, 40px)" }} />
+        </button>
+      </div>
+    </div>
   );
 };
 

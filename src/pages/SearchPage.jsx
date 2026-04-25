@@ -11,6 +11,9 @@ import Footer from "@/components/layout/Footer";
 import LazyImage from "@/components/ui/LazyImage";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+
+const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
 
 /* ── 1. Search Results Component (Data-driven) ─────────────────── */
 const SearchResults = ({ term }) => {
@@ -68,16 +71,44 @@ const SearchResults = ({ term }) => {
       {people.length > 0 && (
         <section style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
           <h2 className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>People</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
-            {people.map((p) => (
-              <div key={p.id} onClick={() => navigate(`/person/${p.id}`)} className="group cursor-pointer text-center">
-                <div className="mx-auto overflow-hidden rounded-full bg-surface shadow-card aspect-square" style={{ width: "clamp(60px, 8vw, 100px)" }}>
-                  <LazyImage src={p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : null} alt={p.name} fallbackType="person" className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-110 group-hover:brightness-110" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
+            {people.map((p, i) => {
+              const rot = ROTATIONS[i % ROTATIONS.length];
+              const imgSrc = p.profile_path ? `https://image.tmdb.org/t/p/w200${p.profile_path}` : null;
+              
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => navigate(`/person/${p.id}`)}
+                  className="cursor-pointer w-full max-w-[clamp(110px,14vw,160px)] mx-auto group"
+                  style={{ transform: `rotate(${rot}deg)`, transition: "transform 200ms ease, box-shadow 200ms ease" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "rotate(0deg) translateY(-4px)";
+                    e.currentTarget.style.boxShadow = "4px 6px 20px rgba(0,0,0,0.55)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = `rotate(${rot}deg)`;
+                    e.currentTarget.style.boxShadow = "3px 4px 14px rgba(0,0,0,0.35)";
+                  }}
+                >
+                  <div className="bg-white/95 flex flex-col" style={{ padding: "clamp(6px,0.8vw,10px) clamp(6px,0.8vw,10px) clamp(18px,2.5vw,28px)", boxShadow: "3px 4px 14px rgba(0,0,0,0.35)", borderRadius: "2px" }}>
+                    <div className="relative w-full aspect-[3/4] overflow-hidden" style={{ borderRadius: "1px" }}>
+                      {imgSrc ? (
+                        <LazyImage src={imgSrc} alt={p.name} fallbackType="person" className="w-full h-full object-cover object-top" />
+                      ) : (
+                        <div className="w-full h-full bg-[#ddd] flex items-center justify-center">
+                          <PersonOutlineIcon sx={{ fontSize: "clamp(1.5rem,3vw,2rem)", color: "#aaa" }} />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ paddingTop: "clamp(6px,0.8vw,10px)" }}>
+                      <p className="font-mono font-medium text-ink uppercase leading-tight line-clamp-1" style={{ fontSize: "clamp(0.45rem,0.7vw,0.6rem)", letterSpacing: "0.08em" }}>{p.name}</p>
+                      {p.known_for_department && <p className="font-body text-ink-muted leading-tight line-clamp-1" style={{ fontSize: "clamp(0.4rem,0.6vw,0.5rem)", marginTop: "2px" }}>{p.known_for_department}</p>}
+                    </div>
+                  </div>
                 </div>
-                <p className="font-body font-medium line-clamp-1 group-hover:text-gold transition-colors duration-fast mt-2" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>{p.name}</p>
-                {p.known_for_department && <p className="font-mono text-muted uppercase tracking-[0.1em] text-[10px] mt-1">{p.known_for_department}</p>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
@@ -129,7 +160,7 @@ const SearchPage = () => {
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
       <div className="flex-1" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
-        <div className="max-w-screen-xl mx-auto" style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
+        <div className="center-container px-4 sm:px-6 lg:px-12">
 
           <div className="max-w-2xl mx-auto" style={{ marginBottom: "clamp(2rem, 4vh, 3rem)" }}>
             <div className="relative flex items-center">
@@ -159,8 +190,7 @@ const SearchPage = () => {
             </ErrorBoundary>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 opacity-40">
-              <SearchIcon sx={{ fontSize: "clamp(2.5rem, 5vw, 4rem)" }} />
-              <p className="font-body mt-4">Search for films, actors, and directors</p>
+              <p className="font-body mt-4 text-center">Search for films, actors, and directors</p>
             </div>
           )}
         </div>

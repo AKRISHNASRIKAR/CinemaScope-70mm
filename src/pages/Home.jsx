@@ -32,7 +32,7 @@ const Home = () => {
 
       {/* Genre section header */}
       <div className="w-full bg-base" style={{ paddingTop: "clamp(3rem, 6vw, 5rem)", paddingBottom: "clamp(0.5rem, 1vw, 1rem)" }}>
-        <div style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
+        <div className="center-container px-4 sm:px-6 lg:px-12">
           <h2 className="font-display font-bold text-white leading-tight tracking-tight" style={{ fontSize: "clamp(1.5rem, 3vw, 2.5rem)" }}>
             Top Picks by Genre
           </h2>
