@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import BackButton from "@/components/ui/BackButton";
 
 const LoginPage = () => {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
@@ -20,6 +21,9 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-base flex items-center justify-center relative overflow-hidden">
+      <div className="absolute top-12 left-12 z-20">
+        <BackButton fallbackRoute="/" label="Back to Gallery" />
+      </div>
       {/* Animated grid background */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.04]"

@@ -1,72 +1,60 @@
-import { useEffect, useState } from "react";
-import { CircularProgress } from "@mui/material";
+import React, { Suspense } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/api/fetcher";
+
 import Hero from "@/components/sections/Hero";
-import StatsBlock from "@/components/sections/StatsBlock";
 import GenreRow from "@/components/sections/GenreRow";
 import Footer from "@/components/layout/Footer";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { FilmDetailHeroSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_SECTIONS } from "@/lib/constants";
 
-const Home = () => {
-  const [movies,  setMovies]  = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-
-  const API_BASE_URL = import.meta.env.VITE_BASE_URL;
-  const API_KEY      = import.meta.env.VITE_API_KEY;
-
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        if (!API_BASE_URL || !API_KEY) throw new Error("Missing env vars");
-        const res = await fetch(
-          `${API_BASE_URL}/movie/popular?api_key=${API_KEY}&language=en-US`,
-          { headers: { Accept: "application/json" } }
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setMovies(data.results);
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMovies();
-  }, [API_BASE_URL, API_KEY]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-base flex items-center justify-center">
-        <CircularProgress sx={{ color: "#c9a843" }} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-base flex items-center justify-center" style={{ padding: "clamp(1rem, 4vw, 2rem)" }}>
-        <p className="text-red-400 font-body" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>{error}</p>
-      </div>
-    );
-  }
-
-  const featuredFilm  = movies[0] ?? null;
+/* ── Hero Data Wrapper ────────────────────────────────────────── */
+const HeroSection = () => {
+  const { data } = useSWR("/movie/popular", fetcher, { suspense: true });
+  const movies = data.results || [];
+  const featuredFilm = movies[0] ?? null;
   const carouselFilms = movies.slice(1, 8);
 
+  return <Hero film={featuredFilm} relatedFilms={carouselFilms} />;
+};
+
+const Home = () => {
   return (
     <main className="min-h-screen bg-base">
-      <Hero film={featuredFilm} relatedFilms={carouselFilms} />
-      <StatsBlock featuredFilm={featuredFilm} />
+      
+      {/* Popular Movies Hero */}
+      <ErrorBoundary>
+        <Suspense fallback={<FilmDetailHeroSkeleton />}>
+          <HeroSection />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* Genre section header */}
+      <div className="w-full bg-base" style={{ paddingTop: "clamp(3rem, 6vw, 5rem)", paddingBottom: "clamp(0.5rem, 1vw, 1rem)" }}>
+        <div style={{ padding: "0 clamp(1.5rem, 4vw, 4rem)" }}>
+          <h2 className="font-display font-bold text-white leading-tight tracking-tight" style={{ fontSize: "clamp(1.5rem, 3vw, 2.5rem)" }}>
+            Top Picks by Genre
+          </h2>
+          <p className="font-body text-muted" style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.875rem)", marginTop: "clamp(0.3rem, 0.6vh, 0.5rem)" }}>
+            Curated from TMDB
+          </p>
+        </div>
+      </div>
+
+      {/* Genre rows - independent Suspense boundaries inside GenreRow component */}
       {GENRE_SECTIONS.map((section) => (
         <GenreRow
           key={section.id}
           genre={section.genre}
           tagline={section.tagline}
           genreIds={section.genreIds}
+          genreId={section.genreIds[0]}
           alignment={section.alignment}
           theme={section.theme}
         />
       ))}
+
       <Footer />
     </main>
   );

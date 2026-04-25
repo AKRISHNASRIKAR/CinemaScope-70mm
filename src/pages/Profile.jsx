@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/layout/Footer";
+import BackButton from "@/components/ui/BackButton";
 
 const Profile = () => {
   const { user, isAuthenticated, logout } = useAuth0();
@@ -16,7 +17,10 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
-      <div className="flex-1 flex items-center justify-center" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
+      <div className="max-w-screen-xl mx-auto w-full px-6 lg:px-16 pt-24">
+        <BackButton fallbackRoute="/" label="Back to Gallery" />
+      </div>
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-center" style={{ padding: "clamp(2rem, 5vw, 4rem)" }}>
           <img
             src={user.picture}

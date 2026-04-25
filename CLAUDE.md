@@ -147,10 +147,43 @@ src/
 
 ---
 
-## Next Steps
+## Data Fetching Architecture
 
-- **CI/CD pipeline** — Vercel / Netlify deployment
-- **Authentication** — wire Auth0 with real credentials from `.env`
-- **Watchlist** — requires backend/database (not started)
-- **Mobile nav** — hamburger menu for mobile breakpoints
-- **Performance** — image lazy loading, code splitting per route
+### Suspense & SWR
+- **Strategy:** The project uses **SWR** with `suspense: true` for all client-side data fetching. This allows components to "suspend" while data is loading, offloading loading state management to parent `Suspense` boundaries.
+- **Granular Boundaries:** Pages are divided into independent data-driven components (e.g., `FilmHero`, `CastSection`, `SimilarMovies`). Each has its own `Suspense` fallback (Skeleton) and `ErrorBoundary`, ensuring that a failure in one section doesn't crash the entire page.
+- **Skeletons:** Custom skeletons in `src/components/ui/Skeletons.jsx` match exact content dimensions to eliminate Layout Shift (CLS).
+
+### Performance — Waterfall Fixes
+- **FilmPage:** Resolved waterfall by using `parallelFetcher` to request movie details and US certification release dates simultaneously.
+- **PersonPage:** Header data and filmography credits are requested in parallel using independent Suspense boundaries.
+- **HomePage:** Each `GenreRow` initiates its own fetch concurrently; a slow row doesn't block others.
+- **Shared Fetcher:** `src/lib/api/fetcher.js` provides a centralized `fetcher` and `parallelFetcher` to handle TMDB auth and endpoint resolution.
+
+---
+
+## Navigation & UI
+
+### BackButton
+- **Component:** `src/components/ui/BackButton.jsx`
+- **Behavior:** Smart back navigation via `useBackNavigation` hook.
+  - Primary: `navigate(-1)`
+  - Fallback: Uses `fallbackRoute` prop if no history exists (prevents users from getting stuck when landing via direct URL).
+- **Styling:** Cinematic glass effect (blur + translucent bg) with responsive labels.
+
+---
+
+## Performance & Transitions
+
+### Hero Cinematic Transitions
+- **Three-Layer Logic:** The Hero uses Layer A (current), Layer B (incoming), and Layer C (permanent vignette).
+- **Silent Preloading:** Next backdrop is preloaded via `img.onload` before the crossfade starts to prevent "flashing" or empty frames.
+- **Staggered Content:** Film metadata (title, genre, etc.) uses `framer-motion` with staggered delays for a premium reveal effect.
+- **Carousel Sync:** The "Now Showing" strip automatically smooth-scrolls the active film into the center of the viewport.
+
+### Lazy Loading Strategy
+- **Above the Fold:** Hero backdrops and main film posters use `loading="eager"` and `fetchpriority="high"` for instant LCP.
+- **Lazy Content:** All other posters and profile photos use `loading="lazy"` via the `LazyImage` component.
+- **IntersectionObserver:** Heavy sections like the **Cast Grid** in `FilmPage` only load their images when the section scrolls into view (with a 200px rootMargin buffer).
+- **Placeholders:** Every lazy image displays a `.skeleton` shimmer effect during load and a contextual icon fallback (Film or Person) on error to prevent layout shift.
+- **No Dependencies:** Most logic uses native browser APIs (`IntersectionObserver`, `loading="lazy"`) to keep the bundle size small.

@@ -1,3 +1,5 @@
+import LazyImage from "@/components/ui/LazyImage";
+
 const STATS = [
   { number: "10K+", label: "Films in Library" },
   { number: "4.8",  label: "Average User Rating" },
@@ -34,7 +36,13 @@ const StatsBlock = ({ featuredFilm }) => {
           {posterUrl && (
             <>
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-64 bg-white/5 blur-3xl rounded-full" />
-              <img src={posterUrl} alt={featuredFilm?.title} className="relative z-10 object-cover shadow-card-hover" style={{ width: "clamp(10rem, 14vw, 13rem)", borderRadius: "6px 6px 0 0" }} />
+              <div className="relative z-10 shadow-card-hover" style={{ width: "clamp(10rem, 14vw, 13rem)", borderRadius: "6px 6px 0 0", overflow: "hidden" }}>
+                <LazyImage
+                  src={posterUrl}
+                  alt={featuredFilm?.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </>
           )}
           <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-base to-transparent z-20" />

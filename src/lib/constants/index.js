@@ -30,6 +30,7 @@ export const GENRE_SECTIONS = [
     genre:     "DRAMA & ROMANCE",
     tagline:   "Exciting, emotional and unexpected.",
     genreIds:  [18, 10749],
+    genreId:   18,           // primary genre for /genre/[id] navigation
     theme:     "light",
     alignment: "left",
   },
@@ -38,6 +39,7 @@ export const GENRE_SECTIONS = [
     genre:     "ACTION & ADVENTURE",
     tagline:   "Thrilling, explosive, and larger than life.",
     genreIds:  [28, 12],
+    genreId:   28,
     theme:     "dark",
     alignment: "right",
   },
@@ -46,6 +48,7 @@ export const GENRE_SECTIONS = [
     genre:     "COMEDY",
     tagline:   "Amusing, humorous, and over the top.",
     genreIds:  [35],
+    genreId:   35,
     theme:     "mid",
     alignment: "left",
   },

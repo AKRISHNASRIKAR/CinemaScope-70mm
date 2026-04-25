@@ -7,6 +7,7 @@ import Profile from "@/pages/Profile";
 import FilmPage from "@/pages/FilmPage";
 import SearchPage from "@/pages/SearchPage";
 import Person from "@/pages/Person";
+import GenrePage from "@/pages/GenrePage";
 
 const ProtectedRoute = ({ component, ...args }) => {
   const Component = withAuthenticationRequired(component, args);
@@ -36,6 +37,10 @@ function App() {
         {/* Person route */}
         <Route path="/search" element={<SearchPage />} />
         <Route path="/search/:query" element={<SearchPage />} />
+        <Route
+          path="/genre/:id"
+          element={<ProtectedRoute component={GenrePage} />}
+        />
       </Routes>
     </Router>
   );
