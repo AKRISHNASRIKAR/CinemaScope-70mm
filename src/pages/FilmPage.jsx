@@ -21,7 +21,7 @@ import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
 const INITIAL_CAST = 8;
 const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
 
-/* ── 1. Film Hero Section (Data-driven) ────────────────────────── */
+/* ── Film Hero Section ────────────────────────── */
 const FilmHero = ({ id }) => {
   const { data } = useSWR([`/movie/${id}`, `/movie/${id}/release_dates`], parallelFetcher, { suspense: true });
   const [film, releaseDates] = data;
@@ -110,7 +110,7 @@ const FilmHero = ({ id }) => {
   );
 };
 
-/* ── 2. Cast Section (Data-driven) ─────────────────────────────── */
+/* ── Cast Section ─────────────────────────────── */
 const CastSection = ({ id }) => {
   const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher, { suspense: true });
   const navigate = useNavigate();

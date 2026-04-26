@@ -15,7 +15,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
 const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
 
-/* ── 1. Search Results Component (Data-driven) ─────────────────── */
+/* ── Search Results ─────────────────────────────── */
 const SearchResults = ({ term }) => {
   const navigate = useNavigate();
   const { data } = useSWR(term ? `/search/multi?query=${encodeURIComponent(term)}&page=1` : null, fetcher, { suspense: true });
@@ -116,7 +116,7 @@ const SearchResults = ({ term }) => {
   );
 };
 
-/* ── Main Page Container ───────────────────────────────────────── */
+/* ── Search Page ───────────────────────────────────────── */
 const SearchPage = () => {
   const { query: routeQuery } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();

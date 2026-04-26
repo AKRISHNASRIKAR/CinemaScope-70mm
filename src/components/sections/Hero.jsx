@@ -63,24 +63,20 @@ const Hero = ({ film, relatedFilms = [] }) => {
   const shouldReduceMotion = useReducedMotion();
   const variants = shouldReduceMotion ? staticVariants : contentVariants;
 
-  /* ── image layer state ─────────────────────────────────────────
-     layerA = currently visible backdrop
-     layerB = incoming backdrop (hidden until preloaded, then fades in)
-     After B's fade completes → B becomes A, new B is prepared
-  ─────────────────────────────────────────────────────────────── */
+  /* image layer state */
   const [layerA, setLayerA] = useState({ idx: 0, src: backdropOf(allFilms[0]) });
   const [layerB, setLayerB] = useState({ idx: 1 % Math.max(total, 1), src: null, visible: false });
 
-  /* ── content / active index ─────────────────────────────────── */
-  const [displayIdx, setDisplayIdx] = useState(0); // drives text content
-  const [contentKey, setContentKey] = useState(0); // forces AnimatePresence re-mount
+  /* content / active index */
+  const [displayIdx, setDisplayIdx] = useState(0); 
+  const [contentKey, setContentKey] = useState(0); 
 
-  /* ── refs ────────────────────────────────────────────────────── */
+  /* refs */
   const timerRef      = useRef(null);
   const pauseRef      = useRef(null);
-  const transRef      = useRef(false);        // guard against overlapping transitions
-  const activeIdxRef  = useRef(0);            // stale-closure-safe copy of displayIdx
-  const layerBRef     = useRef(layerB);       // mutable mirror for transitionend callback
+  const transRef      = useRef(false);
+  const activeIdxRef  = useRef(0);
+  const layerBRef     = useRef(layerB);
   layerBRef.current   = layerB;
   activeIdxRef.current = displayIdx;
 
@@ -96,22 +92,15 @@ const Hero = ({ film, relatedFilms = [] }) => {
       const nextFilm = allFilms[normIdx];
       const nextSrc  = backdropOf(nextFilm);
 
-      // 1. Preload the backdrop image silently
       preloadImage(nextSrc).then(() => {
-        // 2. Put layer B in place (invisible) with the preloaded src
         setLayerB({ idx: normIdx, src: nextSrc, visible: false });
 
-        // Use rAF to ensure the DOM has the new src before starting fade
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            // 3. Fade layer B in
             setLayerB((prev) => ({ ...prev, visible: true }));
-
-            // 4. Update text content immediately as B starts fading
             setDisplayIdx(normIdx);
             setContentKey((k) => k + 1);
 
-            // 5. After fade completes, promote B → A, reset B
             setTimeout(() => {
               setLayerA({ idx: normIdx, src: nextSrc });
               setLayerB({
