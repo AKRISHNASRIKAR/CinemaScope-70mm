@@ -256,7 +256,7 @@ const ComparePage = () => {
       <BackButton fallbackRoute="/" />
 
       <div
-        className="flex-1 center-container px-4 sm:px-6 lg:px-12"
+        className="flex-1 center-container"
         style={{ paddingTop: "clamp(5rem,10vh,7rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
       >
         {/* Header */}

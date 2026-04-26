@@ -27,9 +27,9 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
       className="flex flex-col select-none"
       style={{ paddingRight: "clamp(1rem,3vw,2.5rem)" }}
     >
-      {/* Label */}
+      {/* Label with increased spacing above the posters */}
       <span
-        className="font-mono tracking-[0.22em] text-white/40 uppercase mb-2"
+        className="font-mono tracking-[0.22em] text-white/40 uppercase mb-6"
         style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", paddingLeft: "clamp(0.5rem,1vw,1rem)" }}
       >
         {label}
@@ -64,7 +64,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             if (e.key === "ArrowLeft")  { e.preventDefault(); stripRef.current?.scrollBy({ left: -180, behavior: "smooth" }); }
             if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: "smooth" }); }
           }}
-          className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide py-4 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
+          /* Significant top padding for headroom, light bottom padding for stability */
+          className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide pt-12 pb-4 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
           style={{
             gap: "clamp(0.4rem,0.8vw,0.6rem)",
             paddingLeft:  "clamp(0.5rem,1vw,1rem)",

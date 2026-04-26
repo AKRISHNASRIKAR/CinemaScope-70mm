@@ -166,7 +166,7 @@ const GenrePage = () => {
         className={`${isSticky ? 'sticky' : 'relative'} bg-[#090909] border-b border-white/5 w-full transition-all duration-200`} 
         style={{ top: isSticky ? "var(--navbar-height, 4rem)" : "auto", zIndex: 30 }}
       >
-        <div className="center-container px-4 sm:px-6 lg:px-12">
+        <div className="center-container">
           <div className="flex items-center justify-between flex-wrap" style={{ gap: "clamp(0.5rem, 1vw, 1rem)", padding: "clamp(0.75rem, 1.5vh, 1rem) 0" }}>
             
             <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -203,7 +203,7 @@ const GenrePage = () => {
         </div>
       </div>
 
-      <div className="center-container w-full px-4 sm:px-6 lg:px-12 py-10">
+      <div className="center-container w-full py-10">
         <ErrorBoundary>
           <Suspense fallback={<FilmGridSkeleton />}>
             <GenreGrid 

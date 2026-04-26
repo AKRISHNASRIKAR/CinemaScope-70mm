@@ -58,10 +58,10 @@ const Header = () => {
   }, [closeSearch]);
 
   return (
-    <header ref={navbarRef} className="fixed top-0 left-0 right-0 z-50">
-      {/* Glassmorphism bar */}
-      <div className="w-full background-transparent border-b border-white/[0.06]">
-        <div className="center-container px-4 sm:px-6 lg:px-12">
+    <header ref={navbarRef} className="absolute top-0 left-0 right-0 z-50">
+      {/* Translucent glassmorphism bar */}
+      <div className="w-full bg-black/20 backdrop-blur-md border-b border-white/[0.06]">
+        <div className="center-container">
           <nav
             className="flex items-center justify-between"
             style={{ height: "clamp(2.75rem, 5vw, 3.5rem)" }}

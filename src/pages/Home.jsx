@@ -29,7 +29,7 @@ const RecentlyViewedRow = () => {
 
   return (
     <div className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem,3vw,2.5rem)", paddingBottom: "clamp(0.5rem,1vw,1rem)" }}>
-      <div className="center-container px-4 sm:px-6 lg:px-12">
+      <div className="center-container">
         <div className="flex items-center justify-between" style={{ marginBottom: "clamp(0.75rem,1.5vh,1rem)" }}>
           <h2 className="font-display font-bold text-white leading-tight tracking-tight" style={{ fontSize: "clamp(1rem,1.8vw,1.4rem)" }}>
             Recently Viewed
@@ -79,7 +79,7 @@ const Home = () => {
 
       {/* Genre section header */}
       <div className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem, 3vw, 2.5rem)", paddingBottom: "clamp(0.25rem, 0.5vw, 0.5rem)" }}>
-        <div className="center-container px-4 sm:px-6 lg:px-12">
+        <div className="center-container">
           <h2 className="font-display font-bold text-white leading-tight tracking-tight" style={{ fontSize: "clamp(1.1rem, 2vw, 1.6rem)" }}>
             Top Picks by Genre
           </h2>
