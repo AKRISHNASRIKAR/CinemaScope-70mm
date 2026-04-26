@@ -1,21 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import LazyImage from "@/components/ui/LazyImage";
+import { posterUrl } from "@/lib/utils/tmdbImage";
 
-const FilmCard = ({ film, subtitle }) => {
+const FilmCard = ({ film, subtitle, className = "" }) => {
   const navigate = useNavigate();
 
   return (
     <div
       onClick={() => navigate(`/film/${film.id}`)}
-      className="group cursor-pointer flex flex-col"
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
+      role="button"
+      tabIndex={0}
+      aria-label={film.title}
+      className={`group cursor-pointer flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded-card ${className}`}
     >
       <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
         <LazyImage
-          src={
-            film.poster_path
-              ? `https://image.tmdb.org/t/p/w342${film.poster_path}`
-              : "/fallback-image-film.jpg"
-          }
+          src={posterUrl(film.poster_path, "w342") ?? "/fallback-image-film.jpg"}
           alt={film.title}
           fallbackType="poster"
           className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105"

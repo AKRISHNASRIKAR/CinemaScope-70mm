@@ -13,7 +13,7 @@ const StatsBlock = ({ featuredFilm }) => {
   return (
     <section className="relative w-full bg-base overflow-hidden">
       <div
-        className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-12 items-end"
+        className="center-container grid grid-cols-1 lg:grid-cols-12 items-end"
         style={{ minHeight: "clamp(280px, 40vh, 420px)" }}
       >
         {/* ── Left: Stat numbers ─── */}

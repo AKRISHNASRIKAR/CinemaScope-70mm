@@ -49,9 +49,10 @@
   ─────────────────────────────────────────────────────────────────── */
 
   /* Font families */
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono:    "DM Mono", "Courier New", monospace;
+  --font-display:  "Playfair Display", Georgia, serif;
+  --font-wordmark: "Epilogue", system-ui, sans-serif;   /* navbar wordmark only */
+  --font-body:     "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:     "DM Mono", "Courier New", monospace;
 
   /* Font sizes */
   --text-hero:    clamp(3.5rem, 7vw,  7rem);    /* Hero film title */

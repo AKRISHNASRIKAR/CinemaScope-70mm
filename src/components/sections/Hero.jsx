@@ -5,13 +5,15 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HeroCarousel from "./HeroCarousel";
 import { GENRE_MAP } from "@/lib/constants";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { backdropUrl } from "@/lib/utils/tmdbImage";
 
 /* ── constants ──────────────────────────────────────────────────── */
-const DISPLAY_MS  = 5000;   // time each film is shown before auto-advance
-const PAUSE_MS    = 8000;   // pause after manual click
-const IMG_FADE_MS = 1000;   // backdrop crossfade duration
-const CONTENT_OUT_MS = 300; // text fade-out
-const CONTENT_IN_MS  = 400; // text fade-in
+const DISPLAY_MS  = 5000;
+const PAUSE_MS    = 8000;
+const IMG_FADE_MS = 1000;
+const CONTENT_OUT_MS = 300;
+const CONTENT_IN_MS  = 400;
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 const getGenres = (film) => {
@@ -21,19 +23,15 @@ const getGenres = (film) => {
   return [];
 };
 
-const backdropOf = (film) =>
-  film?.backdrop_path
-    ? `https://image.tmdb.org/t/p/original${film.backdrop_path}`
-    : null;
+const backdropOf = (film) => backdropUrl(film?.backdrop_path);
 
-/** Preloads an image; resolves on load, resolves (not rejects) on error
- *  so the caller always continues. */
+/** Preloads an image; resolves on load, resolves (not rejects) on error */
 const preloadImage = (src) =>
   new Promise((resolve) => {
     if (!src) return resolve();
     const img = new Image();
     img.onload  = resolve;
-    img.onerror = resolve; // fail gracefully — never block the transition
+    img.onerror = resolve;
     img.src = src;
   });
 
@@ -48,6 +46,13 @@ const contentVariants = {
   exit: { opacity: 0, y: -12, transition: { duration: CONTENT_OUT_MS / 1000, ease: "easeIn" } },
 };
 
+/* Instant variants for reduced-motion users */
+const staticVariants = {
+  hidden:  { opacity: 1, y: 0 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0 } },
+  exit:    { opacity: 1, y: 0, transition: { duration: 0 } },
+};
+
 /* ══════════════════════════════════════════════════════════════════
    Hero component
 ══════════════════════════════════════════════════════════════════ */
@@ -55,6 +60,8 @@ const Hero = ({ film, relatedFilms = [] }) => {
   const allFilms = film ? [film, ...relatedFilms.slice(0, 6)] : [];
   const navigate = useNavigate();
   const total    = allFilms.length;
+  const shouldReduceMotion = useReducedMotion();
+  const variants = shouldReduceMotion ? staticVariants : contentVariants;
 
   /* ── image layer state ─────────────────────────────────────────
      layerA = currently visible backdrop
@@ -168,7 +175,13 @@ const Hero = ({ film, relatedFilms = [] }) => {
   return (
     <section
       className="relative w-full overflow-hidden bg-base group/hero"
-      style={{ height: "100vh", minHeight: "100vh" }}
+      style={{ height: "90vh", minHeight: "560px" }}
+      aria-label="Featured films carousel"
+      aria-roledescription="carousel"
+      onKeyDown={(e) => {
+        if (e.key === "ArrowLeft")  goPrev();
+        if (e.key === "ArrowRight") goNext();
+      }}
     >
 
       {/* ══ LAYER A — current visible backdrop ══════════════════════ */}
@@ -256,8 +269,8 @@ const Hero = ({ film, relatedFilms = [] }) => {
       {/* ══ Dot indicators — pill shape with width transition ═══════ */}
       {total > 1 && (
         <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center"
-          style={{ gap: "clamp(0.3rem,0.5vw,0.4rem)", zIndex: 20 }}
+          className="absolute flex items-center"
+          style={{ bottom: "clamp(1.25rem,3vh,2rem)", left: "50%", transform: "translateX(-50%)", gap: "clamp(0.3rem,0.5vw,0.4rem)", zIndex: 20 }}
         >
           {allFilms.map((f, i) => (
             <button
@@ -294,7 +307,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
                 {/* Genre tags */}
                 {genres.length > 0 && (
                   <motion.div
-                    variants={contentVariants}
+                    variants={variants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
@@ -320,7 +333,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
                 {/* Title */}
                 <motion.h1
-                  variants={contentVariants}
+                  variants={variants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
@@ -340,7 +353,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
                 {/* Metadata row */}
                 <motion.div
-                  variants={contentVariants}
+                  variants={variants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
@@ -372,7 +385,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
                 {/* Rating */}
                 {rating && (
                   <motion.div
-                    variants={contentVariants}
+                    variants={variants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"

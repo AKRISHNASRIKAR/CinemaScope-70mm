@@ -6,8 +6,8 @@ const Footer = () => {
   return (
     <footer className="w-full bg-section-dark border-t border-white/[0.06]">
       <div
-        className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between"
-        style={{ padding: "clamp(1.25rem, 3vh, 2rem) clamp(1.5rem, 4vw, 4rem)" }}
+        className="center-container flex flex-col sm:flex-row items-center justify-between"
+        style={{ padding: "clamp(1.5rem, 3vh, 2.5rem) clamp(1.5rem, 4vw, 4rem)" }}
       >
         <p className="font-body text-muted" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>
           © {year} CinemaScope. Developed by{" "}

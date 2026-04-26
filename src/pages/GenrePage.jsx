@@ -155,7 +155,7 @@ const GenrePage = () => {
     return () => observer.disconnect();
   }, []);
 
-  const NAV_HEIGHT = "clamp(3.5rem, 7vw, 5rem)";
+  const NAV_HEIGHT = "var(--navbar-height, 3.5rem)";
 
   return (
     <div className="min-h-screen bg-base relative">

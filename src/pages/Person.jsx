@@ -1,17 +1,17 @@
-import React, { Suspense, useRef, useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 
 import Footer from "@/components/layout/Footer";
 import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
+import ScrollRow from "@/components/ui/ScrollRow";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PersonHeaderSkeleton, FilmRowSkeleton } from "@/components/ui/Skeletons";
+import { posterUrl, profileUrl } from "@/lib/utils/tmdbImage";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const fmtDate = (dateStr) => {
@@ -42,7 +42,7 @@ const PersonHeader = ({ person_id }) => {
       <div className="sm:w-[38%] lg:w-[35%] flex-shrink-0">
         <div className="relative overflow-hidden" style={{ borderRadius: "8px" }}>
           <LazyImage
-            src={person.profile_path ? `https://image.tmdb.org/t/p/h632${person.profile_path}` : null}
+            src={profileUrl(person.profile_path, "h632")}
             alt={person.name}
             fallbackType="person"
             eager={true}
@@ -150,17 +150,12 @@ const PersonHeader = ({ person_id }) => {
 const FilmographyRow = ({ person_id }) => {
   const { data: credits } = useSWR(`/person/${person_id}/movie_credits`, fetcher, { suspense: true });
   const navigate = useNavigate();
-  const scrollRef = useRef(null);
 
   const seen = new Set();
   const filmography = (credits.cast || [])
     .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
     .filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return true; })
     .slice(0, 20);
-
-  const scrollBy = (dir) => {
-    scrollRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
-  };
 
   if (filmography.length === 0) return null;
 
@@ -170,25 +165,28 @@ const FilmographyRow = ({ person_id }) => {
         <h2 className="font-display font-bold text-white tracking-tight" style={{ fontSize: "clamp(1.2rem, 2.2vw, 1.8rem)" }}>
           Known For
         </h2>
-
-        {filmography.length > 5 && (
-          <div className="hidden sm:flex items-center" style={{ gap: "clamp(0.3rem, 0.5vw, 0.5rem)" }}>
-            <button onClick={() => scrollBy(-1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
-              <ChevronLeftIcon />
-            </button>
-            <button onClick={() => scrollBy(1)} className="flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white transition-all duration-fast cursor-pointer w-10 h-10">
-              <ChevronRightIcon />
-            </button>
-          </div>
-        )}
       </div>
 
-      <div ref={scrollRef} className="flex overflow-x-auto scrollbar-hide pb-4" style={{ gap: "clamp(0.75rem, 1.5vw, 1.25rem)", scrollBehavior: "smooth" }}>
+      <ScrollRow
+        showArrows={filmography.length > 5}
+        scrollAmount={300}
+        gap="clamp(0.75rem, 1.5vw, 1.25rem)"
+        arrowSize="2.5rem"
+      >
         {filmography.map((film) => (
-          <div key={film.id} onClick={() => navigate(`/film/${film.id}`)} className="flex-shrink-0 group cursor-pointer" style={{ width: "clamp(100px, 12vw, 180px)" }}>
+          <div
+            key={film.id}
+            onClick={() => navigate(`/film/${film.id}`)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
+            role="button"
+            tabIndex={0}
+            aria-label={film.title || "Untitled"}
+            className="flex-shrink-0 group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded-card"
+            style={{ width: "clamp(100px, 12vw, 180px)", scrollSnapAlign: "start" }}
+          >
             <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
               <LazyImage
-                src={film.poster_path ? `https://image.tmdb.org/t/p/w342${film.poster_path}` : null}
+                src={posterUrl(film.poster_path, "w342")}
                 alt={film.title}
                 fallbackType="poster"
                 className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105"
@@ -199,13 +197,13 @@ const FilmographyRow = ({ person_id }) => {
               {film.title || "Untitled"}
             </p>
             {film.release_date && (
-              <p className="font-mono text-muted line-clamp-1 text-[10px] mt-1">
+              <p className="font-mono text-muted line-clamp-1 mt-1" style={{ fontSize: "clamp(0.55rem,0.85vw,0.65rem)" }}>
                 {film.release_date.slice(0, 4)}
               </p>
             )}
           </div>
         ))}
-      </div>
+      </ScrollRow>
     </div>
   );
 };
@@ -216,11 +214,8 @@ const Person = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
+      <BackButton fallbackRoute="/" />
       <div className="flex-1 center-container px-4 sm:px-6 lg:px-12" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
-        
-        <div className="mb-8">
-          <BackButton fallbackRoute="/" label="Back to Films" />
-        </div>
 
         {/* Header Section */}
         <ErrorBoundary>

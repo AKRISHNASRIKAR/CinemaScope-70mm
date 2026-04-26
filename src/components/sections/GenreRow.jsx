@@ -7,7 +7,7 @@ import FilmCard from "@/components/ui/FilmCard";
 import FilterTabs from "@/components/ui/FilterTabs";
 import BrowseMoreLink from "@/components/ui/BrowseMoreLink";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { FilmRowSkeleton } from "@/components/ui/Skeletons";
+import { GenreRowSkeleton } from "@/components/ui/Skeletons";
 
 const FILMS_PER_PAGE = 4;
 
@@ -92,7 +92,7 @@ const GenreRow = ({
             <FilterTabs active={activeTab} onChange={setActiveTab} dark={isDark} />
             
             <ErrorBoundary>
-              <Suspense fallback={<FilmRowSkeleton count={4} />}>
+              <Suspense fallback={<GenreRowSkeleton />}>
                 <GenreRowContent 
                   genreIds={genreIds} 
                   activeTab={activeTab} 

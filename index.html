@@ -4,16 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google Fonts -->
+    <!-- Google Fonts — Latin subset only for smaller payload -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Epilogue:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&display=swap&subset=latin"
       rel="stylesheet"
     />
     <title>CinemaScope</title>
   </head>
   <body>
+    <!-- Skip navigation for keyboard/screen reader users -->
+    <a
+      href="#main-content"
+      class="skip-nav"
+      style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;"
+      onfocus="this.style.cssText='position:fixed;top:1rem;left:1rem;z-index:9999;padding:0.75rem 1.5rem;background:#c9a843;color:#000;font-weight:600;border-radius:4px;text-decoration:none;font-family:Inter,sans-serif;font-size:0.875rem;'"
+      onblur="this.style.cssText='position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;'"
+    >Skip to main content</a>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>

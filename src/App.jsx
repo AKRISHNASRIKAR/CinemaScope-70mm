@@ -1,47 +1,56 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { withAuthenticationRequired } from "@auth0/auth0-react";
-import Home from "@/pages/Home";
-import LoginPage from "@/pages/LoginPage";
 import Header from "@/components/layout/Navbar";
-import Profile from "@/pages/Profile";
-import FilmPage from "@/pages/FilmPage";
-import SearchPage from "@/pages/SearchPage";
-import Person from "@/pages/Person";
-import GenrePage from "@/pages/GenrePage";
+import ProtectedRoute from "@/components/ui/ProtectedRoute";
 
-const ProtectedRoute = ({ component, ...args }) => {
-  const Component = withAuthenticationRequired(component, args);
-  return <Component />;
-};
+/* ── Route-level code splitting ─────────────────────────────────
+   Each page is a separate chunk — only the current page's JS is
+   loaded. Reduces initial bundle from ~534kB to ~homepage chunk.
+─────────────────────────────────────────────────────────────── */
+const Home        = lazy(() => import("@/pages/Home"));
+const LoginPage   = lazy(() => import("@/pages/LoginPage"));
+const Profile     = lazy(() => import("@/pages/Profile"));
+const FilmPage    = lazy(() => import("@/pages/FilmPage"));
+const SearchPage  = lazy(() => import("@/pages/SearchPage"));
+const Person      = lazy(() => import("@/pages/Person"));
+const GenrePage   = lazy(() => import("@/pages/GenrePage"));
+const ComparePage = lazy(() => import("@/pages/ComparePage"));
+
+/* ── Minimal page-transition fallback ──────────────────────────── */
+const PageLoader = () => (
+  <div className="min-h-screen bg-base flex items-center justify-center">
+    <div
+      className="rounded-full border-2 border-gold border-t-transparent"
+      style={{ width: "2rem", height: "2rem", animation: "spin 0.8s linear infinite" }}
+      aria-label="Loading page"
+      role="status"
+    />
+  </div>
+);
 
 function App() {
   return (
     <Router>
-      <Header /> {/* Includes Header in every page, persistent */}
-      <Routes>
-        <Route path="/" element={<ProtectedRoute component={Home} />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/profile"
-          element={<ProtectedRoute component={Profile} />}
-        />
-        <Route
-          path="/film/:id"
-          element={<ProtectedRoute component={FilmPage} />}
-        />{" "}
-        {/* FilmPage route */}
-        <Route
-          path="/person/:person_id"
-          element={<ProtectedRoute component={Person} />}
-        />{" "}
-        {/* Person route */}
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/search/:query" element={<SearchPage />} />
-        <Route
-          path="/genre/:id"
-          element={<ProtectedRoute component={GenrePage} />}
-        />
-      </Routes>
+      <Header />
+      {/* id="main-content" is the skip-nav target */}
+      <main id="main-content">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/"               element={<Home />} />
+            <Route path="/login"          element={<LoginPage />} />
+            <Route path="/search"         element={<SearchPage />} />
+            <Route path="/search/:query"  element={<SearchPage />} />
+            
+            {/* Protected routes — require authentication */}
+            <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/film/:id"       element={<ProtectedRoute><FilmPage /></ProtectedRoute>} />
+            <Route path="/person/:person_id" element={<ProtectedRoute><Person /></ProtectedRoute>} />
+            <Route path="/genre/:id"      element={<ProtectedRoute><GenrePage /></ProtectedRoute>} />
+            <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+          </Routes>
+        </Suspense>
+      </main>
     </Router>
   );
 }

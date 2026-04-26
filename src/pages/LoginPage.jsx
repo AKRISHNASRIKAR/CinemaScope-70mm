@@ -21,9 +21,8 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-base flex items-center justify-center relative overflow-hidden">
-      <div className="absolute top-12 left-12 z-20">
-        <BackButton fallbackRoute="/" label="Back to Gallery" />
-      </div>
+      {/* Back Button — fixed position, no wrapper needed */}
+      <BackButton fallbackRoute="/" />
       {/* Animated grid background */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.04]"

@@ -6,17 +6,17 @@ import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import TvIcon from "@mui/icons-material/Tv";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import Footer from "@/components/layout/Footer";
 import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
-import { 
-  FilmDetailHeroSkeleton, 
-  CastSectionSkeleton, 
-  FilmRowSkeleton 
-} from "@/components/ui/Skeletons";
+import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
 
 const INITIAL_CAST = 8;
 const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
@@ -25,12 +25,16 @@ const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
 const FilmHero = ({ id }) => {
   const { data } = useSWR([`/movie/${id}`, `/movie/${id}/release_dates`], parallelFetcher, { suspense: true });
   const [film, releaseDates] = data;
+  const { addFilm } = useRecentlyViewed();
+
+  // Record this film as recently viewed on mount
+  useEffect(() => { addFilm(film); }, [film, addFilm]);
 
   const us = releaseDates.results?.find((e) => e.iso_3166_1 === "US");
   const certification = us?.release_dates?.[0]?.certification || "N/A";
 
-  const backdrop = film.backdrop_path ? `https://image.tmdb.org/t/p/original${film.backdrop_path}` : null;
-  const posterSrc = film.poster_path ? `https://image.tmdb.org/t/p/w500${film.poster_path}` : "/fallback-image-film.jpg";
+  const backdrop = backdropUrl(film.backdrop_path);
+  const posterSrc = posterUrl(film.poster_path, "w500") ?? "/fallback-image-film.jpg";
 
   return (
     <>
@@ -151,7 +155,7 @@ const CastSection = ({ id }) => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
           {visibleCast.map((member, i) => {
             const rot = ROTATIONS[i % ROTATIONS.length];
-            const imgSrc = member.profile_path ? `https://image.tmdb.org/t/p/w200${member.profile_path}` : null;
+            const imgSrc = member.profile_path ? profileUrl(member.profile_path, "w200") : null;
 
             return (
               <div
@@ -208,7 +212,106 @@ const CastSection = ({ id }) => {
   );
 };
 
-/* ── 3. Similar Movies (Data-driven) ───────────────────────────── */
+/* ── 4. Watch Providers (Data-driven) ──────────────────────────── */
+const WatchProviders = ({ id }) => {
+  const { data } = useSWR(`/movie/${id}/watch/providers`, fetcher, { suspense: true });
+  // Use US region; fall back to first available region
+  const regions = data?.results ?? {};
+  const us = regions["US"];
+  const regionData = us ?? Object.values(regions)[0] ?? null;
+
+  if (!regionData) return null;
+
+  const flatrate = regionData.flatrate ?? [];  // streaming
+  const rent     = regionData.rent     ?? [];  // rent
+  const buy      = regionData.buy      ?? [];  // buy
+
+  if (!flatrate.length && !rent.length && !buy.length) return null;
+
+  const ProviderLogo = ({ p }) => (
+    <div
+      key={p.provider_id}
+      className="flex flex-col items-center"
+      style={{ gap: "0.35rem" }}
+      title={p.provider_name}
+    >
+      <div className="rounded-card overflow-hidden" style={{ width: "clamp(2rem,4vw,3rem)", height: "clamp(2rem,4vw,3rem)" }}>
+        <img
+          src={`https://image.tmdb.org/t/p/w92${p.logo_path}`}
+          alt={p.provider_name}
+          loading="lazy"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <span className="font-mono text-white/40 text-center leading-tight line-clamp-2" style={{ fontSize: "clamp(0.4rem,0.65vw,0.55rem)", maxWidth: "3.5rem" }}>
+        {p.provider_name}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="center-container px-4 sm:px-6 lg:px-12" style={{ marginBottom: "clamp(2rem,4vh,3rem)" }}>
+      <div
+        className="rounded-card border border-white/8 bg-white/[0.02]"
+        style={{ padding: "clamp(1.25rem,3vw,2rem)" }}
+      >
+        <div className="flex items-center justify-between" style={{ marginBottom: "clamp(1rem,2vh,1.5rem)" }}>
+          <div className="flex items-center gap-2">
+            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "#c9a843" }} />
+            <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>
+              Where to Watch
+            </h2>
+          </div>
+          {regionData.link && (
+            <a
+              href={regionData.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 font-body text-muted hover:text-gold transition-colors duration-fast"
+              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}
+              aria-label="View all providers on TMDB"
+            >
+              All providers <OpenInNewIcon sx={{ fontSize: "0.75rem" }} />
+            </a>
+          )}
+        </div>
+
+        <div className="flex flex-col" style={{ gap: "clamp(1rem,2vh,1.5rem)" }}>
+          {flatrate.length > 0 && (
+            <div>
+              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Stream</p>
+              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
+                {flatrate.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
+              </div>
+            </div>
+          )}
+          {rent.length > 0 && (
+            <div>
+              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Rent</p>
+              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
+                {rent.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
+              </div>
+            </div>
+          )}
+          {buy.length > 0 && (
+            <div>
+              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Buy</p>
+              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
+                {buy.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p className="font-body text-faint mt-4" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>
+          Powered by JustWatch via TMDB
+        </p>
+      </div>
+    </div>
+  );
+};
+
+/* ── 5. Similar Movies (Data-driven) ───────────────────────────── */
 const SimilarMovies = ({ id }) => {
   const { data: similar } = useSWR(`/movie/${id}/similar`, fetcher, { suspense: true });
   const movies = similar.results || [];
@@ -235,10 +338,8 @@ const FilmPage = () => {
 
   return (
     <div className="min-h-screen bg-base text-white">
-      {/* Back Button Placement */}
-      <div className="max-w-screen-xl mx-auto px-6 lg:px-16 pt-24 pb-4">
-        <BackButton fallbackRoute="/" label="Back to Gallery" />
-      </div>
+      {/* Back Button — fixed position, no wrapper needed */}
+      <BackButton fallbackRoute="/" />
 
       {/* Hero Section - Highest Priority */}
       <ErrorBoundary>
@@ -254,9 +355,16 @@ const FilmPage = () => {
         </Suspense>
       </ErrorBoundary>
 
+      {/* Watch Providers - Independent Loading */}
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <WatchProviders id={id} />
+        </Suspense>
+      </ErrorBoundary>
+
       {/* Similar Movies - Lowest Priority */}
       <ErrorBoundary>
-        <Suspense fallback={<FilmRowSkeleton />}>
+        <Suspense fallback={<SimilarMoviesSkeleton />}>
           <SimilarMovies id={id} />
         </Suspense>
       </ErrorBoundary>
