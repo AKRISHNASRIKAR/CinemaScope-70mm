@@ -1,137 +1,95 @@
-# CinemaScope
+# 🎬 CinemaScope
 
-A cinematic film discovery web app powered by the TMDB API.
+![CinemaScope](public/fallback-image-film.jpg)
 
-## Overview
+**CinemaScope** is a cinematic, modern film discovery application designed to provide an immersive browsing experience. Built with performance and premium aesthetics in mind, it leverages real-time data from the TMDB API to let users explore popular films, deep-dive into detailed cast and movie pages, and seamlessly search across a vast database.
 
-CinemaScope lets users browse popular films, explore curated genre sections, view detailed film and actor pages, and search across the entire TMDB catalogue. It is built as a polished, production-quality frontend with a dark cinematic aesthetic. The project is actively evolving toward a full film review and rating platform where users can log films, write reviews, and build personal watchlists.
+---
 
-## Features
+## ✨ Features
 
-- ✅ **Hero carousel** — auto-rotating full-viewport backdrop with crossfade transitions, manual prev/next controls, and dot indicators
-- ✅ **Genre rows** — three curated genre sections (Drama & Romance, Action & Adventure, Comedy) with live TMDB tab switching (Featured / In Theaters / Top Rated)
-- ✅ **Film detail page** — backdrop hero, poster, metadata (certification, runtime, genres), cast polaroid grid with expand/collapse, similar films
-- ✅ **Actor/person page** — portrait, biography with read more/less, filmography scroll row
-- ✅ **Search** — debounced live search across films and people, URL-synced query params, direct URL load support
-- ✅ **Genre browse page** — full grid with sort (Popularity, Rating, Newest, Oldest) and filter (All, In Theaters, Top Rated, Coming Soon) tabs, infinite load more
-- ✅ **Skeleton loaders** — every data-driven section has a dimension-matched shimmer skeleton to eliminate layout shift
-- ✅ **Lazy loading** — IntersectionObserver-based image loading with shimmer placeholders and contextual error fallbacks
-- ✅ **Responsive design** — mobile-first, all sizes via `clamp()`, tested at 375px / 768px / 1280px
-- ✅ **Cinematic design system** — dark aesthetic, Tailwind v4 `@theme` token system, Epilogue + Playfair Display + Inter + DM Mono
-- 🚧 **Authentication** — Auth0 SDK integrated, non-functional without valid Auth0 tenant credentials
-- 🚧 **User profiles** — profile page exists, stats (films watched, reviews, favourites) are placeholders pending backend
+- **Immersive Cinematic UI**: Features a dark, premium aesthetic with full-viewport backdrops, glassmorphism elements, and smooth framer-motion transitions.
+- **Fluid Responsiveness**: Utilizes CSS `clamp()` functions across the board for typography and layout, ensuring a flawless layout from mobile screens to 4K monitors.
+- **Performance Optimized**: Implements route-level code-splitting (lazy loading), aggressive Suspense boundaries, and WebP image optimizations for minimal bundle sizes and fast First Contentful Paint (FCP).
+- **Modern Data Fetching**: Powered by SWR with `suspense: true` for concurrent, non-blocking requests and seamless skeleton loading states that prevent Cumulative Layout Shift (CLS).
+- **Secure Authentication**: Integrated with Auth0 to protect specific routes (e.g., Profile, Film Details, Compare Tool) while keeping discovery pages (Home, Search) public.
+- **Accessible & Keyboard Friendly**: Features horizontal scroll primitives with keyboard navigation, clear `focus-visible` rings, and a `useReducedMotion` hook to respect user OS settings.
 
-## Tech Stack
+## 🛠 Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React 18, Vite 6, JSX |
-| Styling | Tailwind CSS v4 — `@theme` block in `tokens.css` |
-| Fonts | Epilogue (wordmark), Playfair Display (headings), Inter (body), DM Mono (metadata) |
-| Animation | Framer Motion |
-| Data | TMDB API via SWR + axios |
-| Auth | Auth0 React SDK |
-| State | React `useState` / `useEffect` — no global state library |
-| Icons | MUI Icons Material |
-| Build | Vite 6 with `@tailwindcss/vite` plugin |
+- **Frontend Framework**: React 18 & Vite 6
+- **Styling**: Tailwind CSS v4 (Custom Design Tokens)
+- **Data Fetching**: SWR & Axios/Fetch
+- **Animations**: Framer Motion
+- **Authentication**: Auth0
+- **External API**: The Movie Database (TMDB) API
 
-## Getting Started
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
+- Node.js (v18+ recommended)
+- A [TMDB API Key](https://developer.themoviedb.org/docs/getting-started)
+- An [Auth0](https://auth0.com/) Tenant (for authentication features)
 
-- Node.js 18+
-- A [TMDB API key](https://www.themoviedb.org/settings/api) (free)
-- (Optional) An [Auth0](https://auth0.com) tenant for authentication
+### Installation
 
-### Clone and install
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/cscope.git
+   cd cscope
+   ```
 
-```bash
-git clone https://github.com/YOUR_USERNAME/cinemascope.git
-cd cinemascope
-npm install
-```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-### Environment variables
+3. **Configure Environment Variables:**
+   Copy the example environment file and fill in your credentials.
+   ```bash
+   cp .env.example .env
+   ```
+   *Required Variables:*
+   - `VITE_API_KEY`: Your TMDB API Key.
+   - `VITE_BASE_URL`: `https://api.themoviedb.org/3`
+   - `VITE_AUTH0_DOMAIN`: Your Auth0 tenant domain.
+   - `VITE_AUTH0_CLIENT_ID`: Your Auth0 client ID.
 
-Copy `.env.example` to `.env` and fill in your values:
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
 
-```bash
-cp .env.example .env
-```
+5. **Build for production:**
+   ```bash
+   npm run build
+   ```
 
-| Variable | Description | Required |
-|---|---|---|
-| `VITE_API_KEY` | Your TMDB API key | Yes |
-| `VITE_BASE_URL` | TMDB API base URL (`https://api.themoviedb.org/3`) | Yes |
-| `VITE_GITHUB_URL` | Your GitHub profile URL (shown in footer) | No |
+---
 
-### Run locally
+## 📂 Project Structure
 
-```bash
-npm run dev
-```
-
-App runs at `http://localhost:5173`.
-
-> **Note:** Without valid Auth0 credentials configured in the app, all protected routes redirect to the login page. The login page is visual-only in this state.
-
-### Build for production
-
-```bash
-npm run build
-npm run preview   # preview the production build locally
-```
-
-## Project Structure
-
-```
+```text
 src/
 ├── components/
-│   ├── ui/           # Stateless primitives — FilmCard, FilterTabs, LazyImage, Skeletons, etc.
-│   ├── sections/     # Page sections — Hero, HeroCarousel, GenreRow, StatsBlock
-│   └── layout/       # App chrome — Navbar, Footer
-├── pages/            # One file per route — Home, FilmPage, Person, SearchPage, GenrePage, Profile, LoginPage
-├── hooks/            # Custom hooks — useBackNavigation, useMoviesByGenre
-├── lib/
-│   ├── api/          # TMDB fetcher and parallelFetcher
-│   └── constants/    # GENRE_MAP, GENRE_SECTIONS
-└── styles/           # globals.css, tokens.css (Tailwind v4 @theme block)
+│   ├── layout/       # App shell components (Navbar, Footer)
+│   ├── sections/     # Major page sections (Hero, HeroCarousel, GenreRow)
+│   └── ui/           # Reusable primitives (FilmCard, LazyImage, Skeletons)
+├── hooks/            # Custom React hooks (useReducedMotion, useRecentlyViewed)
+├── lib/              # Utilities, constants, and API fetchers
+├── pages/            # Route-level components (lazy-loaded)
+└── styles/           # Global CSS and Tailwind v4 design tokens
 ```
 
-## Design System
+---
 
-The app uses a **cinematic dark aesthetic** built on a Tailwind v4 `@theme` token system defined in `src/styles/tokens.css`. Every color, font, shadow, radius, and animation duration is a named token — no hardcoded values in components.
+## 🤝 Contributing
 
-Key decisions:
-- `--color-gold` (`#c9a843`) is reserved exclusively for ratings, active states, and CTAs
-- All layout sizes use `clamp(min, preferred, max)` for fluid responsive scaling without breakpoint jumps
-- The `.center-container` utility (80rem / 1280px max-width, auto margins) is the single source of truth for page-level centering
+Contributions, issues, and feature requests are welcome!
+Feel free to check the [issues page](https://github.com/YOUR_USERNAME/cscope/issues) if you want to contribute.
 
-## Architecture Decisions
+## 📝 License
 
-- **SWR with `suspense: true`** — each data-driven section suspends independently, so a slow API call in one section never blocks others. Each section has its own `<Suspense>` boundary with a dimension-matched skeleton and an `<ErrorBoundary>`.
-- **Parallel fetching** — `parallelFetcher` in `fetcher.js` resolves multiple TMDB endpoints simultaneously (e.g. film details + release dates on FilmPage) to eliminate request waterfalls.
-- **Three-layer hero** — Layer A (current backdrop), Layer B (incoming, preloaded silently before crossfade), Layer C (permanent vignette). Prevents flash frames during transitions.
-- **IntersectionObserver for cast images** — the cast grid only starts loading profile photos when the section scrolls into view (200px rootMargin), keeping initial page load fast.
-- **CSS custom property for navbar height** — `--navbar-height` is set dynamically from the real DOM height on mount and resize, so the fixed BackButton and sticky filter bars always offset correctly regardless of breakpoint.
-
-## Roadmap
-
-- [ ] Wire Auth0 with a real tenant — enable protected routes
-- [ ] User film reviews and star ratings
-- [ ] Watchlist and favourites (localStorage → backend)
-- [ ] CI/CD pipeline (GitHub Actions → Vercel/Netlify)
-- [ ] TypeScript migration
-- [ ] Trailer modal via TMDB videos endpoint
-- [ ] Watch providers data (streaming availability)
-- [ ] Keyboard navigation for carousels
-
-See [`docs/improvements.md`](./docs/improvements.md) for the full technical improvements backlog.
-
-## Contributing
-
-Pull requests are welcome. Please follow the conventions documented in [`CLAUDE.md`](./CLAUDE.md) — token-only colors, `clamp()` sizing, no data fetching inside `ui/` components.
-
-## License
-
-MIT
+This project is licensed under the MIT License.
