@@ -75,3 +75,11 @@ const { user, isAuthenticated, isLoading } = useAuth0();
 - **JWT Handling**: Auth0 handles the secure storage and rotation of JWT tokens.
 - **Silent Auth**: Using refresh tokens prevents annoying re-authentications.
 - **Granular Access**: Public vs. Protected routes are clearly separated in `App.jsx` to maximize SEO on discovery pages while protecting data.
+
+## So, what does this actually do for the user?
+
+In plain terms, Auth0 handles all the heavy lifting of figuring out if a user is who they say they are. 
+
+When a user tries to click into a protected area—like a film's detailed cast page or their own profile—the app pauses, says "hold up, let's see who you are," and kicks them over to a secure Auth0 login screen. Once they log in (or sign up), Auth0 hands us a secure JWT token and redirects them right back to the exact page they were trying to visit. 
+
+We stash that session securely and use silent refresh tokens in the background. What that means for the user is they don't have to keep logging in every time they open a new tab or come back tomorrow. It feels completely seamless. Meanwhile, the homepage and search are left totally public so anyone can browse without hitting a wall immediately!

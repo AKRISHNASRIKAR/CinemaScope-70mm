@@ -1,13 +1,6 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { Navigate } from "react-router-dom";
 
-/**
- * ProtectedRoute — wraps routes that require authentication.
- * 
- * - Shows a loading spinner while auth state is initializing
- * - Redirects to /login if user is not authenticated
- * - Optionally accepts a fallback route to redirect after login
- */
 const ProtectedRoute = ({ children, fallbackRoute = "/login" }) => {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
 
