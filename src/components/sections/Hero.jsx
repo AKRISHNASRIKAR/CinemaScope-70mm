@@ -289,8 +289,11 @@ const Hero = ({ film, relatedFilms = [] }) => {
         </div>
       )}
 
-      {/* ══ Film info — centered constraint ════════════════════════ */}
-      <div className="absolute inset-0 z-10 pointer-events-none center-container px-4 sm:px-6 lg:px-12">
+      {/* ══ Film info — expansive layout (outside max-w constraint) ══ */}
+      <div 
+        className="absolute inset-0 z-10 pointer-events-none"
+        style={{ padding: "0 clamp(1.5rem, 6vw, 4rem)" }}
+      >
         <div className="relative h-full w-full">
           <div
             className="absolute pointer-events-auto"

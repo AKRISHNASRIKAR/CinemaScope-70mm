@@ -160,7 +160,7 @@ const SearchPage = () => {
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
       <div className="flex-1" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
-        <div className="center-container px-4 sm:px-6 lg:px-12">
+        <div className="center-container">
 
           <div className="max-w-2xl mx-auto" style={{ marginBottom: "clamp(2rem, 4vh, 3rem)" }}>
             <div className="relative flex items-center">

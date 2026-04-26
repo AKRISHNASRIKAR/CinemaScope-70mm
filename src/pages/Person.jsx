@@ -215,7 +215,7 @@ const Person = () => {
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
       <BackButton fallbackRoute="/" />
-      <div className="flex-1 center-container px-4 sm:px-6 lg:px-12" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
+      <div className="flex-1 center-container" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
 
         {/* Header Section */}
         <ErrorBoundary>

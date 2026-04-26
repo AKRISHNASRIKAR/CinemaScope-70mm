@@ -137,7 +137,7 @@ const CastSection = ({ id }) => {
   return (
     <div
       ref={castSectionRef}
-      className="center-container px-4 sm:px-6 lg:px-12"
+      className="center-container"
       style={{ marginTop: "clamp(2.5rem,5vh,4rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
     >
       <div
@@ -250,7 +250,7 @@ const WatchProviders = ({ id }) => {
   );
 
   return (
-    <div className="center-container px-4 sm:px-6 lg:px-12" style={{ marginBottom: "clamp(2rem,4vh,3rem)" }}>
+    <div className="center-container" style={{ marginBottom: "clamp(2rem,4vh,3rem)" }}>
       <div
         className="rounded-card border border-white/8 bg-white/[0.02]"
         style={{ padding: "clamp(1.25rem,3vw,2rem)" }}
@@ -319,7 +319,7 @@ const SimilarMovies = ({ id }) => {
   if (movies.length === 0) return null;
 
   return (
-    <div className="center-container px-4 sm:px-6 lg:px-12 mt-16 pb-12">
+    <div className="center-container mt-16 pb-12">
       <h2 className="font-display font-bold text-white mb-6" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>
         Similar Movies
       </h2>

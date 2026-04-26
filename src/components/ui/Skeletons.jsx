@@ -45,7 +45,7 @@ export const FilmDetailHeroSkeleton = () => (
  */
 export const CastSectionSkeleton = () => (
   <div
-    className="center-container px-4 sm:px-6 lg:px-12"
+    className="center-container"
     style={{ marginTop: "clamp(2.5rem,5vh,4rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
   >
     <div
@@ -151,7 +151,7 @@ export const FilmRowSkeleton = ({ count = 5 }) => (
  */
 export const SimilarMoviesSkeleton = () => (
   <div
-    className="center-container px-4 sm:px-6 lg:px-12"
+    className="center-container"
     style={{ marginTop: "4rem", paddingBottom: "3rem" }}
   >
     {/* Section heading placeholder */}

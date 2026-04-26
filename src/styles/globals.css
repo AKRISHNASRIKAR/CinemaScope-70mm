@@ -34,12 +34,15 @@ body {
   display: none;
 }
 
-/* Foolproof centering container */
+/* Foolproof centering container with mobile safety and original desktop width */
 .center-container {
-  max-width: 80rem !important;
+  max-width: 80rem !important; /* Back to original 1280px */
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100% !important;
+  /* Balanced gutters: safe on mobile, breathable on desktop */
+  padding-left: clamp(1rem, 4vw, 2.5rem) !important;
+  padding-right: clamp(1rem, 4vw, 2.5rem) !important;
 }
 
 /* ── Shimmer skeleton ──────────────────────────────────────────── */

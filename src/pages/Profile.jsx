@@ -65,7 +65,7 @@ const Profile = () => {
       </div>
 
       {/* ── Profile card — overlaps the backdrop ──────────────── */}
-      <div className="flex-1 center-container px-4 sm:px-6 lg:px-12" style={{ marginTop: "clamp(-5rem,-10vh,-4rem)" }}>
+      <div className="flex-1 center-container" style={{ marginTop: "clamp(-5rem,-10vh,-4rem)" }}>
 
         {/* Avatar + name row */}
         <div className="flex flex-col sm:flex-row items-center sm:items-end" style={{ gap: "clamp(1rem,2.5vw,1.75rem)" }}>
