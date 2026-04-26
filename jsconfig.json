@@ -1,8 +1,14 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
-  }
+  },
+  "typeAcquisition": {
+    "enable": false
+  },
+  "include": ["src/**/*", "vite.config.js"],
+  "exclude": ["node_modules", "dist"]
 }
