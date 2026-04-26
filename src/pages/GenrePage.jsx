@@ -184,6 +184,7 @@ const GenrePage = () => {
               </div>
             </div>
 
+            {/* 
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="font-mono text-white/30 text-[10px] uppercase hidden sm:inline">Sort</span>
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
@@ -199,6 +200,7 @@ const GenrePage = () => {
                 ))}
               </div>
             </div>
+            */}
           </div>
         </div>
       </div>
