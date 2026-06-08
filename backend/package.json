@@ -3,10 +3,20 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
     "dotenv": "^16.6.1",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.30.10",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "drizzle-kit": "^0.21.4",
+    "tsx": "^4.22.4"
   }
 }
