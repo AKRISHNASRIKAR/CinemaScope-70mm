@@ -23,5 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-
 .env
+.env.local
+.env.*.local
+
+# Local-only documentation — stays on disk, never committed
+ARCHITECTURE.md
+docs/
+
+# Docker data volumes
+docker/data/
+.docker/
