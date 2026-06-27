@@ -14,7 +14,7 @@ import { handleCors, getCorsHeaders } from '../_shared/cors.ts';
 import { Errors } from '../_shared/errors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { requireAuth, extractBearerToken } from '../_shared/auth.ts';
-import { userClient } from '../_shared/db.ts';
+import { adminClient, userClient } from '../_shared/db.ts';
 import { parseBody, z } from '../_shared/validation.ts';
 
 const logger = createLogger('profile');
@@ -47,18 +47,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
   logger.info('request', { method: req.method, user_id: user.id, request_id: requestId });
 
   if (req.method === 'GET') {
-    // ── TODO: Business logic ────────────────────────────────────────────────
-    //
-    // 1. SELECT profile FROM profiles WHERE id = user.id
-    // 2. SELECT COUNT(*) FROM watch_history WHERE user_id = user.id
-    // 3. SELECT COUNT(*) FROM watchlist WHERE user_id = user.id
-    // 4. SELECT COUNT(*) FROM reviews WHERE user_id = user.id
-    // 5. Return merged object: { ...profile, stats: { watched, watchlist, reviews } }
-    //
-    // ────────────────────────────────────────────────────────────────────────
-    return new Response(JSON.stringify({ scaffold: true, user_id: user.id }), {
+    // Fetch profile + aggregate counts in parallel
+    const [profileResult, watchedResult, watchlistResult, reviewsResult] = await Promise.all([
+      adminClient.from('profiles').select('*').eq('id', user.id).single(),
+      adminClient
+        .from('watch_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+      adminClient
+        .from('watchlist')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+      adminClient
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+    ]);
+
+    if (profileResult.error || !profileResult.data) {
+      logger.error('profile_not_found', { user_id: user.id, error: String(profileResult.error) });
+      return Errors.notFound(corsHeaders, 'Profile');
+    }
+
+    const responseBody = {
+      ...profileResult.data,
+      stats: {
+        watched: watchedResult.count ?? 0,
+        watchlist: watchlistResult.count ?? 0,
+        reviews: reviewsResult.count ?? 0,
+      },
+    };
+
+    return new Response(JSON.stringify(responseBody), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Request-ID': requestId },
     });
   }
 
@@ -66,15 +88,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data, error } = await parseBody(req, ProfileUpdateSchema);
     if (error) return Errors.validation(corsHeaders, error.format());
 
-    // ── TODO: Business logic ────────────────────────────────────────────────
-    //
-    // 1. UPDATE profiles SET ...data WHERE id = user.id RETURNING *
-    // 2. Return updated profile row
-    //
-    // ────────────────────────────────────────────────────────────────────────
-    return new Response(JSON.stringify({ scaffold: true, user_id: user.id, data }), {
+    // Use user-scoped client so RLS enforces ownership
+    const jwt = extractBearerToken(req);
+    if (!jwt) return Errors.unauthorized(corsHeaders);
+    const client = userClient(jwt);
+
+    const { data: updated, error: updateError } = await client
+      .from('profiles')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (updateError || !updated) {
+      logger.error('profile_update_failed', { user_id: user.id, error: String(updateError) });
+      return Errors.internal(corsHeaders, 'Failed to update profile.');
+    }
+
+    logger.info('profile_updated', { user_id: user.id });
+
+    return new Response(JSON.stringify(updated), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Request-ID': requestId },
     });
   }
 

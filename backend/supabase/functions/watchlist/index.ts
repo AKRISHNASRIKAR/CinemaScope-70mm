@@ -12,7 +12,8 @@
 import { handleCors, getCorsHeaders } from '../_shared/cors.ts';
 import { Errors } from '../_shared/errors.ts';
 import { createLogger } from '../_shared/logger.ts';
-import { requireAuth } from '../_shared/auth.ts';
+import { requireAuth, extractBearerToken } from '../_shared/auth.ts';
+import { userClient } from '../_shared/db.ts';
 import { parseBody, z, TmdbIdSchema } from '../_shared/validation.ts';
 
 const logger = createLogger('watchlist');
@@ -38,49 +39,89 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return Errors.unauthorized(corsHeaders);
   }
 
+  const jwt = extractBearerToken(req)!;
+  const client = userClient(jwt);
   const url = new URL(req.url);
 
   logger.info('request', { method: req.method, user_id: user.id, request_id: requestId });
 
+  // ── GET: full watchlist ────────────────────────────────────────────────────
   if (req.method === 'GET') {
-    // ── TODO: Business logic ────────────────────────────────────────────────
-    //
-    // SELECT * FROM watchlist WHERE user_id = user.id ORDER BY added_at DESC
-    //
-    // ────────────────────────────────────────────────────────────────────────
-    return new Response(JSON.stringify({ scaffold: true, user_id: user.id }), {
+    const { data: rows, error: dbError } = await client
+      .from('watchlist')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('added_at', { ascending: false });
+
+    if (dbError) {
+      logger.error('db_error', { user_id: user.id, error: String(dbError) });
+      return Errors.internal(corsHeaders);
+    }
+
+    return new Response(JSON.stringify({ data: rows ?? [] }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Request-ID': requestId },
     });
   }
 
+  // ── POST: add a film (idempotent) ─────────────────────────────────────────
   if (req.method === 'POST') {
     const { data, error } = await parseBody(req, WatchlistInsertSchema);
     if (error) return Errors.validation(corsHeaders, error.format());
 
-    // ── TODO: Business logic ────────────────────────────────────────────────
-    //
-    // INSERT INTO watchlist (user_id, tmdb_id, title, poster_path)
-    //   VALUES (user.id, data.tmdb_id, data.title, data.poster_path)
-    //   ON CONFLICT (user_id, tmdb_id) DO NOTHING
-    //   RETURNING *
-    //
-    // ────────────────────────────────────────────────────────────────────────
-    return new Response(JSON.stringify({ scaffold: true, user_id: user.id, data }), {
-      status: 201,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // ON CONFLICT DO NOTHING — safe to call repeatedly; no duplicate rows created
+    const { data: row, error: dbError } = await client
+      .from('watchlist')
+      .upsert(
+        {
+          user_id: user.id,
+          tmdb_id: data.tmdb_id,
+          title: data.title,
+          poster_path: data.poster_path ?? null,
+          added_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,tmdb_id', ignoreDuplicates: true },
+      )
+      .select()
+      .maybeSingle();
+
+    if (dbError) {
+      logger.error('db_error', { user_id: user.id, error: String(dbError) });
+      return Errors.internal(corsHeaders);
+    }
+
+    logger.info('added', { user_id: user.id, tmdb_id: data.tmdb_id });
+
+    // row is null when the film was already in the list (DO NOTHING path)
+    return new Response(JSON.stringify(row ?? { already_exists: true, tmdb_id: data.tmdb_id }), {
+      status: row ? 201 : 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Request-ID': requestId },
     });
   }
 
+  // ── DELETE: remove a film ─────────────────────────────────────────────────
   if (req.method === 'DELETE') {
     const tmdbId = TmdbIdSchema.safeParse(url.pathname.split('/').at(-1));
     if (!tmdbId.success) return Errors.validation(corsHeaders, tmdbId.error.format());
 
-    // ── TODO: Business logic ────────────────────────────────────────────────
-    //
-    // DELETE FROM watchlist WHERE user_id = user.id AND tmdb_id = tmdbId.data
-    //
-    // ────────────────────────────────────────────────────────────────────────
+    const { data: deleted, error: dbError } = await client
+      .from('watchlist')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('tmdb_id', tmdbId.data)
+      .select();
+
+    if (dbError) {
+      logger.error('db_error', { user_id: user.id, error: String(dbError) });
+      return Errors.internal(corsHeaders);
+    }
+
+    if (!deleted || deleted.length === 0) {
+      return Errors.notFound(corsHeaders, 'Watchlist item');
+    }
+
+    logger.info('removed', { user_id: user.id, tmdb_id: tmdbId.data });
+
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
