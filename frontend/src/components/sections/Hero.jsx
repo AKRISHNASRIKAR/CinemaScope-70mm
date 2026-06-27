@@ -120,12 +120,24 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
   /* ── auto-advance ─────────────────────────────────────────────── */
   const startAuto = useCallback(() => {
+    if (shouldReduceMotion) return;
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       const next = (activeIdxRef.current + 1) % total;
       transitionTo(next);
     }, DISPLAY_MS);
-  }, [total, transitionTo]);
+  }, [shouldReduceMotion, total, transitionTo]);
+
+  const pauseAuto = useCallback(() => {
+    clearInterval(timerRef.current);
+    clearTimeout(pauseRef.current);
+  }, []);
+
+  const resumeAuto = useCallback(() => {
+    if (total > 1 && !shouldReduceMotion) {
+      pauseRef.current = setTimeout(startAuto, PAUSE_MS);
+    }
+  }, [shouldReduceMotion, startAuto, total]);
 
   useEffect(() => {
     if (total <= 1) return;
@@ -167,6 +179,11 @@ const Hero = ({ film, relatedFilms = [] }) => {
       style={{ height: "90vh", minHeight: "560px" }}
       aria-label="Featured films carousel"
       aria-roledescription="carousel"
+      tabIndex={0}
+      onMouseEnter={pauseAuto}
+      onMouseLeave={resumeAuto}
+      onFocus={pauseAuto}
+      onBlur={resumeAuto}
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft")  goPrev();
         if (e.key === "ArrowRight") goNext();
@@ -179,7 +196,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
           src={layerA.src}
           alt=""
           aria-hidden
-          fetchpriority="high"
+          fetchPriority="high"
           loading="eager"
           className="absolute inset-0 w-full h-full object-cover object-center"
           style={{ zIndex: 1, willChange: "opacity" }}
@@ -266,11 +283,12 @@ const Hero = ({ film, relatedFilms = [] }) => {
               key={f.id}
               onClick={() => navigateTo(i)}
               aria-label={`Go to film ${i + 1}`}
+              aria-current={i === displayIdx ? "true" : undefined}
               className="rounded-full cursor-pointer border-none transition-colors duration-[300ms]"
               style={{
                 width:            i === displayIdx ? "24px"    : "8px",
                 height:           "8px",
-                backgroundColor:  i === displayIdx ? "#c9a843" : "rgba(255,255,255,0.25)",
+                backgroundColor:  i === displayIdx ? "var(--color-gold)" : "rgba(255,255,255,0.25)",
                 transition:       "width 300ms ease, background-color 300ms ease",
               }}
             />
@@ -284,14 +302,16 @@ const Hero = ({ film, relatedFilms = [] }) => {
         style={{ padding: "0 clamp(1.5rem, 6vw, 4rem)" }}
       >
         <div className="relative h-full w-full">
-          <div
-            className="absolute pointer-events-auto"
+          <button
+            type="button"
+            className="absolute pointer-events-auto text-left rounded-card focus-ring border-0 bg-transparent p-0"
             style={{
               bottom: "clamp(2rem,6vh,4rem)",
               left: 0,
               maxWidth: "clamp(280px,45vw,600px)",
             }}
             onClick={() => navigate(`/film/${current?.id}`)}
+            aria-label={`View ${current?.title || current?.original_title || "featured film"}`}
           >
             <AnimatePresence mode="wait">
               <motion.div key={contentKey} style={{ willChange: "opacity, transform" }}>
@@ -392,7 +412,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
               </motion.div>
             </AnimatePresence>
-          </div>
+          </button>
         </div>
       </div>
 

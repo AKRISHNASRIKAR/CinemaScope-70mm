@@ -1,25 +1,23 @@
-import React, { Suspense, useRef, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Suspense, useRef, useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import TvIcon from "@mui/icons-material/Tv";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import Footer from "@/components/layout/Footer";
-import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
+import PersonCard from "@/components/ui/PersonCard";
 import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
-import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
+import { posterUrl, backdropUrl } from "@/lib/utils/tmdbImage";
 
 const INITIAL_CAST = 8;
-const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
 
 /* ── Film Hero Section ────────────────────────── */
 const FilmHero = ({ id }) => {
@@ -44,7 +42,7 @@ const FilmHero = ({ id }) => {
             src={backdrop}
             alt={film.title}
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: "top center" }}
           />
@@ -69,7 +67,7 @@ const FilmHero = ({ id }) => {
                 src={posterSrc}
                 alt={film.title}
                 loading="eager"
-                fetchpriority="high"
+                fetchPriority="high"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -113,7 +111,6 @@ const FilmHero = ({ id }) => {
 /* ── Cast Section ─────────────────────────────── */
 const CastSection = ({ id }) => {
   const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher, { suspense: true });
-  const navigate = useNavigate();
   const [showAllCast, setShowAllCast] = useState(false);
   const [castInView, setCastInView] = useState(false);
   const castSectionRef = useRef(null);
@@ -144,7 +141,7 @@ const CastSection = ({ id }) => {
         className="relative rounded-card overflow-hidden"
         style={{
           padding: "clamp(1.5rem,3vw,2.5rem)",
-          background: "#0c0c0c",
+          background: "var(--color-section-dark)",
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")`,
         }}
       >
@@ -153,47 +150,15 @@ const CastSection = ({ id }) => {
         </h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
-          {visibleCast.map((member, i) => {
-            const rot = ROTATIONS[i % ROTATIONS.length];
-            const imgSrc = member.profile_path ? profileUrl(member.profile_path, "w200") : null;
-
-            return (
-              <div
-                key={`${member.id}-${member.credit_id}`}
-                onClick={() => navigate(`/person/${member.id}`)}
-                className="cursor-pointer w-full max-w-[clamp(110px,14vw,160px)] mx-auto"
-                style={{ transform: `rotate(${rot}deg)`, transition: "transform 200ms ease, box-shadow 200ms ease" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "rotate(0deg) translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "4px 6px 20px rgba(0,0,0,0.55)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = `rotate(${rot}deg)`;
-                  e.currentTarget.style.boxShadow = "3px 4px 14px rgba(0,0,0,0.35)";
-                }}
-              >
-                <div className="bg-white/95 flex flex-col" style={{ padding: "clamp(6px,0.8vw,10px) clamp(6px,0.8vw,10px) clamp(18px,2.5vw,28px)", boxShadow: "3px 4px 14px rgba(0,0,0,0.35)", borderRadius: "2px" }}>
-                  <div className="relative w-full aspect-[3/4] overflow-hidden" style={{ borderRadius: "1px" }}>
-                    {castInView ? (
-                      imgSrc ? (
-                        <LazyImage src={imgSrc} alt={member.name} fallbackType="person" className="w-full h-full object-cover object-top" />
-                      ) : (
-                        <div className="w-full h-full bg-[#ddd] flex items-center justify-center">
-                          <PersonOutlineIcon sx={{ fontSize: "clamp(1.5rem,3vw,2rem)", color: "#aaa" }} />
-                        </div>
-                      )
-                    ) : (
-                      <div className="skeleton w-full h-full" aria-hidden />
-                    )}
-                  </div>
-                  <div style={{ paddingTop: "clamp(6px,0.8vw,10px)" }}>
-                    <p className="font-mono font-medium text-ink uppercase leading-tight line-clamp-1" style={{ fontSize: "clamp(0.45rem,0.7vw,0.6rem)", letterSpacing: "0.08em" }}>{member.name}</p>
-                    {member.character && <p className="font-body text-ink-muted leading-tight line-clamp-1" style={{ fontSize: "clamp(0.4rem,0.6vw,0.5rem)", marginTop: "2px" }}>{member.character}</p>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {visibleCast.map((member, i) => (
+            <PersonCard
+              key={`${member.id}-${member.credit_id}`}
+              person={member}
+              subtitle={member.character}
+              index={i}
+              deferImage={!castInView}
+            />
+          ))}
         </div>
 
         {cast.length > INITIAL_CAST && (
@@ -257,7 +222,7 @@ const WatchProviders = ({ id }) => {
       >
         <div className="flex items-center justify-between" style={{ marginBottom: "clamp(1rem,2vh,1.5rem)" }}>
           <div className="flex items-center gap-2">
-            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "#c9a843" }} />
+            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "var(--color-gold)" }} />
             <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>
               Where to Watch
             </h2>

@@ -7,8 +7,14 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false });
+    }
   }
 
   componentDidCatch(error, errorInfo) {
@@ -21,7 +27,7 @@ class ErrorBoundary extends React.Component {
         return this.props.fallback;
       }
       return (
-        <div className="w-full py-12 px-6 flex flex-col items-center justify-center bg-surface/20 rounded-card border border-white/5 text-center">
+        <div className="w-full py-12 px-6 flex flex-col items-center justify-center bg-surface/20 rounded-card border border-white/5 text-center" role="alert">
           <WarningAmberIcon sx={{ fontSize: 32, color: "rgba(255,255,255,0.2)", marginBottom: 1.5 }} />
           <p className="font-body text-muted" style={{ fontSize: "0.9rem" }}>
             Failed to load section

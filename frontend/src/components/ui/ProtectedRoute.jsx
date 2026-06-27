@@ -9,12 +9,12 @@ import { Navigate } from "react-router-dom";
  * - Optionally accepts a fallback route to redirect after login
  */
 const ProtectedRoute = ({ children, fallbackRoute = "/login" }) => {
-  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, isLoading } = useAuth0();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" role="status" aria-label="Checking authentication" />
       </div>
     );
   }

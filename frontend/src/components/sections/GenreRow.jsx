@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -12,7 +12,7 @@ import { GenreRowSkeleton } from "@/components/ui/Skeletons";
 const FILMS_PER_PAGE = 4;
 
 /* ── Data-driven Content Component ────────────────────────────── */
-const GenreRowContent = ({ genreIds, activeTab, theme, isDark, goToGenrePage }) => {
+const GenreRowContent = ({ genreIds, activeTab, isDark }) => {
   const genreParam = genreIds.length ? `&with_genres=${genreIds.join(",")}` : "";
   let endpoint;
   switch (activeTab) {
@@ -72,13 +72,14 @@ const GenreRow = ({
           
           <div className="lg:w-[28%] flex flex-col justify-between flex-shrink-0">
             <div>
-              <h2
-                className={`font-display font-bold leading-[0.92] tracking-tight cursor-pointer transition-colors duration-fast ${headingColor} ${isDark ? "hover:text-gold" : "hover:text-ink-muted"}`}
+              <button
+                type="button"
+                className={`font-display font-bold leading-[0.92] tracking-tight text-left transition-colors duration-fast border-0 bg-transparent p-0 focus-ring ${headingColor} ${isDark ? "hover:text-gold" : "hover:text-ink-muted"}`}
                 style={{ fontSize: "clamp(1.6rem, 3.5vw, 3.5rem)" }}
                 onClick={goToGenrePage}
               >
                 {genre}
-              </h2>
+              </button>
               <p className={`font-body font-light leading-relaxed ${taglineColor}`} style={{ marginTop: "clamp(0.5rem, 1vh, 0.75rem)", fontSize: "clamp(0.7rem, 1.1vw, 0.9rem)" }}>
                 {tagline}
               </p>
@@ -96,9 +97,7 @@ const GenreRow = ({
                 <GenreRowContent 
                   genreIds={genreIds} 
                   activeTab={activeTab} 
-                  theme={theme} 
                   isDark={isDark} 
-                  goToGenrePage={goToGenrePage} 
                 />
               </Suspense>
             </ErrorBoundary>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import BrokenImageIcon from "@mui/icons-material/BrokenImage";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
@@ -16,7 +16,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
  *   style        — applied to the <img> element
  *   fallbackType — "poster" | "person" | "backdrop"  (default "poster")
  *   eager        — set true for above-fold / priority images
- *   fetchpriority— "high" | "low" | "auto" (default "auto")
+ *   fetchPriority— "high" | "low" | "auto" (default "auto")
  *   onLoad       — optional callback after load
  */
 const LazyImage = ({
@@ -26,12 +26,17 @@ const LazyImage = ({
   style = {},
   fallbackType = "poster",
   eager = false,
-  fetchpriority = "auto",
+  fetchPriority = "auto",
   onLoad,
   ...rest
 }) => {
   const [loaded,  setLoaded]  = useState(false);
   const [errored, setErrored] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [src]);
 
   const handleLoad = useCallback(() => {
     setLoaded(true);
@@ -74,7 +79,7 @@ const LazyImage = ({
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
-          fetchpriority={fetchpriority}
+          fetchPriority={fetchPriority}
           onLoad={handleLoad}
           onError={handleError}
           className={className}

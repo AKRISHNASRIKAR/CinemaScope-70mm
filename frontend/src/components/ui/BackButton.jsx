@@ -1,4 +1,3 @@
-import React from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 

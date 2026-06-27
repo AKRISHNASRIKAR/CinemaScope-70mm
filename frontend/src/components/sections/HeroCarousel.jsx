@@ -1,10 +1,8 @@
 import { useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import ScrollRow from "@/components/ui/ScrollRow";
+import { Link } from "react-router-dom";
 import { posterUrl } from "@/lib/utils/tmdbImage";
 
 const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }) => {
-  const navigate  = useNavigate();
   const cardRefs  = useRef({});
   const stripRef  = useRef(null);
 
@@ -80,29 +78,22 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             const src = posterUrl(film.poster_path, "w200") ?? "/fallback-image-film.jpg";
 
             return (
-              <div
+              <Link
+                to={`/film/${film.id}`}
                 key={film.id}
                 ref={(el) => { cardRefs.current[film.id] = el; }}
-                onClick={() => navigate(`/film/${film.id}`)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
-                role="button"
-                tabIndex={0}
                 aria-label={`${film.title}${isActive ? " (currently showing)" : ""}`}
-                className="flex-shrink-0 cursor-pointer"
+                className="interactive-lift flex-shrink-0 rounded-card focus-ring"
                 style={{
                   width: "clamp(70px,10vw,120px)",
                   scrollSnapAlign: "start",
-                  transform: "translateY(0)",
-                  transition: "transform 200ms ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
               >
                 <div
                   className="relative w-full aspect-[2/3] rounded-card overflow-hidden"
                   style={{
                     boxShadow: isActive
-                      ? "0 0 0 2px #c9a843, 0 4px 20px rgba(0,0,0,0.6)"
+                      ? "0 0 0 2px var(--color-gold), 0 4px 20px rgba(0,0,0,0.6)"
                       : "0 4px 16px rgba(0,0,0,0.5)",
                     transition: "box-shadow 200ms ease",
                   }}
@@ -125,7 +116,7 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
                 >
                   {film.title}
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>

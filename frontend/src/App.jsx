@@ -1,7 +1,8 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/ui/ProtectedRoute";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 /* ── Route-level code splitting ─────────────────────────────────
    Each page is a separate chunk — only the current page's JS is
@@ -28,28 +29,38 @@ const PageLoader = () => (
   </div>
 );
 
+const AppRoutes = () => {
+  const location = useLocation();
+
+  return (
+    <ErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/"               element={<Home />} />
+          <Route path="/login"          element={<LoginPage />} />
+          <Route path="/search"         element={<SearchPage />} />
+          <Route path="/search/:query"  element={<SearchPage />} />
+
+          {/* Protected routes — require authentication */}
+          <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/film/:id"       element={<ProtectedRoute><FilmPage /></ProtectedRoute>} />
+          <Route path="/person/:person_id" element={<ProtectedRoute><Person /></ProtectedRoute>} />
+          <Route path="/genre/:id"      element={<ProtectedRoute><GenrePage /></ProtectedRoute>} />
+          <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
+  );
+};
+
 function App() {
   return (
     <Router>
       <Header />
       {/* id="main-content" is the skip-nav target */}
       <main id="main-content">
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/"               element={<Home />} />
-            <Route path="/login"          element={<LoginPage />} />
-            <Route path="/search"         element={<SearchPage />} />
-            <Route path="/search/:query"  element={<SearchPage />} />
-            
-            {/* Protected routes — require authentication */}
-            <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/film/:id"       element={<ProtectedRoute><FilmPage /></ProtectedRoute>} />
-            <Route path="/person/:person_id" element={<ProtectedRoute><Person /></ProtectedRoute>} />
-            <Route path="/genre/:id"      element={<ProtectedRoute><GenrePage /></ProtectedRoute>} />
-            <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
-          </Routes>
-        </Suspense>
+        <AppRoutes />
       </main>
     </Router>
   );

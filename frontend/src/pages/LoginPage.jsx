@@ -14,7 +14,7 @@ const LoginPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading login" />
       </div>
     );
   }
@@ -25,11 +25,10 @@ const LoginPage = () => {
       <BackButton fallbackRoute="/" />
       {/* Animated grid background */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
+        className="gridMove absolute inset-0 pointer-events-none opacity-[0.04]"
         style={{
           backgroundImage: "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
           backgroundSize: "50px 50px",
-          animation: "gridMove 20s linear infinite",
         }}
       />
 
@@ -38,7 +37,7 @@ const LoginPage = () => {
           Welcome to CinemaScope
         </h1>
         <p className="font-body text-muted mt-3" style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}>
-          Discover the world's greatest films.
+          Discover the world&apos;s greatest films.
         </p>
         <button
           onClick={() => loginWithRedirect()}
@@ -48,8 +47,6 @@ const LoginPage = () => {
           Log In
         </button>
       </div>
-
-      <style>{`@keyframes gridMove { 0% { transform: translateY(0); } 100% { transform: translateY(-50px); } }`}</style>
     </div>
   );
 };

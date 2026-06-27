@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
@@ -65,7 +65,7 @@ const RecentlyViewedRow = () => {
 
 const Home = () => {
   return (
-    <main className="min-h-screen bg-base">
+    <div className="min-h-screen bg-base">
 
       {/* Popular Movies Hero */}
       <ErrorBoundary>
@@ -100,7 +100,7 @@ const Home = () => {
       ))}
 
       <Footer />
-    </main>
+    </div>
   );
 };
 

@@ -19,9 +19,10 @@
  *   Tab moves focus into individual items naturally.
  */
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import ChevronLeftIcon  from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const ScrollRow = ({
   label,
@@ -33,15 +34,42 @@ const ScrollRow = ({
   children,
 }) => {
   const stripRef = useRef(null);
+  const shouldReduceMotion = useReducedMotion();
+  const [edges, setEdges] = useState({ start: true, end: false });
+
+  const updateEdges = useCallback(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setEdges({
+      start: el.scrollLeft <= 2,
+      end: maxScroll <= 2 || el.scrollLeft >= maxScroll - 2,
+    });
+  }, []);
 
   const scrollBy = useCallback((dir) => {
-    stripRef.current?.scrollBy({ left: dir * scrollAmount, behavior: "smooth" });
-  }, [scrollAmount]);
+    stripRef.current?.scrollBy({
+      left: dir * scrollAmount,
+      behavior: shouldReduceMotion ? "auto" : "smooth",
+    });
+  }, [scrollAmount, shouldReduceMotion]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === "ArrowLeft")  { e.preventDefault(); scrollBy(-1); }
     if (e.key === "ArrowRight") { e.preventDefault(); scrollBy(1);  }
   }, [scrollBy]);
+
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    updateEdges();
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    window.addEventListener("resize", updateEdges);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      window.removeEventListener("resize", updateEdges);
+    };
+  }, [children, updateEdges]);
 
   return (
     <div className={`flex flex-col ${className}`} style={{ gap: "clamp(0.5rem,1vh,0.75rem)" }}>
@@ -59,6 +87,7 @@ const ScrollRow = ({
         {showArrows && (
           <button
             onClick={() => scrollBy(-1)}
+            disabled={edges.start}
             aria-label="Scroll left"
             className="
               hidden sm:flex flex-shrink-0
@@ -68,6 +97,7 @@ const ScrollRow = ({
               text-white/50 hover:text-white
               opacity-0 group-hover/row:opacity-100
               transition-all duration-fast cursor-pointer
+              disabled:opacity-0 disabled:pointer-events-none
               absolute left-0 z-10 -translate-x-1/2
             "
             style={{ width: arrowSize, height: arrowSize }}
@@ -86,7 +116,7 @@ const ScrollRow = ({
           className="flex overflow-x-auto scrollbar-hide pb-2 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
           style={{
             gap,
-            scrollBehavior: "smooth",
+            scrollBehavior: shouldReduceMotion ? "auto" : "smooth",
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
           }}
@@ -98,6 +128,7 @@ const ScrollRow = ({
         {showArrows && (
           <button
             onClick={() => scrollBy(1)}
+            disabled={edges.end}
             aria-label="Scroll right"
             className="
               hidden sm:flex flex-shrink-0
@@ -107,6 +138,7 @@ const ScrollRow = ({
               text-white/50 hover:text-white
               opacity-0 group-hover/row:opacity-100
               transition-all duration-fast cursor-pointer
+              disabled:opacity-0 disabled:pointer-events-none
               absolute right-0 z-10 translate-x-1/2
             "
             style={{ width: arrowSize, height: arrowSize }}

@@ -1,4 +1,3 @@
-import React from "react";
 import MovieCreationIcon from "@mui/icons-material/MovieCreation";
 
 /* ── Base Shimmer ──────────────────────────────────────────────── */
@@ -50,7 +49,7 @@ export const CastSectionSkeleton = () => (
   >
     <div
       className="relative rounded-card overflow-hidden"
-      style={{ padding: "clamp(1.5rem,3vw,2.5rem)", background: "#0c0c0c" }}
+      style={{ padding: "clamp(1.5rem,3vw,2.5rem)", background: "var(--color-section-dark)" }}
     >
       {/* "Cast" heading placeholder */}
       <div

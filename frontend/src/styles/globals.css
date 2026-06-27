@@ -16,9 +16,9 @@ body,
 }
 
 body {
-  background-color: #090909;
-  color: #ffffff;
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--color-base);
+  color: var(--color-white);
+  font-family: var(--font-body);
 }
 
 body {
@@ -86,8 +86,66 @@ button:focus-visible, a:focus-visible {
   outline-offset: 2px;
 }
 
-button:active {
+.pressable:active {
   transform: scale(0.97);
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.interactive-lift {
+  transition:
+    transform var(--duration-normal) var(--ease-cinematic),
+    box-shadow var(--duration-normal) var(--ease-cinematic),
+    opacity var(--duration-normal) var(--ease-cinematic),
+    color var(--duration-fast) var(--ease-snap),
+    border-color var(--duration-fast) var(--ease-snap),
+    background-color var(--duration-fast) var(--ease-snap);
+}
+
+.interactive-lift:hover {
+  transform: translateY(-4px);
+}
+
+.polaroid-card {
+  transform: rotate(var(--card-rotation, 0deg));
+  transition:
+    transform var(--duration-normal) var(--ease-cinematic),
+    box-shadow var(--duration-normal) var(--ease-cinematic);
+}
+
+.group:hover .polaroid-card,
+.group:focus-visible .polaroid-card {
+  transform: rotate(0deg) translateY(-4px);
+  box-shadow: 4px 8px 24px rgba(0, 0, 0, 0.55) !important;
+}
+
+.poster-image {
+  transition:
+    transform var(--duration-slow) var(--ease-cinematic),
+    filter var(--duration-normal) var(--ease-cinematic),
+    opacity var(--duration-normal) var(--ease-cinematic);
+}
+
+.group:hover .poster-image,
+.group:focus-visible .poster-image {
+  transform: scale(1.045);
+  filter: brightness(1.08);
+}
+
+.gridMove {
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50px); }
 }
 
 /* ── Accessibility ── */
@@ -95,5 +153,15 @@ button:active {
   * {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .interactive-lift:hover,
+  .group:hover .polaroid-card,
+  .group:focus-visible .polaroid-card,
+  .group:hover .poster-image,
+  .group:focus-visible .poster-image {
+    transform: none !important;
+    filter: none !important;
   }
 }

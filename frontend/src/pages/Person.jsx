@@ -1,5 +1,5 @@
-import React, { Suspense, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Suspense, useState } from "react";
+import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
@@ -10,8 +10,9 @@ import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ScrollRow from "@/components/ui/ScrollRow";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import FilmCard from "@/components/ui/FilmCard";
 import { PersonHeaderSkeleton, FilmRowSkeleton } from "@/components/ui/Skeletons";
-import { posterUrl, profileUrl } from "@/lib/utils/tmdbImage";
+import { profileUrl } from "@/lib/utils/tmdbImage";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const fmtDate = (dateStr) => {
@@ -46,7 +47,7 @@ const PersonHeader = ({ person_id }) => {
             alt={person.name}
             fallbackType="person"
             eager={true}
-            fetchpriority="high"
+            fetchPriority="high"
             className="w-full aspect-[2/3] object-cover object-top sm:aspect-auto sm:h-auto"
             style={{ maxHeight: "clamp(50vw, 60vh, 600px)" }}
           />
@@ -97,7 +98,7 @@ const PersonHeader = ({ person_id }) => {
         {bioText && (
           <div style={{ marginTop: "clamp(1.5rem, 3vh, 2.5rem)" }}>
             <div className="flex items-center" style={{ gap: "clamp(0.3rem, 0.6vw, 0.5rem)", marginBottom: "clamp(0.5rem, 1vh, 0.75rem)" }}>
-              <BookmarkIcon sx={{ fontSize: "clamp(0.9rem, 1.3vw, 1.1rem)", color: "#c9a843" }} />
+              <BookmarkIcon sx={{ fontSize: "clamp(0.9rem, 1.3vw, 1.1rem)", color: "var(--color-gold)" }} />
               <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem, 1.6vw, 1.3rem)" }}>Biography</h2>
             </div>
             <div className="font-body text-white/55 leading-relaxed" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>
@@ -105,6 +106,7 @@ const PersonHeader = ({ person_id }) => {
               {isLongBio && (
                 <button 
                   onClick={() => setIsBioExpanded(!isBioExpanded)}
+                  aria-expanded={isBioExpanded}
                   className="text-gold hover:text-gold-lt transition-colors font-medium cursor-pointer"
                 >
                   {isBioExpanded ? "Read Less" : "Read More"}
@@ -149,7 +151,6 @@ const PersonHeader = ({ person_id }) => {
 /* ── 2. Filmography Row (Data-driven) ────────────────────────── */
 const FilmographyRow = ({ person_id }) => {
   const { data: credits } = useSWR(`/person/${person_id}/movie_credits`, fetcher, { suspense: true });
-  const navigate = useNavigate();
 
   const seen = new Set();
   const filmography = (credits.cast || [])
@@ -176,31 +177,10 @@ const FilmographyRow = ({ person_id }) => {
         {filmography.map((film) => (
           <div
             key={film.id}
-            onClick={() => navigate(`/film/${film.id}`)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
-            role="button"
-            tabIndex={0}
-            aria-label={film.title || "Untitled"}
-            className="flex-shrink-0 group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded-card"
             style={{ width: "clamp(100px, 12vw, 180px)", scrollSnapAlign: "start" }}
+            className="flex-shrink-0"
           >
-            <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
-              <LazyImage
-                src={posterUrl(film.poster_path, "w342")}
-                alt={film.title}
-                fallbackType="poster"
-                className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-normal" />
-            </div>
-            <p className="font-body font-medium line-clamp-1 group-hover:text-gold transition-colors duration-fast mt-2" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>
-              {film.title || "Untitled"}
-            </p>
-            {film.release_date && (
-              <p className="font-mono text-muted line-clamp-1 mt-1" style={{ fontSize: "clamp(0.55rem,0.85vw,0.65rem)" }}>
-                {film.release_date.slice(0, 4)}
-              </p>
-            )}
+            <FilmCard film={film} subtitle={film.release_date?.slice(0, 4)} />
           </div>
         ))}
       </ScrollRow>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -108,7 +108,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
       <div className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
         {allFilms.map((film) => (
           <FilmCard 
-            key={`${film.id}-${page}`} 
+            key={film.id}
             film={film} 
             subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
           />
@@ -123,7 +123,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
             className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50"
             style={{ padding: "0.75rem 2.5rem" }}
           >
-            {loadingMore && <CircularProgress size={14} sx={{ color: "#c9a843" }} />}
+            {loadingMore && <CircularProgress size={14} sx={{ color: "var(--color-gold)" }} />}
             {loadingMore ? "Loading…" : "Load More"}
           </button>
         </div>
@@ -138,7 +138,7 @@ const GenrePage = () => {
   const genreId = parseInt(id, 10);
   const genreName = GENRE_MAP[genreId] ?? "Genre";
 
-  const [sortBy, setSortBy] = useState(SORT_OPTIONS[0]);
+  const [sortBy] = useState(SORT_OPTIONS[0]);
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
   const [heroPosterUrls, setHeroPosterUrls] = useState([]);
   const [isSticky, setIsSticky] = useState(true);
@@ -163,7 +163,7 @@ const GenrePage = () => {
       <GenreHero genreName={genreName} heroPosterUrls={heroPosterUrls} navHeight={NAV_HEIGHT} />
 
       <div 
-        className={`${isSticky ? 'sticky' : 'relative'} bg-[#090909] border-b border-white/5 w-full transition-all duration-200`} 
+        className={`${isSticky ? "sticky" : "relative"} bg-base border-b border-white/5 w-full transition-all duration-200`} 
         style={{ top: isSticky ? "var(--navbar-height, 4rem)" : "auto", zIndex: 30 }}
       >
         <div className="center-container">
@@ -175,6 +175,7 @@ const GenrePage = () => {
                   <button
                     key={tab.label}
                     onClick={() => setFilterTab(tab)}
+                    aria-pressed={filterTab.label === tab.label}
                     className={`flex-shrink-0 font-body font-medium tracking-[0.12em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[10px] whitespace-nowrap ${filterTab.label === tab.label ? "text-gold border-gold" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                     style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
                   >
@@ -183,24 +184,6 @@ const GenrePage = () => {
                 ))}
               </div>
             </div>
-
-            {/* 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="font-mono text-white/30 text-[10px] uppercase hidden sm:inline">Sort</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setSortBy(opt)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.1em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[9px] whitespace-nowrap ${sortBy.value === opt.value ? "text-gold border-gold" : "bg-transparent text-white/30 border-transparent hover:text-white"}`}
-                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            */}
           </div>
         </div>
       </div>
