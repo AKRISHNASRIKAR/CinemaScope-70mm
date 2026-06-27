@@ -80,28 +80,131 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   logger.info('request', { path: tmdbPath, cache_key: cacheKey, request_id: requestId });
 
-  // ── TODO: Business logic (implement in a later sprint) ──────────────────
-  //
-  // 1. SELECT payload, fetched_at, expires_at FROM tmdb_cache WHERE cache_key = $1
-  // 2. If row exists AND expires_at > now(): return payload (X-Cache: HIT)
-  // 3. If TMDB_API_KEY is missing: return 503
-  // 4. Build TMDB URL: TMDB_BASE + tmdbPath + params + api_key + language=en-US
-  // 5. Fetch from TMDB; on non-200: check for stale row → return STALE or 503
-  // 6. INSERT/UPDATE tmdb_cache row with new payload and computed expires_at
-  // 7. Return payload (X-Cache: MISS)
-  //
-  // ────────────────────────────────────────────────────────────────────────
+  // ── 1. Cache lookup ────────────────────────────────────────────────────────
+  const { data: cached } = await adminClient
+    .from('tmdb_cache')
+    .select('payload, fetched_at, expires_at, hit_count')
+    .eq('cache_key', cacheKey)
+    .single();
 
-  return new Response(
-    JSON.stringify({ scaffold: true, path: tmdbPath, cache_key: cacheKey, ttl_seconds: ttlSeconds }),
+  if (cached) {
+    const isExpired = new Date(cached.expires_at) <= new Date();
+
+    if (!isExpired) {
+      // Cache HIT — increment hit counter asynchronously (fire-and-forget)
+      adminClient
+        .from('tmdb_cache')
+        .update({ hit_count: (cached.hit_count ?? 0) + 1 })
+        .eq('cache_key', cacheKey)
+        .then(() => {});
+
+      const ageSeconds = Math.floor(
+        (Date.now() - new Date(cached.fetched_at).getTime()) / 1_000,
+      );
+
+      logger.info('cache_hit', { path: tmdbPath, age_s: ageSeconds, request_id: requestId });
+
+      return new Response(JSON.stringify(cached.payload), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Cache': 'HIT',
+          'X-Cache-Age': String(ageSeconds),
+          'X-Request-ID': requestId,
+        },
+      });
+    }
+  }
+
+  // ── 2. Guard: TMDB key must be present ────────────────────────────────────
+  if (!TMDB_API_KEY) {
+    logger.error('missing_tmdb_key', { request_id: requestId });
+    // Serve stale if available rather than returning an error
+    if (cached) {
+      logger.info('serve_stale_no_key', { path: tmdbPath, request_id: requestId });
+      return new Response(JSON.stringify(cached.payload), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Cache': 'STALE',
+          'X-Request-ID': requestId,
+        },
+      });
+    }
+    return Errors.upstreamUnavailable(corsHeaders, 'TMDB_API_KEY not configured');
+  }
+
+  // ── 3. Fetch from TMDB ────────────────────────────────────────────────────
+  const tmdbParams = new URLSearchParams(params);
+  tmdbParams.delete('api_key'); // never forward a client-supplied key
+  tmdbParams.set('api_key', TMDB_API_KEY);
+  if (!tmdbParams.has('language')) tmdbParams.set('language', 'en-US');
+
+  const tmdbUrl = `${TMDB_BASE}${tmdbPath}?${tmdbParams.toString()}`;
+
+  let tmdbResponse: Response;
+  try {
+    tmdbResponse = await fetch(tmdbUrl);
+  } catch (err) {
+    logger.error('tmdb_fetch_error', { path: tmdbPath, error: String(err), request_id: requestId });
+    if (cached) {
+      return new Response(JSON.stringify(cached.payload), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Cache': 'STALE',
+          'X-Request-ID': requestId,
+        },
+      });
+    }
+    return Errors.upstreamUnavailable(corsHeaders, 'TMDB upstream unreachable');
+  }
+
+  if (!tmdbResponse.ok) {
+    logger.warn('tmdb_non_200', { path: tmdbPath, status: tmdbResponse.status, request_id: requestId });
+    if (cached) {
+      return new Response(JSON.stringify(cached.payload), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Cache': 'STALE',
+          'X-Request-ID': requestId,
+        },
+      });
+    }
+    return Errors.upstreamUnavailable(corsHeaders, `TMDB returned ${tmdbResponse.status}`);
+  }
+
+  // ── 4. Parse + cache the response ─────────────────────────────────────────
+  const payload = await tmdbResponse.json();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + ttlSeconds * 1_000);
+
+  await adminClient.from('tmdb_cache').upsert(
     {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'X-Cache': 'MISS',
-        'X-Request-ID': requestId,
-      },
+      cache_key: cacheKey,
+      endpoint: tmdbPath,
+      payload,
+      fetched_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+      hit_count: 0,
     },
+    { onConflict: 'cache_key' },
   );
+
+  logger.info('cache_miss', { path: tmdbPath, ttl_s: ttlSeconds, request_id: requestId });
+
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'X-Cache': 'MISS',
+      'X-Request-ID': requestId,
+    },
+  });
 });
