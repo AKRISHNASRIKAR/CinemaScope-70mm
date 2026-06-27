@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import { useSession } from "@/hooks/useSession";
 
 const Header = () => {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuthenticated } = useSession();
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const navbarRef = useRef(null);
@@ -164,10 +164,10 @@ const Header = () => {
                 aria-label={isAuthenticated ? "Go to profile" : "Sign in"}
                 className="transition-all duration-normal hover:scale-105 active:scale-95 rounded-full"
               >
-                {isAuthenticated && user?.picture ? (
+                {isAuthenticated && user?.user_metadata?.avatar_url ? (
                   <img
-                    src={user.picture}
-                    alt={user.name}
+                    src={user.user_metadata.avatar_url}
+                    alt={user.user_metadata.full_name || user.email || "Profile"}
                     className="rounded-full object-cover ring-2 ring-white/15 hover:ring-white/40 transition-all duration-normal"
                     style={{
                       width: "clamp(1.75rem, 3vw, 2.25rem)",

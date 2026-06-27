@@ -12,12 +12,20 @@
 import { useState, useCallback, useEffect } from "react";
 
 const STORAGE_KEY = "cs_recently_viewed";
+const STORAGE_VERSION_KEY = "cs_recently_viewed_version";
+const STORAGE_VERSION = "2";
 const MAX_ITEMS   = 10;
 
 function readStorage() {
   try {
+    if (localStorage.getItem(STORAGE_VERSION_KEY) !== STORAGE_VERSION) {
+      localStorage.setItem(STORAGE_VERSION_KEY, STORAGE_VERSION);
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const items = raw ? JSON.parse(raw) : [];
+    return Array.isArray(items) ? items.filter((film) => film?.id && film?.title) : [];
   } catch {
     return [];
   }

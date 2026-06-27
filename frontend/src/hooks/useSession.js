@@ -7,11 +7,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+const missingSupabase = () => Promise.reject(new Error('Supabase is not configured'));
+
 export function useSession() {
   const [session, setSession] = useState(undefined); // undefined = still loading
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) {
+      setSession(null);
+      setIsLoading(false);
+      return undefined;
+    }
+
     // Read the current session immediately (synchronous from cache)
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
@@ -27,31 +35,31 @@ export function useSession() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = () => supabase?.auth.signOut() ?? missingSupabase();
 
   const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({
+    supabase?.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/` },
-    });
+    }) ?? missingSupabase();
 
   const signInWithGitHub = () =>
-    supabase.auth.signInWithOAuth({
+    supabase?.auth.signInWithOAuth({
       provider: 'github',
       options: { redirectTo: `${window.location.origin}/` },
-    });
+    }) ?? missingSupabase();
 
   const signInWithEmail = (email, password) =>
-    supabase.auth.signInWithPassword({ email, password });
+    supabase?.auth.signInWithPassword({ email, password }) ?? missingSupabase();
 
   const signUpWithEmail = (email, password) =>
-    supabase.auth.signUp({ email, password });
+    supabase?.auth.signUp({ email, password }) ?? missingSupabase();
 
   const signInWithMagicLink = (email) =>
-    supabase.auth.signInWithOtp({
+    supabase?.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/` },
-    });
+    }) ?? missingSupabase();
 
   return {
     session,

@@ -7,6 +7,7 @@ import { supabase, FUNCTIONS_URL } from "@/lib/supabase";
 const CACHE_KEY = "/watchlist";
 
 async function apiFetch(path, options = {}) {
+  if (!supabase) throw new Error("Supabase is not configured");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
@@ -29,7 +30,7 @@ async function apiFetch(path, options = {}) {
 }
 
 export function useWatchlist() {
-  const { data, error, isLoading } = useSWR(CACHE_KEY, () => apiFetch("/watchlist"), {
+  const { data, error, isLoading } = useSWR(supabase ? CACHE_KEY : null, () => apiFetch("/watchlist"), {
     revalidateOnFocus: false,
   });
 

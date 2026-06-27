@@ -7,6 +7,7 @@ import { supabase, FUNCTIONS_URL } from "@/lib/supabase";
 const CACHE_KEY = "/watch-history";
 
 async function apiFetch(path, options = {}) {
+  if (!supabase) throw new Error("Supabase is not configured");
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
@@ -34,7 +35,7 @@ async function fetchHistory({ page = 1, limit = 20 } = {}) {
 
 export function useWatchHistory({ page = 1, limit = 20 } = {}) {
   const key = `${CACHE_KEY}?page=${page}&limit=${limit}`;
-  const { data, error, isLoading } = useSWR(key, () => fetchHistory({ page, limit }), {
+  const { data, error, isLoading } = useSWR(supabase ? key : null, () => fetchHistory({ page, limit }), {
     revalidateOnFocus: false,
   });
 
