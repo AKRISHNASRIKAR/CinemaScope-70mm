@@ -10,6 +10,7 @@ const BackButton = ({ fallbackRoute = "/", className = "" }) => {
 
   return (
     <button
+      type="button"
       onClick={goBack}
       className={`
         fixed z-40 flex items-center justify-center

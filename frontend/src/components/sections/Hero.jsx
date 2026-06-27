@@ -183,7 +183,9 @@ const Hero = ({ film, relatedFilms = [] }) => {
       onMouseEnter={pauseAuto}
       onMouseLeave={resumeAuto}
       onFocus={pauseAuto}
-      onBlur={resumeAuto}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) resumeAuto();
+      }}
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft")  goPrev();
         if (e.key === "ArrowRight") goNext();
@@ -240,6 +242,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
       {total > 1 && (
         <>
           <button
+            type="button"
             onClick={goPrev}
             aria-label="Previous film"
             className="
@@ -255,6 +258,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
             <ChevronLeftIcon sx={{ fontSize: "clamp(1.2rem,2vw,1.8rem)" }} />
           </button>
           <button
+            type="button"
             onClick={goNext}
             aria-label="Next film"
             className="
@@ -280,9 +284,10 @@ const Hero = ({ film, relatedFilms = [] }) => {
         >
           {allFilms.map((f, i) => (
             <button
+              type="button"
               key={f.id}
               onClick={() => navigateTo(i)}
-              aria-label={`Go to film ${i + 1}`}
+              aria-label={`Go to ${f.title || `film ${i + 1}`}`}
               aria-current={i === displayIdx ? "true" : undefined}
               className="rounded-full cursor-pointer border-none transition-colors duration-[300ms]"
               style={{

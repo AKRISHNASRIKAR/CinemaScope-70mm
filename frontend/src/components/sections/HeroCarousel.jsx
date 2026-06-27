@@ -1,10 +1,12 @@
 import { useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { posterUrl } from "@/lib/utils/tmdbImage";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }) => {
   const cardRefs  = useRef({});
   const stripRef  = useRef(null);
+  const shouldReduceMotion = useReducedMotion();
 
   /* ── Smooth-scroll active card into view when hero film changes ── */
   useEffect(() => {
@@ -14,9 +16,9 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
     if (el && container) {
       const targetScroll =
         el.offsetLeft - container.offsetWidth / 2 + el.offsetWidth / 2;
-      container.scrollTo({ left: targetScroll, behavior: "smooth" });
+      container.scrollTo({ left: targetScroll, behavior: shouldReduceMotion ? "auto" : "smooth" });
     }
-  }, [activeFilmId]);
+  }, [activeFilmId, shouldReduceMotion]);
 
   if (!films.length) return null;
 
@@ -37,7 +39,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
       <div className="relative flex items-center group/hc">
         {films.length > 5 && (
           <button
-            onClick={() => stripRef.current?.scrollBy({ left: -180, behavior: "smooth" })}
+            type="button"
+            onClick={() => stripRef.current?.scrollBy({ left: -180, behavior: shouldReduceMotion ? "auto" : "smooth" })}
             aria-label="Scroll Now Showing left"
             className="
               hidden sm:flex absolute -left-3 z-20
@@ -59,8 +62,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
           aria-label="Now Showing films"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "ArrowLeft")  { e.preventDefault(); stripRef.current?.scrollBy({ left: -180, behavior: "smooth" }); }
-            if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: "smooth" }); }
+            if (e.key === "ArrowLeft")  { e.preventDefault(); stripRef.current?.scrollBy({ left: -180, behavior: shouldReduceMotion ? "auto" : "smooth" }); }
+            if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: shouldReduceMotion ? "auto" : "smooth" }); }
           }}
           /* Significant top padding for headroom, light bottom padding for stability */
           className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide pt-12 pb-4 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
@@ -83,6 +86,7 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
                 key={film.id}
                 ref={(el) => { cardRefs.current[film.id] = el; }}
                 aria-label={`${film.title}${isActive ? " (currently showing)" : ""}`}
+                aria-current={isActive ? "true" : undefined}
                 className="interactive-lift flex-shrink-0 rounded-card focus-ring"
                 style={{
                   width: "clamp(70px,10vw,120px)",
@@ -123,7 +127,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
 
         {films.length > 5 && (
           <button
-            onClick={() => stripRef.current?.scrollBy({ left: 180, behavior: "smooth" })}
+            type="button"
+            onClick={() => stripRef.current?.scrollBy({ left: 180, behavior: shouldReduceMotion ? "auto" : "smooth" })}
             aria-label="Scroll Now Showing right"
             className="
               hidden sm:flex absolute -right-1 z-20

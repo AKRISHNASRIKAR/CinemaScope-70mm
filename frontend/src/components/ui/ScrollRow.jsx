@@ -86,6 +86,7 @@ const ScrollRow = ({
         {/* Prev arrow */}
         {showArrows && (
           <button
+            type="button"
             onClick={() => scrollBy(-1)}
             disabled={edges.start}
             aria-label="Scroll left"
@@ -127,6 +128,7 @@ const ScrollRow = ({
         {/* Next arrow */}
         {showArrows && (
           <button
+            type="button"
             onClick={() => scrollBy(1)}
             disabled={edges.end}
             aria-label="Scroll right"

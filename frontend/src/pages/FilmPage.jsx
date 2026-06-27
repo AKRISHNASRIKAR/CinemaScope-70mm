@@ -340,6 +340,7 @@ const CastSection = ({ id }) => {
         {cast.length > INITIAL_CAST && (
           <div className="flex justify-center" style={{ marginTop: "clamp(1.5rem,3vh,2rem)" }}>
             <button
+              type="button"
               onClick={() => setShowAllCast((v) => !v)}
               className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/60 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card"
               style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)", padding: "0.75rem 2rem" }}

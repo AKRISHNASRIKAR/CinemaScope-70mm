@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
+import CompareArrowsOutlinedIcon from "@mui/icons-material/CompareArrowsOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { useSession } from "@/hooks/useSession";
 
@@ -76,6 +77,7 @@ const Header = () => {
             <div className="flex items-center" style={{ flex: "1" }}>
               <div
                 className="relative flex items-center rounded-full border border-white/10 bg-white/[0.06] overflow-hidden"
+                role="search"
                 style={{
                   height: "clamp(2rem, 3.5vw, 2.5rem)",
                   width: searchExpanded ? "clamp(200px, 28vw, 340px)" : "clamp(2rem, 3.5vw, 2.5rem)",
@@ -86,8 +88,10 @@ const Header = () => {
               >
                 {/* Search icon — always visible, left-anchored */}
                 <button
+                  type="button"
                   onClick={searchExpanded ? handleSearch : openSearch}
                   aria-label={searchExpanded ? "Submit search" : "Open search"}
+                  aria-expanded={searchExpanded}
                   className="flex-shrink-0 flex items-center justify-center text-white/50 hover:text-white transition-colors duration-fast cursor-pointer"
                   style={{
                     width: "clamp(2rem, 3.5vw, 2.5rem)",
@@ -119,6 +123,7 @@ const Header = () => {
                 {/* Close button */}
                 {searchExpanded && (
                   <button
+                    type="button"
                     onClick={closeSearch}
                     aria-label="Close search"
                     className="flex-shrink-0 flex items-center justify-center text-white/30 hover:text-white/80 transition-colors duration-fast cursor-pointer"
@@ -157,6 +162,18 @@ const Header = () => {
                 aria-label="Compare films"
               >
                 Compare
+              </Link>
+
+              <Link
+                to="/compare"
+                className="sm:hidden flex items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-normal"
+                style={{
+                  width: "clamp(1.75rem, 3vw, 2.25rem)",
+                  height: "clamp(1.75rem, 3vw, 2.25rem)",
+                }}
+                aria-label="Compare films"
+              >
+                <CompareArrowsOutlinedIcon sx={{ fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)" }} />
               </Link>
 
               <Link

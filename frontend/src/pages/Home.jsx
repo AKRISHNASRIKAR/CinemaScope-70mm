@@ -36,6 +36,7 @@ const RecentlyViewedRow = () => {
             Recently Viewed
           </h2>
           <button
+            type="button"
             onClick={clearRecent}
             className="font-body text-muted hover:text-white/70 transition-colors duration-fast cursor-pointer"
             style={{ fontSize: "clamp(0.55rem,0.85vw,0.7rem)" }}

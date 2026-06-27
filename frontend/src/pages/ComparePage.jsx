@@ -26,6 +26,7 @@ import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import LazyImage from "@/components/ui/LazyImage";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SEO from "@/components/seo/SEO";
 import { posterUrl } from "@/lib/utils/tmdbImage";
 import { useMovieSearch } from "@/hooks/useMovieSearch";
 
@@ -92,9 +93,11 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
           aria-expanded={results.length > 0}
           aria-controls={results.length > 0 ? listboxId : undefined}
           aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${results[activeIndex]?.id}` : undefined}
+          aria-busy={isLoading}
         />
         {query && (
           <button
+            type="button"
             onClick={clear}
             className="absolute right-3 text-white/30 hover:text-white/70 cursor-pointer"
             aria-label="Clear search"
@@ -114,6 +117,7 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
         >
           {results.map((film, index) => (
             <button
+              type="button"
               key={film.id}
               id={`${listboxId}-${film.id}`}
               onClick={() => pick(film)}
@@ -178,6 +182,7 @@ const FilmColumn = ({ id, onClear }) => {
         </div>
         {/* Clear button */}
         <button
+          type="button"
           onClick={onClear}
           aria-label={`Remove ${film.title}`}
           className="absolute top-2 right-2 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 transition-all duration-fast cursor-pointer opacity-0 group-hover:opacity-100"
@@ -230,6 +235,7 @@ const FilmColumn = ({ id, onClear }) => {
 
       {/* View full page */}
       <button
+        type="button"
         onClick={() => navigate(`/film/${film.id}`)}
         className="flex items-center gap-2 font-body font-medium text-gold border border-gold/30 hover:bg-gold/10 hover:border-gold/60 rounded-card transition-all duration-normal cursor-pointer self-start"
         style={{ padding: "0.6rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}
@@ -278,6 +284,11 @@ const ComparePage = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
+      <SEO
+        title="Film Comparison"
+        description="Compare two films side by side by rating, runtime, release year, genres, posters, and overview."
+        canonicalPath={`/compare${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}
+      />
       <BackButton fallbackRoute="/" />
 
       <div
@@ -301,6 +312,7 @@ const ComparePage = () => {
         {idA && idB && (
           <div className="flex justify-center" style={{ padding: "clamp(1rem,2vh,1.5rem) 0" }}>
             <button
+              type="button"
               onClick={swap}
               className="flex items-center gap-2 font-body font-medium text-white/60 hover:text-white border border-white/10 hover:border-white/25 rounded-full transition-all duration-normal cursor-pointer"
               style={{ padding: "0.5rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}

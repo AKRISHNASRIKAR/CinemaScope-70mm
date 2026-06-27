@@ -8,6 +8,7 @@ import FilmCard from "@/components/ui/FilmCard";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SEO from "@/components/seo/SEO";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_MAP } from "@/lib/constants";
 import { posterUrl } from "@/lib/utils/tmdbImage";
@@ -108,21 +109,24 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
 
   return (
     <>
-      <div className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
+      <ul className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
         {allFilms.map((film) => (
-          <FilmCard 
-            key={film.id}
-            film={film} 
-            subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
-          />
+          <li key={film.id}>
+            <FilmCard 
+              film={film} 
+              subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
+            />
+          </li>
         ))}
-      </div>
+      </ul>
       
       {page < totalPages && (
         <div className="flex justify-center" style={{ marginTop: "clamp(2rem, 4vw, 3rem)" }}>
           <button
+            type="button"
             onClick={handleLoadMore}
             disabled={loadingMore}
+            aria-busy={loadingMore}
             className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50"
             style={{ padding: "0.75rem 2.5rem" }}
           >
@@ -162,6 +166,11 @@ const GenrePage = () => {
 
   return (
     <div className="min-h-screen bg-base relative">
+      <SEO
+        title={`${genreName} Movies`}
+        description={`Browse ${genreName} movies on CinemaScope, including popular, top rated, upcoming, and theatrical releases.`}
+        canonicalPath={`/genre/${genreId}`}
+      />
       <BackButton fallbackRoute="/" />
       <GenreHero genreName={genreName} heroPosterUrls={heroPosterUrls} navHeight={NAV_HEIGHT} />
 
@@ -173,9 +182,14 @@ const GenrePage = () => {
           <div className="flex items-center justify-between flex-wrap" style={{ gap: "clamp(0.5rem, 1vw, 1rem)", padding: "clamp(0.75rem, 1.5vh, 1rem) 0" }}>
             
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none" style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}>
+              <div
+                className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none"
+                style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}
+                aria-label={`${genreName} movie filters`}
+              >
                 {FILTER_TABS.map((tab) => (
                   <button
+                    type="button"
                     key={tab.label}
                     onClick={() => setFilterTab(tab)}
                     aria-pressed={filterTab.label === tab.label}

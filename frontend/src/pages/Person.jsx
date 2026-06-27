@@ -11,6 +11,7 @@ import BackButton from "@/components/ui/BackButton";
 import ScrollRow from "@/components/ui/ScrollRow";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
+import SEO from "@/components/seo/SEO";
 import { PersonHeaderSkeleton, FilmRowSkeleton } from "@/components/ui/Skeletons";
 import { profileUrl } from "@/lib/utils/tmdbImage";
 
@@ -32,18 +33,40 @@ const PersonHeader = ({ person_id }) => {
   
   const bioText = person.biography || "";
   const isLongBio = bioText.length > 400;
+  const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
+  const description =
+    bioText ||
+    `${person.name} biography, known films, and credits on CinemaScope.`;
   
   const displayBio = isLongBio && !isBioExpanded 
     ? bioText.slice(0, 400) + "..." 
     : bioText;
 
   return (
-    <div className="flex flex-col sm:flex-row" style={{ gap: "clamp(1.5rem, 4vw, 3rem)" }}>
+    <>
+      <SEO
+        title={person.name}
+        description={description}
+        image={portraitSrc}
+        canonicalPath={`/person/${person.id}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Person",
+          name: person.name,
+          description,
+          image: portraitSrc,
+          birthDate: person.birthday || undefined,
+          deathDate: person.deathday || undefined,
+          birthPlace: person.place_of_birth || undefined,
+          jobTitle: person.known_for_department || undefined,
+        }}
+      />
+      <div className="flex flex-col sm:flex-row" style={{ gap: "clamp(1.5rem, 4vw, 3rem)" }}>
       {/* LEFT: Portrait */}
       <div className="sm:w-[38%] lg:w-[35%] flex-shrink-0">
         <div className="relative overflow-hidden" style={{ borderRadius: "8px" }}>
           <LazyImage
-            src={profileUrl(person.profile_path, "h632")}
+            src={portraitSrc}
             alt={person.name}
             fallbackType="person"
             eager={true}
@@ -105,6 +128,7 @@ const PersonHeader = ({ person_id }) => {
               {displayBio.split("\n").map((para, i) => para.trim() && <p key={i} className="mb-3">{para}</p>)}
               {isLongBio && (
                 <button 
+                  type="button"
                   onClick={() => setIsBioExpanded(!isBioExpanded)}
                   aria-expanded={isBioExpanded}
                   className="text-gold hover:text-gold-lt transition-colors font-medium cursor-pointer"
@@ -144,7 +168,8 @@ const PersonHeader = ({ person_id }) => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

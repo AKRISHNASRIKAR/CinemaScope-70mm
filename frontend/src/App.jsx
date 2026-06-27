@@ -16,6 +16,7 @@ const SearchPage  = lazy(() => import("@/pages/SearchPage"));
 const Person      = lazy(() => import("@/pages/Person"));
 const GenrePage   = lazy(() => import("@/pages/GenrePage"));
 const ComparePage = lazy(() => import("@/pages/ComparePage"));
+const NotFound    = lazy(() => import("@/pages/NotFound"));
 
 /* ── Minimal page-transition fallback ──────────────────────────── */
 const PageLoader = () => (
@@ -41,13 +42,15 @@ const AppRoutes = () => {
           <Route path="/login"          element={<LoginPage />} />
           <Route path="/search"         element={<SearchPage />} />
           <Route path="/search/:query"  element={<SearchPage />} />
+          <Route path="/film/:id"       element={<FilmPage />} />
+          <Route path="/person/:person_id" element={<Person />} />
+          <Route path="/genre/:id"      element={<GenrePage />} />
+          <Route path="/compare"        element={<ComparePage />} />
 
-          {/* Protected routes — require authentication */}
+          {/* Protected routes — account-specific data only */}
           <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/film/:id"       element={<ProtectedRoute><FilmPage /></ProtectedRoute>} />
-          <Route path="/person/:person_id" element={<ProtectedRoute><Person /></ProtectedRoute>} />
-          <Route path="/genre/:id"      element={<ProtectedRoute><GenrePage /></ProtectedRoute>} />
-          <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+
+          <Route path="*"               element={<NotFound />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

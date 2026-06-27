@@ -11,6 +11,7 @@ import Footer from "@/components/layout/Footer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
 import PersonCard from "@/components/ui/PersonCard";
+import SEO from "@/components/seo/SEO";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -36,34 +37,37 @@ const SearchResults = ({ term }) => {
 
   return (
     <>
-      <div style={{ marginBottom: "clamp(1.5rem, 3vh, 2rem)" }}>
+      <div style={{ marginBottom: "clamp(1.5rem, 3vh, 2rem)" }} aria-live="polite">
         <h1 className="font-display font-bold text-white" style={{ fontSize: "clamp(1.3rem, 2.5vw, 2rem)" }}>Results for &quot;{term}&quot;</h1>
         <p className="font-body text-muted mt-1" style={{ fontSize: "clamp(0.65rem, 1vw, 0.8rem)" }}>{totalResults} result{totalResults !== 1 ? "s" : ""} found</p>
       </div>
 
       {movies.length > 0 && (
-        <section style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
-          <h2 className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>Movies</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+        <section aria-labelledby="search-movies-heading" style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
+          <h2 id="search-movies-heading" className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>Movies</h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
             {movies.map((m) => (
-              <FilmCard
-                key={m.id}
-                film={m}
-                subtitle={[m.release_date?.slice(0, 4), m.vote_average > 0 ? `Rating ${m.vote_average.toFixed(1)}` : null].filter(Boolean).join(" · ")}
-              />
+              <li key={m.id}>
+                <FilmCard
+                  film={m}
+                  subtitle={[m.release_date?.slice(0, 4), m.vote_average > 0 ? `Rating ${m.vote_average.toFixed(1)}` : null].filter(Boolean).join(" · ")}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
 
       {people.length > 0 && (
-        <section style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
-          <h2 className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>People</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
+        <section aria-labelledby="search-people-heading" style={{ marginBottom: "clamp(2.5rem, 5vh, 4rem)" }}>
+          <h2 id="search-people-heading" className="font-display font-bold text-white/80" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)", marginBottom: "clamp(1rem, 2vh, 1.5rem)" }}>People</h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
             {people.map((p, i) => (
-              <PersonCard key={p.id} person={p} subtitle={p.known_for_department} index={i} />
+              <li key={p.id} className="w-full">
+                <PersonCard person={p} subtitle={p.known_for_department} index={i} />
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
     </>
@@ -92,11 +96,12 @@ const SearchPage = () => {
     setInputValue(val);
   }, []);
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === "Enter" && inputValue.trim()) {
-      setSearchTerm(inputValue.trim());
-      setSearchParams({ q: inputValue.trim() });
-    }
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault();
+    const next = inputValue.trim();
+    if (!next) return;
+    setSearchTerm(next);
+    setSearchParams({ q: next });
   }, [inputValue, setSearchParams]);
 
   const clearSearch = useCallback(() => {
@@ -106,12 +111,30 @@ const SearchPage = () => {
     inputRef.current?.focus();
   }, [setSearchParams]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === "Escape") clearSearch();
+  }, [clearSearch]);
+
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
+      <SEO
+        title={searchTerm ? `Search results for ${searchTerm}` : "Search"}
+        description={
+          searchTerm
+            ? `Search CinemaScope for films, actors, and directors matching ${searchTerm}.`
+            : "Search CinemaScope for films, actors, directors, and cinematic recommendations."
+        }
+        canonicalPath={searchTerm ? `/search?q=${encodeURIComponent(searchTerm)}` : "/search"}
+      />
       <div className="flex-1" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
         <div className="center-container">
 
-          <div className="max-w-2xl mx-auto" style={{ marginBottom: "clamp(2rem, 4vh, 3rem)" }}>
+          <form
+            role="search"
+            onSubmit={handleSubmit}
+            className="max-w-2xl mx-auto"
+            style={{ marginBottom: "clamp(2rem, 4vh, 3rem)" }}
+          >
             <div className="relative flex items-center">
               <SearchIcon sx={{ fontSize: "clamp(1.1rem, 1.8vw, 1.4rem)" }} className="absolute text-white/30 left-4" />
               <input
@@ -125,12 +148,12 @@ const SearchPage = () => {
                 className="w-full bg-surface border border-white/10 focus:border-gold/50 focus:ring-1 focus:ring-gold/20 text-white placeholder-white/25 font-body rounded-card outline-none px-12 py-4"
               />
               {inputValue && (
-                <button onClick={clearSearch} aria-label="Clear search" className="absolute text-white/30 hover:text-white/70 right-4">
+                <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute text-white/30 hover:text-white/70 right-4">
                   <CloseIcon sx={{ fontSize: "clamp(1rem, 1.5vw, 1.2rem)" }} />
                 </button>
               )}
             </div>
-          </div>
+          </form>
 
           {searchTerm ? (
             <ErrorBoundary>

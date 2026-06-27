@@ -33,23 +33,58 @@ async function fetchHistory({ page = 1, limit = 20 } = {}) {
   return apiFetch(`/watch-history?page=${page}&limit=${limit}`);
 }
 
-export function useWatchHistory({ page = 1, limit = 20 } = {}) {
+export function useWatchHistory({ page = 1, limit = 20, enabled = true } = {}) {
   const key = `${CACHE_KEY}?page=${page}&limit=${limit}`;
-  const { data, error, isLoading } = useSWR(supabase ? key : null, () => fetchHistory({ page, limit }), {
+  const shouldFetch = enabled && supabase;
+  const { data, error, isLoading } = useSWR(shouldFetch ? key : null, () => fetchHistory({ page, limit }), {
     revalidateOnFocus: false,
   });
 
   const logWatch = async ({ tmdb_id, title, poster_path = null }) => {
-    await apiFetch("/watch-history", {
-      method: "POST",
-      body: JSON.stringify({ tmdb_id, title, poster_path }),
-    });
-    globalMutate(key);
+    const optimisticItem = {
+      tmdb_id,
+      title,
+      poster_path,
+      watched_at: new Date().toISOString(),
+    };
+
+    await globalMutate(
+      key,
+      apiFetch("/watch-history", {
+        method: "POST",
+        body: JSON.stringify({ tmdb_id, title, poster_path }),
+      }),
+      {
+        optimisticData: (current) => ({
+          ...(current ?? {}),
+          data: [
+            optimisticItem,
+            ...((current?.data ?? []).filter((item) => item.tmdb_id !== tmdb_id)),
+          ],
+          pagination: current?.pagination ?? null,
+        }),
+        rollbackOnError: true,
+        populateCache: false,
+        revalidate: true,
+      }
+    );
   };
 
   const removeWatch = async (tmdbId) => {
-    await apiFetch(`/watch-history/${tmdbId}`, { method: "DELETE" });
-    globalMutate(key);
+    await globalMutate(
+      key,
+      apiFetch(`/watch-history/${tmdbId}`, { method: "DELETE" }),
+      {
+        optimisticData: (current) => ({
+          ...(current ?? {}),
+          data: (current?.data ?? []).filter((item) => item.tmdb_id !== tmdbId),
+          pagination: current?.pagination ?? null,
+        }),
+        rollbackOnError: true,
+        populateCache: false,
+        revalidate: true,
+      }
+    );
   };
 
   return {

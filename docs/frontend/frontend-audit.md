@@ -258,3 +258,16 @@ The first implementation pass should preserve the visual system and focus on:
 
 CinemaScope should feel calmer and more intentional, not visually different. Success means the same cinematic app now has native-feeling controls, fewer accidental inconsistencies, smoother motion, stronger keyboard behavior, cleaner source boundaries, and production-grade loading/error/focus states.
 
+## Launch Polish Implementation Notes
+
+Date: 2026-06-28
+
+- SEO: Added a reusable React SEO component for title, description, canonical URL, robots tags, Open Graph/Twitter metadata, and JSON-LD. Static defaults were also added to `index.html` so the initial app shell has production metadata before hydration.
+- Routing: Film, person, genre, compare, and search routes are public. Profile remains protected because it contains account-owned data. This fixes first-time discovery and makes shared links crawlable.
+- Film detail: Added account-aware watchlist and watched controls backed by SWR optimistic mutations. Guests see a small sign-in affordance rather than a blocked page.
+- Profile: Added watchlist and watch-history sections with loading and empty states so saved-film features are visible after sign-in.
+- Search/genre/home grids: Shifted visual grids to semantic list markup where they represent collections, keeping the existing card visuals intact.
+- Navigation: Added a compact mobile Compare entry and clearer search expanded state so the feature is discoverable on touch devices.
+- Errors: Improved the shared ErrorBoundary with reusable title/message copy and a default retry action.
+- Accessibility: Tightened button types, focus behavior, carousel labels, reduced-motion-aware carousel scrolling, form semantics, status messaging, and noindex handling for private/error pages.
+- Fault tolerance: Added a noindex 404 route so unknown URLs resolve to a deliberate page instead of an empty app shell.

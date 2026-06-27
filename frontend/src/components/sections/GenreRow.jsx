@@ -30,16 +30,16 @@ const GenreRowContent = ({ genreIds, activeTab, isDark }) => {
   const visible = (data?.results || []).slice(0, FILMS_PER_PAGE);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)", marginTop: "clamp(0.75rem, 1.5vh, 1rem)" }}>
+    <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)", marginTop: "clamp(0.75rem, 1.5vh, 1rem)" }}>
       {visible.map((film) => (
-        <div key={film.id} className={isDark ? "text-white" : "text-ink"}>
+        <li key={film.id} className={isDark ? "text-white" : "text-ink"}>
           <FilmCard
             film={film}
             subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined}
           />
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };
 

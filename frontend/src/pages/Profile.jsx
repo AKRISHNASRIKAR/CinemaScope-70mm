@@ -1,23 +1,95 @@
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
+import FilmCard from "@/components/ui/FilmCard";
+import SEO from "@/components/seo/SEO";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
 import { useSession } from "@/hooks/useSession";
+import { useWatchHistory } from "@/hooks/useWatchHistory";
+import { useWatchlist } from "@/hooks/useWatchlist";
+
+const toFilmCardData = (item) => ({
+  id: item.tmdb_id,
+  title: item.title,
+  poster_path: item.poster_path,
+});
+
+const formatSavedDate = (date) => {
+  if (!date) return undefined;
+  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const SavedFilmsSection = ({ title, label, items, isLoading, dateKey, emptyText }) => {
+  const visibleItems = items.slice(0, 6);
+
+  return (
+    <section className="border-t border-white/8" style={{ paddingTop: "clamp(1.5rem,3vh,2.25rem)" }}>
+      <div className="flex items-end justify-between" style={{ marginBottom: "clamp(1rem,2vh,1.4rem)", gap: "1rem" }}>
+        <div>
+          <p className="font-mono text-gold uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem,0.8vw,0.62rem)", marginBottom: "0.25rem" }}>
+            {label}
+          </p>
+          <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem,1.8vw,1.35rem)" }}>
+            {title}
+          </h2>
+        </div>
+        {!isLoading && items.length > 0 && (
+          <span className="font-mono text-muted uppercase tracking-[0.12em]" style={{ fontSize: "clamp(0.55rem,0.85vw,0.68rem)" }}>
+            {items.length} total
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6" style={{ gap: "clamp(0.75rem,1.8vw,1.1rem)" }} aria-hidden>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index}>
+              <div className="aspect-[2/3] rounded-card skeleton" />
+              <div className="mt-2 h-3 w-4/5 rounded skeleton" />
+            </div>
+          ))}
+        </div>
+      ) : visibleItems.length > 0 ? (
+        <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6" style={{ gap: "clamp(0.75rem,1.8vw,1.1rem)" }}>
+          {visibleItems.map((item) => (
+            <li key={`${title}-${item.tmdb_id}`}>
+              <FilmCard
+                film={toFilmCardData(item)}
+                subtitle={formatSavedDate(item[dateKey])}
+                imageSize="w200"
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-card border border-white/8 bg-white/[0.02]" style={{ padding: "clamp(1rem,2.5vw,1.5rem)" }}>
+          <p className="font-body text-muted" style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}>
+            {emptyText}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+};
 
 /* ── Main Page ─────────────────────────────────────────────────── */
 const Profile = () => {
   const { user, isAuthenticated, signOut } = useSession();
+  const { watchlist, isLoading: watchlistLoading } = useWatchlist({ enabled: isAuthenticated });
+  const { history, isLoading: historyLoading } = useWatchHistory({ enabled: isAuthenticated, limit: 12 });
   const navigate = useNavigate();
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
+        <SEO title="Profile" canonicalPath="/profile" noIndex />
         <div className="text-center">
           <p className="font-body text-muted" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}>
             You are not logged in.
           </p>
           <button
+            type="button"
             onClick={() => navigate("/login")}
             className="mt-6 font-body font-medium text-black bg-gold hover:bg-gold-lt rounded-card transition-colors duration-normal cursor-pointer"
             style={{ padding: "0.65rem 2rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
@@ -46,6 +118,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
+      <SEO title="Profile" canonicalPath="/profile" noIndex />
       <BackButton fallbackRoute="/" />
 
       {/* ── Hero backdrop ──────────────────────────────────────── */}
@@ -115,6 +188,25 @@ const Profile = () => {
 
         <div className="border-t border-white/8" style={{ marginTop: "clamp(1.5rem,3vh,2.5rem)" }} />
 
+        <div className="grid" style={{ gap: "clamp(2rem,4vh,3rem)", marginTop: "clamp(1.5rem,3vh,2.5rem)" }}>
+          <SavedFilmsSection
+            title="Watchlist"
+            label="Saved"
+            items={watchlist}
+            isLoading={watchlistLoading}
+            dateKey="added_at"
+            emptyText="Saved films will appear here after you add them from a film page."
+          />
+          <SavedFilmsSection
+            title="Watched"
+            label="History"
+            items={history}
+            isLoading={historyLoading}
+            dateKey="watched_at"
+            emptyText="Films you mark as watched will appear here."
+          />
+        </div>
+
         {/* ── Account section ─────────────────────────────────── */}
         <div
           className="rounded-card border border-white/8 bg-white/[0.02]"
@@ -164,6 +256,7 @@ const Profile = () => {
           style={{ gap: "clamp(0.75rem,1.5vw,1rem)", marginTop: "clamp(1.5rem,3vh,2.5rem)", marginBottom: "clamp(2rem,4vh,3rem)" }}
         >
           <button
+            type="button"
             onClick={() => navigate("/")}
             className="flex items-center justify-center gap-2 font-body font-medium text-white/80 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 hover:border-white/20 rounded-card transition-all duration-normal cursor-pointer flex-1"
             style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
@@ -172,6 +265,7 @@ const Profile = () => {
             Back to Home
           </button>
           <button
+            type="button"
             onClick={handleSignOut}
             className="flex items-center justify-center gap-2 font-body font-medium text-gold border border-gold/30 hover:bg-gold/10 hover:border-gold/60 rounded-card transition-all duration-normal cursor-pointer flex-1"
             style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}

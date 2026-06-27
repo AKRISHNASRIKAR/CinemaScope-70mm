@@ -2,6 +2,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 const BrowseMoreLink = ({ genre, onClick, dark = true }) => (
   <button
+    type="button"
     onClick={onClick}
     className={`
       group flex items-center gap-2 cursor-pointer

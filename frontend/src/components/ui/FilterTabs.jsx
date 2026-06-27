@@ -8,6 +8,7 @@ const FilterTabs = ({ active, onChange, dark = true }) => (
       const isActive = active === tab;
       return (
         <button
+          type="button"
           key={tab}
           onClick={() => onChange(tab)}
           aria-pressed={isActive}

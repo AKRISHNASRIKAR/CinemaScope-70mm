@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/ui/BackButton";
+import SEO from "@/components/seo/SEO";
 import { useSession } from "@/hooks/useSession";
 
 const LoginPage = () => {
@@ -18,6 +19,7 @@ const LoginPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-base flex items-center justify-center">
+        <SEO title="Sign In" canonicalPath="/login" noIndex />
         <div
           className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full"
           style={{ animation: "spin 0.8s linear infinite" }}
@@ -44,6 +46,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-base flex items-center justify-center relative overflow-hidden">
+      <SEO title="Sign In" canonicalPath="/login" noIndex />
       <BackButton fallbackRoute="/" />
 
       {/* Animated grid background */}
@@ -79,6 +82,7 @@ const LoginPage = () => {
         {/* OAuth buttons */}
         <div className="mt-8 flex flex-col gap-3">
           <button
+            type="button"
             onClick={() => { setError(null); signInWithGoogle(); }}
             className="w-full font-body font-medium text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-card transition-colors duration-normal cursor-pointer flex items-center justify-center gap-3"
             style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.8rem, 1.2vw, 0.9rem)" }}
@@ -93,6 +97,7 @@ const LoginPage = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => { setError(null); signInWithGitHub(); }}
             className="w-full font-body font-medium text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-card transition-colors duration-normal cursor-pointer flex items-center justify-center gap-3"
             style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.8rem, 1.2vw, 0.9rem)" }}
@@ -113,7 +118,7 @@ const LoginPage = () => {
 
         {/* Magic link */}
         {magicSent ? (
-          <p className="font-body text-gold" style={{ fontSize: "clamp(0.75rem, 1.1vw, 0.85rem)" }}>
+          <p className="font-body text-gold" style={{ fontSize: "clamp(0.75rem, 1.1vw, 0.85rem)" }} role="status">
             Check your inbox — a sign-in link is on its way.
           </p>
         ) : (
@@ -124,6 +129,7 @@ const LoginPage = () => {
               value={magicEmail}
               onChange={(e) => setMagicEmail(e.target.value)}
               required
+              aria-label="Email address"
               className="w-full font-body text-white bg-white/5 border border-white/10 rounded-card outline-none focus:border-gold transition-colors"
               style={{ padding: "0.65rem 1rem", fontSize: "clamp(0.8rem, 1.2vw, 0.9rem)" }}
             />
@@ -139,7 +145,7 @@ const LoginPage = () => {
         )}
 
         {error && (
-          <p className="mt-4 font-body text-red-400" style={{ fontSize: "0.8rem" }}>
+          <p className="mt-4 font-body text-red-400" style={{ fontSize: "0.8rem" }} role="alert">
             {error}
           </p>
         )}

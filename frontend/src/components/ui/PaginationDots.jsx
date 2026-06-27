@@ -2,6 +2,7 @@ const PaginationDots = ({ total, current, onChange, dark = true }) => (
   <div className="flex flex-col items-center justify-center gap-2 px-3">
     {Array.from({ length: total }).map((_, i) => (
       <button
+        type="button"
         key={i}
         onClick={() => onChange(i)}
         aria-label={`Page ${i + 1}`}
