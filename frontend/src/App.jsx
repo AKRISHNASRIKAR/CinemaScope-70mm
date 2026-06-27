@@ -33,7 +33,7 @@ const AppRoutes = () => {
   const location = useLocation();
 
   return (
-    <ErrorBoundary resetKey={location.pathname}>
+    <ErrorBoundary resetKey={`${location.pathname}${location.search}`}>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes */}

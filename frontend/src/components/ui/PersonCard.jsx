@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import LazyImage from "@/components/ui/LazyImage";
@@ -63,4 +64,4 @@ const PersonCard = ({
   );
 };
 
-export default PersonCard;
+export default memo(PersonCard);

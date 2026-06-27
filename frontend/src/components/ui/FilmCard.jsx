@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import LazyImage from "@/components/ui/LazyImage";
 import { posterUrl } from "@/lib/utils/tmdbImage";
@@ -34,4 +35,4 @@ const FilmCard = ({ film, subtitle, className = "", eager = false, imageSize = "
   );
 };
 
-export default FilmCard;
+export default memo(FilmCard);

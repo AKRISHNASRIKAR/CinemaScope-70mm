@@ -12,7 +12,7 @@
  * State: film IDs stored in URL search params so the comparison is shareable.
  */
 
-import { Suspense, useCallback, useEffect, useId, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -167,12 +167,6 @@ const FilmColumn = ({ id, onClear }) => {
   const genres = film.genres?.map((g) => g.name).join(", ") || "—";
   const rating = film.vote_average ? film.vote_average.toFixed(1) : "—";
   const runtime = film.runtime ? `${film.runtime} min` : "—";
-  const stats = useMemo(() => ([
-    ["Rating", <span key="rating-value" className="text-gold font-semibold">{rating}</span>, "/ 10"],
-    ["Year", year],
-    ["Runtime", runtime],
-    ["Genres", genres],
-  ]), [genres, rating, runtime, year]);
 
   return (
     <div className="flex flex-col" style={{ gap: "clamp(1rem,2vh,1.5rem)" }}>
@@ -210,7 +204,12 @@ const FilmColumn = ({ id, onClear }) => {
 
       {/* Stats */}
       <div className="flex flex-col" style={{ gap: "clamp(0.5rem,1vh,0.75rem)" }}>
-        {stats.map(([label, value, suffix]) => (
+        {[
+          ["Rating", <span key="rating-value" className="text-gold font-semibold">{rating}</span>, "/ 10"],
+          ["Year", year],
+          ["Runtime", runtime],
+          ["Genres", genres],
+        ].map(([label, value, suffix]) => (
           <div key={label} className="flex items-baseline justify-between border-b border-white/6 pb-2">
             <span className="font-mono text-muted uppercase tracking-[0.12em]" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>
               {label}

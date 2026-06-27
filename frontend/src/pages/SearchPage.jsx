@@ -18,11 +18,10 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 const SearchResults = ({ term }) => {
   const { data } = useSWR(term ? `/search/multi?query=${encodeURIComponent(term)}&page=1` : null, fetcher, { suspense: true });
 
-  const results = data?.results || [];
   const { movies, people } = useMemo(() => ({
-    movies: results.filter((r) => r.media_type === "movie"),
-    people: results.filter((r) => r.media_type === "person"),
-  }), [results]);
+    movies: (data?.results || []).filter((r) => r.media_type === "movie"),
+    people: (data?.results || []).filter((r) => r.media_type === "person"),
+  }), [data?.results]);
   const totalResults = movies.length + people.length;
 
   if (totalResults === 0 && term) {

@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 const TABS = ["FEATURED", "IN THEATERS", "TOP RATED"];
 
 const FilterTabs = ({ active, onChange, dark = true }) => (
@@ -28,4 +30,4 @@ const FilterTabs = ({ active, onChange, dark = true }) => (
   </div>
 );
 
-export default FilterTabs;
+export default memo(FilterTabs);

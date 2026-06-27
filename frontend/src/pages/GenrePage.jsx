@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -10,6 +10,7 @@ import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_MAP } from "@/lib/constants";
+import { posterUrl } from "@/lib/utils/tmdbImage";
 
 /* ── Constants ────────────────────────────────────────────────── */
 const SORT_OPTIONS = [
@@ -18,6 +19,7 @@ const SORT_OPTIONS = [
   { label: "Newest", value: "release_date.desc", voteCt: false },
   { label: "Oldest", value: "release_date.asc", voteCt: false },
 ];
+const DEFAULT_SORT = SORT_OPTIONS[0];
 
 const FILTER_TABS = [
   { label: "All", endpoint: "discover" },
@@ -53,7 +55,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
   const [totalPages, setTotalPages] = useState(1);
 
   // Initial URL for page 1
-  const getUrl = (p) => {
+  const getUrl = useCallback((p) => {
     const genreParam = `&with_genres=${genreId}`;
     const sortParam = `&sort_by=${sortBy.value}`;
     const voteParam = sortBy.voteCt ? "&vote_count.gte=200" : "";
@@ -61,9 +63,10 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
       return `/discover/movie?page=${p}${genreParam}${sortParam}${voteParam}`;
     }
     return `/movie/${filterTab.endpoint}?page=${p}${genreParam}`;
-  };
+  }, [filterTab.endpoint, genreId, sortBy.value, sortBy.voteCt]);
 
-  const { data } = useSWR(getUrl(1), fetcher, { suspense: true });
+  const initialUrl = useMemo(() => getUrl(1), [getUrl]);
+  const { data } = useSWR(initialUrl, fetcher, { suspense: true });
   
   useEffect(() => {
     // Reset when filters change
@@ -74,12 +77,12 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
       const urls = data.results
         .filter((f) => f.poster_path)
         .slice(0, 8)
-        .map((f) => `https://image.tmdb.org/t/p/w342${f.poster_path}`);
+        .map((f) => posterUrl(f.poster_path, "w342"));
       setHeroPosterUrls(urls);
     }
-  }, [genreId, sortBy, filterTab, data, setHeroPosterUrls]);
+  }, [data, genreId, sortBy, filterTab, setHeroPosterUrls]);
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
@@ -91,9 +94,9 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [getUrl, page]);
 
-  const allFilms = [...(data?.results || []), ...extraFilms];
+  const allFilms = useMemo(() => [...(data?.results || []), ...extraFilms], [data?.results, extraFilms]);
 
   if (allFilms.length === 0) {
     return (
@@ -138,7 +141,7 @@ const GenrePage = () => {
   const genreId = parseInt(id, 10);
   const genreName = GENRE_MAP[genreId] ?? "Genre";
 
-  const [sortBy] = useState(SORT_OPTIONS[0]);
+  const sortBy = DEFAULT_SORT;
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
   const [heroPosterUrls, setHeroPosterUrls] = useState([]);
   const [isSticky, setIsSticky] = useState(true);
