@@ -27,7 +27,7 @@ const GenreRowContent = ({ genreIds, activeTab, isDark }) => {
   }
 
   const { data } = useSWR(endpoint, fetcher, { suspense: true });
-  const visible = (data.results || []).slice(0, FILMS_PER_PAGE);
+  const visible = (data?.results || []).slice(0, FILMS_PER_PAGE);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)", marginTop: "clamp(0.75rem, 1.5vh, 1rem)" }}>

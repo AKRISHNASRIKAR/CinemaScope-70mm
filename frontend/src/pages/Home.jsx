@@ -8,6 +8,7 @@ import Footer from "@/components/layout/Footer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
 import ScrollRow from "@/components/ui/ScrollRow";
+import SEO from "@/components/seo/SEO";
 import { HomeHeroSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_SECTIONS } from "@/lib/constants";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
@@ -15,7 +16,7 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 /* ── Hero Data Wrapper ────────────────────────────────────────── */
 const HeroSection = () => {
   const { data } = useSWR("/movie/popular", fetcher, { suspense: true });
-  const movies = data.results || [];
+  const movies = data?.results || [];
   const featuredFilm = movies[0] ?? null;
   const carouselFilms = movies.slice(1, 8);
 
@@ -64,8 +65,24 @@ const RecentlyViewedRow = () => {
 };
 
 const Home = () => {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
   return (
     <div className="min-h-screen bg-base">
+      <SEO
+        canonicalPath="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "CinemaScope",
+          url: origin || undefined,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${origin}/search?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
 
       {/* Popular Movies Hero */}
       <ErrorBoundary>

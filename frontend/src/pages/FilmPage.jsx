@@ -1,23 +1,171 @@
 import { Suspense, useRef, useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 
+import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
+import BookmarkAddedOutlinedIcon from "@mui/icons-material/BookmarkAddedOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import TvIcon from "@mui/icons-material/Tv";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
 import PersonCard from "@/components/ui/PersonCard";
+import SEO from "@/components/seo/SEO";
 import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { useSession } from "@/hooks/useSession";
+import { useWatchHistory } from "@/hooks/useWatchHistory";
+import { useWatchlist } from "@/hooks/useWatchlist";
 import { posterUrl, backdropUrl } from "@/lib/utils/tmdbImage";
 
 const INITIAL_CAST = 8;
+
+const toIsoDuration = (minutes) => {
+  if (!minutes) return undefined;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `PT${hours ? `${hours}H` : ""}${mins ? `${mins}M` : ""}`;
+};
+
+const toDescription = (film) =>
+  film.overview ||
+  `${film.title} film details, cast, watch providers, similar movies, and ratings on CinemaScope.`;
+
+const FilmActions = ({ film }) => {
+  const { isAuthenticated } = useSession();
+  const { history, isLoading: historyLoading, logWatch } = useWatchHistory({
+    enabled: isAuthenticated,
+    limit: 12,
+  });
+  const {
+    isLoading: watchlistLoading,
+    addToWatchlist,
+    removeFromWatchlist,
+    isInWatchlist,
+  } = useWatchlist({ enabled: isAuthenticated });
+  const [status, setStatus] = useState("");
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const inWatchlist = isAuthenticated && isInWatchlist(film.id);
+  const watched = isAuthenticated && history.some((item) => item.tmdb_id === film.id);
+  const payload = {
+    tmdb_id: film.id,
+    title: film.title,
+    poster_path: film.poster_path ?? null,
+  };
+
+  const handleWatchlist = async () => {
+    setPendingAction("watchlist");
+    setStatus("");
+    try {
+      if (inWatchlist) {
+        await removeFromWatchlist(film.id);
+        setStatus("Removed from watchlist.");
+      } else {
+        await addToWatchlist(payload);
+        setStatus("Added to watchlist.");
+      }
+    } catch (error) {
+      setStatus(error.message || "Could not update watchlist.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleWatched = async () => {
+    setPendingAction("watched");
+    setStatus("");
+    try {
+      await logWatch(payload);
+      setStatus(watched ? "Watch date refreshed." : "Marked as watched.");
+    } catch (error) {
+      setStatus(error.message || "Could not update watch history.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div
+        className="mt-8 flex flex-wrap items-center"
+        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
+      >
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 rounded-card border border-gold/35 bg-gold/10 px-4 py-2 font-body font-medium text-gold transition-all duration-normal hover:border-gold/70 hover:bg-gold/15 hover:text-gold-lt"
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          <LoginOutlinedIcon sx={{ fontSize: "1rem" }} />
+          Sign in to save
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <div
+        className="flex flex-wrap items-center"
+        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
+      >
+        <button
+          type="button"
+          onClick={handleWatchlist}
+          disabled={watchlistLoading || pendingAction === "watchlist"}
+          aria-pressed={inWatchlist}
+          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
+            inWatchlist
+              ? "border-gold/60 bg-gold/15 text-gold"
+              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
+          }`}
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          {inWatchlist ? (
+            <BookmarkAddedOutlinedIcon sx={{ fontSize: "1rem" }} />
+          ) : (
+            <BookmarkAddOutlinedIcon sx={{ fontSize: "1rem" }} />
+          )}
+          {inWatchlist ? "In Watchlist" : "Watchlist"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleWatched}
+          disabled={historyLoading || pendingAction === "watched"}
+          aria-pressed={watched}
+          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
+            watched
+              ? "border-white/20 bg-white/10 text-white"
+              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
+          }`}
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          <VisibilityOutlinedIcon sx={{ fontSize: "1rem" }} />
+          {watched ? "Watched" : "Mark Watched"}
+        </button>
+      </div>
+
+      {status && (
+        <p
+          className="mt-3 font-body text-muted"
+          style={{ fontSize: "clamp(0.62rem,0.95vw,0.75rem)" }}
+          role="status"
+          aria-live="polite"
+        >
+          {status}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /* ── Film Hero Section ────────────────────────── */
 const FilmHero = ({ id }) => {
@@ -33,9 +181,36 @@ const FilmHero = ({ id }) => {
 
   const backdrop = backdropUrl(film.backdrop_path);
   const posterSrc = posterUrl(film.poster_path, "w500") ?? "/fallback-image-film.jpg";
+  const description = toDescription(film);
 
   return (
     <>
+      <SEO
+        title={film.title}
+        description={description}
+        image={backdrop || posterSrc}
+        type="video.movie"
+        canonicalPath={`/film/${film.id}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Movie",
+          name: film.title,
+          description,
+          image: posterSrc,
+          datePublished: film.release_date || undefined,
+          genre: film.genres?.map((genre) => genre.name),
+          duration: toIsoDuration(film.runtime),
+          aggregateRating: film.vote_average
+            ? {
+                "@type": "AggregateRating",
+                ratingValue: film.vote_average.toFixed(1),
+                ratingCount: film.vote_count || undefined,
+                bestRating: 10,
+                worstRating: 0,
+              }
+            : undefined,
+        }}
+      />
       <section className="relative w-full overflow-hidden" style={{ height: "clamp(40vh,55vh,65vh)" }}>
         {backdrop && (
           <img
@@ -101,6 +276,7 @@ const FilmHero = ({ id }) => {
                 <p className="font-body text-white/70 leading-relaxed mt-2 line-clamp-3" style={{ fontSize: "clamp(0.75rem,1.1vw,0.9rem)" }}>{film.overview}</p>
               </div>
             )}
+            <FilmActions film={film} />
           </div>
         </div>
       </div>
@@ -279,7 +455,7 @@ const WatchProviders = ({ id }) => {
 /* ── 5. Similar Movies (Data-driven) ───────────────────────────── */
 const SimilarMovies = ({ id }) => {
   const { data: similar } = useSWR(`/movie/${id}/similar`, fetcher, { suspense: true });
-  const movies = similar.results || [];
+  const movies = similar?.results || [];
 
   if (movies.length === 0) return null;
 
