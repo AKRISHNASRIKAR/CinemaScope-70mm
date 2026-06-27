@@ -27,9 +27,8 @@ dist-ssr
 .env.local
 .env.*.local
 
-# Local-only documentation — stays on disk, never committed
+# Architecture doc — large design reference, local only
 ARCHITECTURE.md
-docs/
 
 # Docker data volumes
 docker/data/
