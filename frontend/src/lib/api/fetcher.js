@@ -1,32 +1,46 @@
+// Central fetch layer.
+// All TMDB requests now go through the Supabase Edge Function proxy so that:
+//   1. The TMDB API key stays server-side (never in the browser bundle).
+//   2. Responses are cached server-side per the TTL map in the Edge Function.
+//
+// URL routing:
+//   Relative paths ("/movie/550", "/search/movie?query=...")
+//     → proxied through /functions/v1/tmdb/<path>
+//   Absolute http(s) URLs
+//     → passed through unchanged (for external resources)
+
 import axios from "axios";
+import { supabase, FUNCTIONS_URL } from "@/lib/supabase";
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-const API_KEY  = import.meta.env.VITE_API_KEY;
+// Returns the Authorization header value for the current session, or null.
+async function getAuthHeader() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session ? `Bearer ${session.access_token}` : null;
+}
 
-function resolveUrl(url) {
-  if (url.startsWith("http")) return url;
-  if (!BASE_URL || !API_KEY) {
-    throw new Error("Missing TMDB configuration. Set VITE_BASE_URL and VITE_API_KEY.");
-  }
-
-  const separator = url.includes("?") ? "&" : "?";
-  const hasLanguage = /[?&]language=/.test(url);
-  const languageParam = hasLanguage ? "" : "&language=en-US";
-
-  return `${BASE_URL}${url}${separator}api_key=${API_KEY}${languageParam}`;
+function buildTmdbProxyUrl(path) {
+  // Strip a leading slash if present; FUNCTIONS_URL already ends without one.
+  const clean = path.startsWith("/") ? path.slice(1) : path;
+  return `${FUNCTIONS_URL}/tmdb/${clean}`;
 }
 
 export const fetcher = async (url) => {
   if (!url) return null;
-  const res = await axios.get(resolveUrl(url));
+
+  const resolvedUrl = url.startsWith("http") ? url : buildTmdbProxyUrl(url);
+
+  const authHeader = await getAuthHeader();
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Request-ID": crypto.randomUUID(),
+    ...(authHeader ? { Authorization: authHeader } : {}),
+  };
+
+  const res = await axios.get(resolvedUrl, { headers });
   return res.data;
 };
 
-/**
- * Parallel fetcher for multiple endpoints.
- * Can be used with SWR array keys: useSWR(['/u1', '/u2'], parallelFetcher)
- */
 export const parallelFetcher = async (args) => {
   const urls = Array.isArray(args) ? args : [args];
-  return Promise.all(urls.map(url => fetcher(url)));
+  return Promise.all(urls.map((url) => fetcher(url)));
 };
