@@ -29,24 +29,57 @@ async function apiFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-export function useWatchlist() {
-  const { data, error, isLoading } = useSWR(supabase ? CACHE_KEY : null, () => apiFetch("/watchlist"), {
+export function useWatchlist({ enabled = true } = {}) {
+  const shouldFetch = enabled && supabase;
+  const { data, error, isLoading } = useSWR(shouldFetch ? CACHE_KEY : null, () => apiFetch("/watchlist"), {
     revalidateOnFocus: false,
   });
 
   const items = data?.data ?? [];
 
   const addToWatchlist = async ({ tmdb_id, title, poster_path = null }) => {
-    await apiFetch("/watchlist", {
-      method: "POST",
-      body: JSON.stringify({ tmdb_id, title, poster_path }),
-    });
-    globalMutate(CACHE_KEY);
+    const optimisticItem = {
+      tmdb_id,
+      title,
+      poster_path,
+      added_at: new Date().toISOString(),
+    };
+
+    await globalMutate(
+      CACHE_KEY,
+      apiFetch("/watchlist", {
+        method: "POST",
+        body: JSON.stringify({ tmdb_id, title, poster_path }),
+      }),
+      {
+        optimisticData: (current) => ({
+          ...(current ?? {}),
+          data: [
+            optimisticItem,
+            ...((current?.data ?? []).filter((item) => item.tmdb_id !== tmdb_id)),
+          ],
+        }),
+        rollbackOnError: true,
+        populateCache: false,
+        revalidate: true,
+      }
+    );
   };
 
   const removeFromWatchlist = async (tmdbId) => {
-    await apiFetch(`/watchlist/${tmdbId}`, { method: "DELETE" });
-    globalMutate(CACHE_KEY);
+    await globalMutate(
+      CACHE_KEY,
+      apiFetch(`/watchlist/${tmdbId}`, { method: "DELETE" }),
+      {
+        optimisticData: (current) => ({
+          ...(current ?? {}),
+          data: (current?.data ?? []).filter((item) => item.tmdb_id !== tmdbId),
+        }),
+        rollbackOnError: true,
+        populateCache: false,
+        revalidate: true,
+      }
+    );
   };
 
   const isInWatchlist = (tmdbId) => items.some((item) => item.tmdb_id === tmdbId);
