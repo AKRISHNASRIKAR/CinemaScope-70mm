@@ -23,7 +23,7 @@ const useMoviesByGenre = (genreIds = []) => {
         const res  = await fetch(url, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        setFilms(data.results || []);
+        setFilms(data?.results || []);
       } catch (e) {
         setError(e.message);
       } finally {

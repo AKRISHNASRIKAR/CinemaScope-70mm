@@ -176,7 +176,7 @@ const FilmHero = ({ id }) => {
   // Record this film as recently viewed on mount
   useEffect(() => { addFilm(film); }, [film, addFilm]);
 
-  const us = releaseDates.results?.find((e) => e.iso_3166_1 === "US");
+  const us = releaseDates?.results?.find((e) => e.iso_3166_1 === "US");
   const certification = us?.release_dates?.[0]?.certification || "N/A";
 
   const backdrop = backdropUrl(film.backdrop_path);

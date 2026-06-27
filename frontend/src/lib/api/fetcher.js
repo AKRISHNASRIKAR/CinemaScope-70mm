@@ -19,6 +19,12 @@ function hasDirectTmdbConfig() {
   return Boolean(TMDB_BASE_URL && TMDB_API_KEY);
 }
 
+function createDataSourceError() {
+  return new Error(
+    "CinemaScope data source is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, or VITE_BASE_URL and VITE_API_KEY."
+  );
+}
+
 // Returns the Authorization header value for the current session, or null.
 async function getAuthHeader() {
   if (!supabase) return null;
@@ -72,9 +78,7 @@ export const fetcher = async (url) => {
     return res.data;
   }
 
-  // Neither configured: degrade gracefully rather than crashing the ErrorBoundary.
-  console.warn("[fetcher] No data source configured. Set VITE_SUPABASE_URL or VITE_BASE_URL.");
-  return null;
+  throw createDataSourceError();
 };
 
 export const parallelFetcher = async (args) => {

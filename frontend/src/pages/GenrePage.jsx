@@ -88,7 +88,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
     setLoadingMore(true);
     try {
       const moreData = await fetcher(getUrl(nextPage));
-      setExtraFilms((prev) => [...prev, ...moreData.results]);
+      setExtraFilms((prev) => [...prev, ...(moreData?.results ?? [])]);
       setPage(nextPage);
     } catch (e) {
       console.error(e);
