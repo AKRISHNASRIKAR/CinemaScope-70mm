@@ -198,7 +198,6 @@ const Hero = ({ film, relatedFilms = [] }) => {
           src={layerA.src}
           alt=""
           aria-hidden
-          fetchPriority="high"
           loading="eager"
           className="absolute inset-0 w-full h-full object-cover object-center"
           style={{ zIndex: 1, willChange: "opacity" }}

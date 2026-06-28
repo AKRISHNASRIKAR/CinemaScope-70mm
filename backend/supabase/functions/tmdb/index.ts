@@ -72,8 +72,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
   const requestId = req.headers.get('X-Request-ID') ?? crypto.randomUUID();
 
-  // Strip the Supabase function routing prefix to get the raw TMDB path
-  const tmdbPath = url.pathname.replace(/^\/functions\/v1\/tmdb/, '') || '/';
+  // Strip the Supabase function routing prefix to get the raw TMDB path.
+  // In production the Edge runtime usually exposes /tmdb/<path>; local and
+  // some gateway paths can expose /functions/v1/tmdb/<path>.
+  const tmdbPath = url.pathname.replace(/^\/(?:functions\/v1\/)?tmdb/, '') || '/';
   const params = new URLSearchParams(url.search);
   const cacheKey = buildCacheKey(tmdbPath, params);
   const ttlSeconds = getTtlSeconds(tmdbPath);

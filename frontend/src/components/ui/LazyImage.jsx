@@ -16,7 +16,6 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
  *   style        — applied to the <img> element
  *   fallbackType — "poster" | "person" | "backdrop"  (default "poster")
  *   eager        — set true for above-fold / priority images
- *   fetchPriority— "high" | "low" | "auto" (default "auto")
  *   onLoad       — optional callback after load
  */
 const LazyImage = ({
@@ -26,12 +25,13 @@ const LazyImage = ({
   style = {},
   fallbackType = "poster",
   eager = false,
-  fetchPriority = "auto",
+  fetchpriority = "auto",
   onLoad,
   ...rest
 }) => {
   const [loaded,  setLoaded]  = useState(false);
   const [errored, setErrored] = useState(false);
+  void fetchpriority; // Consume legacy call-site prop without rendering a noisy DOM attribute.
 
   useEffect(() => {
     setLoaded(!src);
@@ -79,7 +79,6 @@ const LazyImage = ({
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
-          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}

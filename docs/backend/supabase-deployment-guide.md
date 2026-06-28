@@ -12,13 +12,15 @@ There are **two separate variable sets**: frontend (Vite/Vercel) and backend (Su
 
 ### Frontend Variables (Vite)
 
-These go in `frontend/.env.local` for development, or Vercel environment variables for production.
+These go in `frontend/.env.local` for development, or Cloudflare Pages environment variables for production.
 
 | Variable | Where to find it | Example value |
 |---|---|---|
 | `VITE_SUPABASE_URL` | Supabase Dashboard → Project Settings → API → **Project URL** | `https://abcxyzabcxyz.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API → **anon / public key** | `eyJhbGciOiJIUzI1...` |
 | `VITE_GITHUB_URL` | Your GitHub profile URL | `https://github.com/AKRISHNASRIKAR` |
+| `VITE_BASE_URL` | Optional direct TMDB fallback | `https://api.themoviedb.org/3` |
+| `VITE_API_KEY` | Optional direct TMDB fallback key | `your-tmdb-key` |
 
 **These are safe to expose** — the anon key can only do what Row Level Security allows.
 
@@ -29,7 +31,7 @@ These are secrets stored inside Supabase. They are injected into Edge Functions 
 | Secret name | Where to find it | How to set it |
 |---|---|---|
 | `TMDB_API_KEY` | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) | Supabase Dashboard → Edge Functions → Secrets |
-| `ALLOWED_ORIGINS` | Your Vercel URL + localhost | Supabase Dashboard → Edge Functions → Secrets |
+| `ALLOWED_ORIGINS` | Your Cloudflare Pages URL + localhost | Supabase Dashboard → Edge Functions → Secrets |
 
 The following are **auto-injected by Supabase** — you never need to set them manually:
 - `SUPABASE_URL`
@@ -109,13 +111,13 @@ In the Supabase Dashboard: **Edge Functions** → **Secrets** → **Add new secr
 | Secret | Value |
 |---|---|
 | `TMDB_API_KEY` | Your TMDB API key from [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
-| `ALLOWED_ORIGINS` | `http://localhost:5173` (add your Vercel URL later when you deploy) |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` plus your Cloudflare Pages URL |
 
 Or via CLI:
 ```bash
 cd backend
 supabase secrets set TMDB_API_KEY="your-tmdb-key" --project-ref your-project-ref
-supabase secrets set ALLOWED_ORIGINS="http://localhost:5173" --project-ref your-project-ref
+supabase secrets set ALLOWED_ORIGINS="http://localhost:5173,https://your-pages-domain.pages.dev" --project-ref your-project-ref
 ```
 
 ### Step 6 — Deploy Edge Functions
@@ -123,7 +125,8 @@ supabase secrets set ALLOWED_ORIGINS="http://localhost:5173" --project-ref your-
 ```bash
 cd backend
 
-# Deploy each function (--no-verify-jwt on tmdb allows public/unauthenticated access)
+# Deploy each function.
+# The repo also defines [functions.tmdb] verify_jwt = false in supabase/config.toml.
 supabase functions deploy tmdb --no-verify-jwt --project-ref your-project-ref
 supabase functions deploy profile --project-ref your-project-ref
 supabase functions deploy watch-history --project-ref your-project-ref
@@ -137,6 +140,16 @@ curl "https://your-project-ref.supabase.co/functions/v1/tmdb/movie/popular" \
   -H "Authorization: Bearer your-anon-key"
 # Should return JSON with popular movies from TMDB (or X-Cache: HIT on repeated calls)
 ```
+
+Because `tmdb` is a public content proxy, this should also work without an auth header after deployment:
+
+```bash
+curl "https://your-project-ref.supabase.co/functions/v1/tmdb/movie/popular"
+```
+
+Troubleshooting:
+- `401 {"code":"UNAUTHORIZED_NO_AUTH_HEADER"}` means the `tmdb` function is still deployed with JWT verification enabled. Redeploy with `--no-verify-jwt` or confirm `supabase/config.toml` contains `[functions.tmdb] verify_jwt = false`.
+- `503 ... "TMDB_API_KEY not configured"` means the function is deployed but the Supabase Edge Function secret is missing. Set `TMDB_API_KEY` in Supabase secrets and redeploy/retest.
 
 ### Step 7 — Configure Authentication
 

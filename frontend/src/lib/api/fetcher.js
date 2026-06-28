@@ -14,6 +14,8 @@ import { supabase, FUNCTIONS_URL, hasSupabaseConfig } from "@/lib/supabase";
 
 const TMDB_BASE_URL = import.meta.env.VITE_BASE_URL;
 const TMDB_API_KEY = import.meta.env.VITE_API_KEY;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const REQUEST_TIMEOUT_MS = 10000;
 
 function hasDirectTmdbConfig() {
   return Boolean(TMDB_BASE_URL && TMDB_API_KEY);
@@ -25,11 +27,19 @@ function createDataSourceError() {
   );
 }
 
-// Returns the Authorization header value for the current session, or null.
+function isProxyConfigurationError(error) {
+  const status = error?.response?.status;
+  const details = error?.response?.data?.details ?? error?.response?.data?.message ?? "";
+  return status === 401 || status === 403 || (status === 503 && String(details).includes("TMDB_API_KEY"));
+}
+
+// Returns the Authorization header for Supabase Edge Function calls.
+// Supabase requires Bearer auth even for public endpoints — use the
+// user's session token when signed in, anon key otherwise.
 async function getAuthHeader() {
-  if (!supabase) return null;
+  if (!supabase) return SUPABASE_ANON_KEY ? `Bearer ${SUPABASE_ANON_KEY}` : null;
   const { data: { session } } = await supabase.auth.getSession();
-  return session ? `Bearer ${session.access_token}` : null;
+  return session ? `Bearer ${session.access_token}` : (SUPABASE_ANON_KEY ? `Bearer ${SUPABASE_ANON_KEY}` : null);
 }
 
 function buildTmdbProxyUrl(path) {
@@ -49,13 +59,12 @@ export const fetcher = async (url) => {
   if (!url) return null;
 
   if (url.startsWith("http")) {
-    const res = await axios.get(url);
+    const res = await axios.get(url, { timeout: REQUEST_TIMEOUT_MS });
     return res.data;
   }
 
-  // Try Supabase proxy first (keeps TMDB key server-side).
-  // Falls through to direct TMDB if the proxy errors — handles the case
-  // where Edge Functions aren't deployed yet.
+  // Try Supabase proxy first (keeps TMDB key server-side and works on
+  // networks where api.themoviedb.org is not directly reachable).
   if (hasSupabaseConfig) {
     try {
       const resolvedUrl = buildTmdbProxyUrl(url);
@@ -63,18 +72,20 @@ export const fetcher = async (url) => {
       const headers = {
         "Content-Type": "application/json",
         "X-Request-ID": crypto.randomUUID(),
+        ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
         ...(authHeader ? { Authorization: authHeader } : {}),
       };
-      const res = await axios.get(resolvedUrl, { headers });
+      const res = await axios.get(resolvedUrl, { headers, timeout: REQUEST_TIMEOUT_MS });
       return res.data;
-    } catch {
-      // Proxy unavailable — fall through to direct TMDB
+    } catch (error) {
+      if (isProxyConfigurationError(error)) throw error;
+      // Proxy network failure — fall through to direct TMDB when configured.
     }
   }
 
   // Direct TMDB fallback (VITE_BASE_URL + VITE_API_KEY).
   if (hasDirectTmdbConfig()) {
-    const res = await axios.get(buildDirectTmdbUrl(url));
+    const res = await axios.get(buildDirectTmdbUrl(url), { timeout: REQUEST_TIMEOUT_MS });
     return res.data;
   }
 

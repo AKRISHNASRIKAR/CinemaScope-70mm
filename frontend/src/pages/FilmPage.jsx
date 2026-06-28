@@ -217,7 +217,6 @@ const FilmHero = ({ id }) => {
             src={backdrop}
             alt={film.title}
             loading="eager"
-            fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: "top center" }}
           />
@@ -242,7 +241,6 @@ const FilmHero = ({ id }) => {
                 src={posterSrc}
                 alt={film.title}
                 loading="eager"
-                fetchPriority="high"
                 className="w-full h-full object-cover"
               />
             </div>
