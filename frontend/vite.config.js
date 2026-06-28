@@ -14,13 +14,13 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
-          if (id.includes("@mui")) return "vendor-mui";
-          if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("framer-motion")) return "vendor-motion";
-          if (id.includes("react-router") || id.includes("react-dom") || id.includes("react")) {
+          if (id.includes("/@mui/")) return "vendor-mui";
+          if (id.includes("/@supabase/")) return "vendor-supabase";
+          if (id.includes("/framer-motion/")) return "vendor-motion";
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/react-router")) {
             return "vendor-react";
           }
-          if (id.includes("axios") || id.includes("swr")) return "vendor-data";
+          if (id.includes("/axios/") || id.includes("/swr/")) return "vendor-data";
           return "vendor";
         },
       },
