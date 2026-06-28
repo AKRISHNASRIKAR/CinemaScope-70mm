@@ -10,21 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
-          if (id.includes("/@mui/")) return "vendor-mui";
-          if (id.includes("/@supabase/")) return "vendor-supabase";
-          if (id.includes("/framer-motion/")) return "vendor-motion";
-          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/react-router")) {
-            return "vendor-react";
-          }
-          if (id.includes("/axios/") || id.includes("/swr/")) return "vendor-data";
-          return "vendor";
-        },
-      },
-    },
+    // Relying on Vite's default chunking algorithm to avoid circular dependencies
+    // and initialization ordering issues with React and Rollup.
   },
   resolve: {
     alias: {
