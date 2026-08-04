@@ -36,17 +36,17 @@ function App() {
       <main id="main-content">
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public routes */}
+            {/* Public routes — browsing never requires an account */}
             <Route path="/"               element={<Home />} />
             <Route path="/login"          element={<LoginPage />} />
             <Route path="/search"         element={<SearchPage />} />
             <Route path="/search/:query"  element={<SearchPage />} />
-            
-            {/* Protected routes — require authentication */}
+            <Route path="/film/:id"       element={<FilmPage />} />
+            <Route path="/person/:person_id" element={<Person />} />
+            <Route path="/genre/:id"      element={<GenrePage />} />
+
+            {/* Protected routes — user-specific, require authentication */}
             <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/film/:id"       element={<ProtectedRoute><FilmPage /></ProtectedRoute>} />
-            <Route path="/person/:person_id" element={<ProtectedRoute><Person /></ProtectedRoute>} />
-            <Route path="/genre/:id"      element={<ProtectedRoute><GenrePage /></ProtectedRoute>} />
             <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
           </Routes>
         </Suspense>

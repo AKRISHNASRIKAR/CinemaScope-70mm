@@ -146,16 +146,20 @@ src/
 
 ## Pages & Routes
 
-| Page | Route | Status |
-|------|-------|--------|
-| Home | `/` | ✅ Complete — includes Recently Viewed row |
-| Login | `/login` | ✅ Complete (visual only without Auth0 credentials) |
-| Profile | `/profile` | ✅ Complete |
-| Film Detail | `/film/:id` | ✅ Complete — includes Watch Providers section |
-| Person | `/person/:person_id` | ✅ Complete |
-| Search | `/search/:query` | ✅ Complete |
-| Genre Browse | `/genre/:id` | ✅ Complete |
-| Compare | `/compare` | ✅ Complete — shareable URL params |
+| Page | Route | Auth | Status |
+|------|-------|------|--------|
+| Home | `/` | Public | ✅ Complete — includes Recently Viewed row |
+| Login | `/login` | Public | ✅ Complete (visual only without Auth0 credentials) |
+| Profile | `/profile` | **Protected** | ✅ Complete |
+| Film Detail | `/film/:id` | Public | ✅ Complete — includes Watch Providers section |
+| Person | `/person/:person_id` | Public | ✅ Complete |
+| Search | `/search/:query`, `/search?q=` | Public | ✅ Complete — two-column results, sticky search bar |
+| Genre Browse | `/genre/:id` | Public | ✅ Complete |
+| Compare | `/compare` | **Protected** | ✅ Complete — shareable URL params |
+
+**Auth policy:** browsing is never gated. Only `/profile` and `/compare` are wrapped in
+`ProtectedRoute`, which also has a 3-second Auth0 init timeout — if Auth0 never resolves,
+the user is treated as unauthenticated and redirected rather than left on a spinner.
 
 ---
 
@@ -188,7 +192,7 @@ src/
 
 ## Known Issues / TODOs
 
-- Auth0 is non-functional without valid credentials — all routes are `ProtectedRoute` wrapped, so the app redirects to login on every page without a real Auth0 tenant configured
+- Auth0 is non-functional without valid credentials — but browsing no longer depends on it: only `/profile` and `/compare` require login, and `ProtectedRoute` times out after 3s instead of spinning forever
 - Chunk size advisory from Vite build (>500kB) — resolved by route-level code splitting; main vendor chunk is now 311kB
 - Profile stats (Films Watched, Reviews, Favourites) are commented out — pending backend/watch history feature
 - Trailer modal UI (`PlayButton.jsx`) exists but is not wired — TMDB `/movie/{id}/videos` endpoint not yet consumed
