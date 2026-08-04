@@ -9,9 +9,9 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { backdropUrl } from "@/lib/utils/tmdbImage";
 
 /* ── constants ──────────────────────────────────────────────────── */
-const DISPLAY_MS  = 5000;
-const PAUSE_MS    = 8000;
-const IMG_FADE_MS = 1000;
+const DISPLAY_MS     = 5000;
+const PAUSE_MS       = 8000;
+const IMG_FADE_MS    = 1000;
 const CONTENT_OUT_MS = 300;
 const CONTENT_IN_MS  = 400;
 
@@ -35,7 +35,9 @@ const preloadImage = (src) =>
     img.src = src;
   });
 
-/* ── framer-motion variants ──────────────────────────────────────── */
+/* ── framer-motion variants ──────────────────────────────────────────
+   The content wrapper is keyed on contentKey: the old copy plays its
+   exit, then the new copy staggers in behind the 1s backdrop crossfade. */
 const contentVariants = {
   hidden: { opacity: 0, y: 12 },
   visible: (delay = 0) => ({
@@ -68,16 +70,14 @@ const Hero = ({ film, relatedFilms = [] }) => {
   const [layerB, setLayerB] = useState({ idx: 1 % Math.max(total, 1), src: null, visible: false });
 
   /* content / active index */
-  const [displayIdx, setDisplayIdx] = useState(0); 
-  const [contentKey, setContentKey] = useState(0); 
+  const [displayIdx, setDisplayIdx] = useState(0);
+  const [contentKey, setContentKey] = useState(0);
 
   /* refs */
-  const timerRef      = useRef(null);
-  const pauseRef      = useRef(null);
-  const transRef      = useRef(false);
-  const activeIdxRef  = useRef(0);
-  const layerBRef     = useRef(layerB);
-  layerBRef.current   = layerB;
+  const timerRef     = useRef(null);
+  const pauseRef     = useRef(null);
+  const transRef     = useRef(false);
+  const activeIdxRef = useRef(0);
   activeIdxRef.current = displayIdx;
 
   /* ── core transition ─────────────────────────────────────────── */
@@ -103,11 +103,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
 
             setTimeout(() => {
               setLayerA({ idx: normIdx, src: nextSrc });
-              setLayerB({
-                idx: (normIdx + 1) % total,
-                src: null,
-                visible: false,
-              });
+              setLayerB({ idx: (normIdx + 1) % total, src: null, visible: false });
               transRef.current = false;
             }, IMG_FADE_MS + 60);
           });
@@ -156,10 +152,11 @@ const Hero = ({ film, relatedFilms = [] }) => {
   /* ── render guard ─────────────────────────────────────────────── */
   if (!allFilms.length) return null;
 
-  const current = allFilms[displayIdx] ?? allFilms[0];
-  const genres  = getGenres(current);
-  const year    = current?.release_date?.slice(0, 4) ?? "";
-  const rating  = current?.vote_average ? current.vote_average.toFixed(1) : null;
+  const current  = allFilms[displayIdx] ?? allFilms[0];
+  const genres   = getGenres(current);
+  const year     = current?.release_date?.slice(0, 4) ?? "";
+  const rating   = current?.vote_average ? current.vote_average.toFixed(1) : null;
+  const goToFilm = () => navigate(`/film/${current?.id}`);
 
   return (
     <section
@@ -228,10 +225,11 @@ const Hero = ({ film, relatedFilms = [] }) => {
             className="
               absolute left-4 top-1/2 -translate-y-1/2
               flex items-center justify-center rounded-full
-              bg-black/40 backdrop-blur-sm border border-white/10
+              bg-black/40 backdrop-blur-md border border-white/10
               text-white/60 hover:text-white hover:bg-black/60
-              transition-all duration-normal cursor-pointer
-              sm:opacity-0 sm:group-hover/hero:opacity-100
+              opacity-40 hover:opacity-100 focus-visible:opacity-100
+              group-hover/hero:opacity-100
+              transition-all duration-300 hover:scale-[1.06] cursor-pointer
             "
             style={{ width: "clamp(2.5rem,4vw,3.5rem)", height: "clamp(2.5rem,4vw,3.5rem)", zIndex: 20 }}
           >
@@ -243,10 +241,11 @@ const Hero = ({ film, relatedFilms = [] }) => {
             className="
               absolute right-4 top-1/2 -translate-y-1/2
               flex items-center justify-center rounded-full
-              bg-black/40 backdrop-blur-sm border border-white/10
+              bg-black/40 backdrop-blur-md border border-white/10
               text-white/60 hover:text-white hover:bg-black/60
-              transition-all duration-normal cursor-pointer
-              sm:opacity-0 sm:group-hover/hero:opacity-100
+              opacity-40 hover:opacity-100 focus-visible:opacity-100
+              group-hover/hero:opacity-100
+              transition-all duration-300 hover:scale-[1.06] cursor-pointer
             "
             style={{ width: "clamp(2.5rem,4vw,3.5rem)", height: "clamp(2.5rem,4vw,3.5rem)", zIndex: 20 }}
           >
@@ -255,160 +254,170 @@ const Hero = ({ film, relatedFilms = [] }) => {
         </>
       )}
 
-      {/* ══ Dot indicators — pill shape with width transition ═══════ */}
-      {total > 1 && (
-        <div
-          className="absolute flex items-center"
-          style={{ bottom: "clamp(1.25rem,3vh,2rem)", left: "50%", transform: "translateX(-50%)", gap: "clamp(0.3rem,0.5vw,0.4rem)", zIndex: 20 }}
-        >
-          {allFilms.map((f, i) => (
-            <button
-              key={f.id}
-              onClick={() => navigateTo(i)}
-              aria-label={`Go to film ${i + 1}`}
-              className="rounded-full cursor-pointer border-none transition-colors duration-[300ms]"
-              style={{
-                width:            i === displayIdx ? "24px"    : "8px",
-                height:           "8px",
-                backgroundColor:  i === displayIdx ? "#c9a843" : "rgba(255,255,255,0.25)",
-                transition:       "width 300ms ease, background-color 300ms ease",
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ══ Film info — expansive layout (outside max-w constraint) ══ */}
-      <div 
-        className="absolute inset-0 z-10 pointer-events-none"
-        style={{ padding: "0 clamp(1.5rem, 6vw, 4rem)" }}
+      {/* ══ Bottom stage ═══════════════════════════════════════════
+           A single flex-wrap row: film info and the "Now Showing"
+           strip sit side by side on wide viewports and stack on narrow
+           ones — driven by flex-basis, not breakpoints.            */}
+      <div
+        className="absolute inset-x-0 bottom-0 z-10"
+        style={{ padding: "0 clamp(1.25rem, 5vw, 4rem) clamp(1rem, 2.5vh, 2rem)" }}
       >
-        <div className="relative h-full w-full">
-          <div
-            className="absolute pointer-events-auto"
-            style={{
-              bottom: "clamp(2rem,6vh,4rem)",
-              left: 0,
-              maxWidth: "clamp(280px,45vw,600px)",
-            }}
-            onClick={() => navigate(`/film/${current?.id}`)}
-          >
+        <div className="flex flex-wrap items-end justify-between" style={{ gap: "clamp(1rem, 3vw, 2.5rem)" }}>
+
+          {/* ── Film info ─────────────────────────────────────── */}
+          <div style={{ flex: "1 1 clamp(260px, 38vw, 560px)", minWidth: 0 }}>
             <AnimatePresence mode="wait">
               <motion.div key={contentKey} style={{ willChange: "opacity, transform" }}>
 
-                {/* Genre tags */}
-                {genres.length > 0 && (
-                  <motion.div
-                    variants={variants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    custom={0}
-                    className="flex items-center flex-wrap mb-[clamp(0.5rem,1vh,0.75rem)]"
-                    style={{ gap: "clamp(0.4rem,0.8vw,0.6rem)" }}
-                  >
-                    {genres.map((genre, i) => (
-                      <React.Fragment key={genre}>
-                        <span
-                          className="font-body font-medium tracking-[0.18em] text-white/50 uppercase hover:text-white transition-colors duration-fast cursor-pointer"
-                          style={{ fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)" }}
-                        >
-                          {genre}
-                        </span>
-                        {i < genres.length - 1 && (
-                          <span className="text-white/25" style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)" }}>|</span>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </motion.div>
-                )}
-
-                {/* Title */}
-                <motion.h1
-                  variants={variants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  custom={0.08}
-                  className="text-white leading-[0.9] tracking-tight"
-                  style={{
-                    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-                    fontWeight: 700,
-                    fontSize: "clamp(2rem,5vw,5rem)",
-                    paddingTop: "clamp(0.75rem, 2vw, 1.25rem)",
-                    paddingBottom: "clamp(0.75rem, 2vw, 1.25rem)",
-                    willChange: "opacity, transform",
-                  }}
-                >
-                  {current?.title || current?.original_title}
-                </motion.h1>
-
-                {/* Metadata row */}
+              {/* Genre tags */}
+              {genres.length > 0 && (
                 <motion.div
                   variants={variants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  custom={0.16}
-                  className="flex flex-wrap items-center text-white/40 font-mono tracking-[0.06em]"
-                  style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)", fontSize: "clamp(0.75rem, 1.4vw, 0.95rem)" }}
+                  custom={0}
+                  className="flex items-center flex-wrap"
+                  style={{ gap: "clamp(0.4rem,0.8vw,0.6rem)", marginBottom: "clamp(0.4rem,1vh,0.65rem)" }}
                 >
-                  {year && <span>{year}</span>}
-                  {current?.director && (
-                    <>
-                      <span className="text-white/20">|</span>
-                      <span>
-                        <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Director: </span>
-                        {current.director}
+                  {genres.map((genre, i) => (
+                    <React.Fragment key={genre}>
+                      <span
+                        className="font-body font-medium tracking-[0.18em] text-white/50 uppercase"
+                        style={{ fontSize: "clamp(0.62rem, 1.2vw, 0.9rem)" }}
+                      >
+                        {genre}
                       </span>
-                    </>
-                  )}
-                  {current?.stars?.length > 0 && (
-                    <>
-                      <span className="text-white/20">|</span>
-                      <span>
-                        <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Stars: </span>
-                        {current.stars.slice(0, 3).join(", ")}
-                      </span>
-                    </>
-                  )}
+                      {i < genres.length - 1 && (
+                        <span className="text-white/25" style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)" }}>|</span>
+                      )}
+                    </React.Fragment>
+                  ))}
                 </motion.div>
+              )}
 
-                {/* Rating */}
-                {rating && (
-                  <motion.div
-                    variants={variants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    custom={0.22}
-                    className="flex items-baseline gap-[clamp(0.25rem,0.5vw,0.5rem)] mt-[clamp(0.75rem,1.5vh,1.25rem)]"
-                  >
-                    <span className="font-mono tracking-[0.15em] text-white/40 uppercase" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>Rating</span>
-                    <span className="font-mono font-semibold text-gold" style={{ fontSize: "clamp(1.1rem,2vw,1.5rem)" }}>{rating}</span>
-                    <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.6rem,1vw,0.75rem)" }}>/ 10</span>
-                  </motion.div>
+              {/* Title */}
+              <motion.h1
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                custom={0.08}
+                role="button"
+                tabIndex={0}
+                onClick={goToFilm}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToFilm(); }
+                }}
+                className="text-white leading-[0.9] tracking-tight cursor-pointer outline-none transition-colors duration-fast hover:text-white/80 focus-visible:text-white/80"
+                style={{
+                  fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(1.9rem,4.6vw,4.5rem)",
+                  paddingBottom: "clamp(0.5rem, 1.4vw, 1rem)",
+                  willChange: "opacity, transform",
+                }}
+              >
+                {current?.title || current?.original_title}
+              </motion.h1>
+
+              {/* Metadata row */}
+              <motion.div
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                custom={0.16}
+                className="flex flex-wrap items-center text-white/40 font-mono tracking-[0.06em]"
+                style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)", fontSize: "clamp(0.65rem, 1.2vw, 0.9rem)" }}
+              >
+                {year && <span>{year}</span>}
+                {current?.director && (
+                  <>
+                    <span className="text-white/20">|</span>
+                    <span>
+                      <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Director: </span>
+                      {current.director}
+                    </span>
+                  </>
                 )}
+                {current?.stars?.length > 0 && (
+                  <>
+                    <span className="text-white/20">|</span>
+                    <span>
+                      <span className="text-white/30 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Stars: </span>
+                      {current.stars.slice(0, 3).join(", ")}
+                    </span>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Rating + call to action */}
+              <motion.div
+                variants={variants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                custom={0.22}
+                className="flex flex-wrap items-center"
+                style={{ gap: "clamp(0.75rem,2vw,1.5rem)", marginTop: "clamp(0.75rem,1.5vh,1.25rem)" }}
+              >
+                {rating && (
+                  <span className="flex items-baseline" style={{ gap: "clamp(0.25rem,0.5vw,0.5rem)" }}>
+                    <span className="font-mono tracking-[0.15em] text-white/40 uppercase" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>Rating</span>
+                    <span className="font-mono font-semibold text-gold" style={{ fontSize: "clamp(1rem,1.8vw,1.4rem)" }}>{rating}</span>
+                    <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>/ 10</span>
+                  </span>
+                )}
+
+                <button
+                  onClick={goToFilm}
+                  className="font-body font-semibold text-black bg-gold hover:bg-gold-lt rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-[0.99] cursor-pointer"
+                  style={{ padding: "0.6rem 1.6rem", fontSize: "clamp(0.65rem,1vw,0.82rem)" }}
+                >
+                  View film
+                </button>
+              </motion.div>
 
               </motion.div>
             </AnimatePresence>
           </div>
-        </div>
-      </div>
 
-      {/* ══ Now Showing carousel — passes activeFilmId for scroll sync ══ */}
-      {relatedFilms.length > 0 && (
-        <div
-          className="absolute z-10 hidden sm:block"
-          style={{ bottom: "clamp(2rem,5vh,3rem)", right: 0, zIndex: 10 }}
-        >
-          <HeroCarousel
-            films={relatedFilms}
-            label="NOW SHOWING"
-            activeFilmId={current?.id}
-          />
+          {/* ── Now Showing strip ─────────────────────────────── */}
+          {relatedFilms.length > 0 && (
+            <div style={{ flex: "1 1 clamp(240px, 40vw, 560px)", minWidth: 0 }}>
+              <HeroCarousel
+                films={relatedFilms}
+                label="NOW SHOWING"
+                activeFilmId={current?.id}
+              />
+            </div>
+          )}
         </div>
-      )}
+
+        {/* ══ Dot indicators — pill shape with width transition ═══ */}
+        {total > 1 && (
+          <div
+            className="flex items-center justify-center"
+            style={{ gap: "clamp(0.3rem,0.5vw,0.4rem)", marginTop: "clamp(0.5rem,1.2vh,1rem)" }}
+          >
+            {allFilms.map((f, i) => (
+              <button
+                key={f.id}
+                onClick={() => navigateTo(i)}
+                aria-label={`Go to film ${i + 1}`}
+                className="rounded-full cursor-pointer border-none"
+                style={{
+                  width:            i === displayIdx ? "24px"    : "8px",
+                  height:           "8px",
+                  backgroundColor:  i === displayIdx ? "#c9a843" : "rgba(255,255,255,0.25)",
+                  transition:       "width 300ms ease, background-color 300ms ease",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 };

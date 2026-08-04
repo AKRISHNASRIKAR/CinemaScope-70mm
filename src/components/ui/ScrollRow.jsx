@@ -25,6 +25,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const ScrollRow = ({
   label,
+  ariaLabel,
   showArrows = true,
   scrollAmount = 300,
   gap = "clamp(0.75rem, 1.5vw, 1.25rem)",
@@ -61,13 +62,13 @@ const ScrollRow = ({
             onClick={() => scrollBy(-1)}
             aria-label="Scroll left"
             className="
-              hidden sm:flex flex-shrink-0
+              flex flex-shrink-0
               items-center justify-center rounded-full
-              bg-white/5 hover:bg-white/10
+              bg-white/[0.06] hover:bg-white/10 backdrop-blur-md
               border border-white/10
               text-white/50 hover:text-white
-              opacity-0 group-hover/row:opacity-100
-              transition-all duration-fast cursor-pointer
+              opacity-40 group-hover/row:opacity-100 focus-visible:opacity-100
+              transition-all duration-300 hover:scale-[1.08] cursor-pointer
               absolute left-0 z-10 -translate-x-1/2
             "
             style={{ width: arrowSize, height: arrowSize }}
@@ -80,7 +81,7 @@ const ScrollRow = ({
         <div
           ref={stripRef}
           role="region"
-          aria-label={label ?? "Scroll row"}
+          aria-label={ariaLabel ?? label ?? "Scroll row"}
           tabIndex={0}
           onKeyDown={handleKeyDown}
           className="flex overflow-x-auto scrollbar-hide pb-2 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
@@ -100,13 +101,13 @@ const ScrollRow = ({
             onClick={() => scrollBy(1)}
             aria-label="Scroll right"
             className="
-              hidden sm:flex flex-shrink-0
+              flex flex-shrink-0
               items-center justify-center rounded-full
-              bg-white/5 hover:bg-white/10
+              bg-white/[0.06] hover:bg-white/10 backdrop-blur-md
               border border-white/10
               text-white/50 hover:text-white
-              opacity-0 group-hover/row:opacity-100
-              transition-all duration-fast cursor-pointer
+              opacity-40 group-hover/row:opacity-100 focus-visible:opacity-100
+              transition-all duration-300 hover:scale-[1.08] cursor-pointer
               absolute right-0 z-10 translate-x-1/2
             "
             style={{ width: arrowSize, height: arrowSize }}

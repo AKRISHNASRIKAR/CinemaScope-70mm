@@ -23,14 +23,15 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
   if (!films.length) return null;
 
   return (
-    <div
-      className="flex flex-col select-none"
-      style={{ paddingRight: "clamp(1rem,3vw,2.5rem)" }}
-    >
-      {/* Label with increased spacing above the posters */}
+    <div className="flex flex-col select-none w-full">
+      {/* Label with breathing room above the posters */}
       <span
-        className="font-mono tracking-[0.22em] text-white/40 uppercase mb-6"
-        style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", paddingLeft: "clamp(0.5rem,1vw,1rem)" }}
+        className="font-mono tracking-[0.22em] text-white/40 uppercase"
+        style={{
+          fontSize: "clamp(0.5rem,0.9vw,0.7rem)",
+          paddingLeft: "clamp(0.25rem,1vw,1rem)",
+          marginBottom: "clamp(0.5rem,1.5vh,1rem)",
+        }}
       >
         {label}
       </span>
@@ -42,12 +43,12 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             onClick={() => stripRef.current?.scrollBy({ left: -180, behavior: "smooth" })}
             aria-label="Scroll Now Showing left"
             className="
-              hidden sm:flex absolute -left-3 z-20
+              flex absolute -left-3 z-20
               items-center justify-center rounded-full
-              bg-black/50 backdrop-blur-sm border border-white/10
+              bg-black/50 backdrop-blur-md border border-white/10
               text-white/70 hover:text-white hover:bg-black/70
-              opacity-30 group-hover/hc:opacity-100
-              transition-all duration-fast cursor-pointer
+              opacity-40 group-hover/hc:opacity-100
+              transition-all duration-300 hover:scale-[1.08] cursor-pointer
             "
             style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
           >
@@ -65,12 +66,13 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: "smooth" }); }
           }}
           /* Significant top padding for headroom, light bottom padding for stability */
-          className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide pt-12 pb-4 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
+          className="flex items-end w-full overflow-x-auto overflow-y-visible scrollbar-hide outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
           style={{
             gap: "clamp(0.4rem,0.8vw,0.6rem)",
-            paddingLeft:  "clamp(0.5rem,1vw,1rem)",
-            paddingRight: "clamp(0.5rem,1vw,1rem)",
-            maxWidth: "clamp(200px,50vw,600px)",
+            paddingLeft:  "clamp(0.25rem,1vw,1rem)",
+            paddingRight: "clamp(0.25rem,1vw,1rem)",
+            paddingTop: "clamp(0.5rem,1.5vh,1rem)",
+            paddingBottom: "clamp(0.5rem,1vh,0.75rem)",
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
           }}
@@ -135,12 +137,12 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             onClick={() => stripRef.current?.scrollBy({ left: 180, behavior: "smooth" })}
             aria-label="Scroll Now Showing right"
             className="
-              hidden sm:flex absolute -right-1 z-20
+              flex absolute -right-1 z-20
               items-center justify-center rounded-full
-              bg-black/50 backdrop-blur-sm border border-white/10
+              bg-black/50 backdrop-blur-md border border-white/10
               text-white/70 hover:text-white hover:bg-black/70
-              opacity-30 group-hover/hc:opacity-100
-              transition-all duration-fast cursor-pointer
+              opacity-40 group-hover/hc:opacity-100
+              transition-all duration-300 hover:scale-[1.08] cursor-pointer
             "
             style={{ width: "clamp(1.5rem,2.5vw,2rem)", height: "clamp(1.5rem,2.5vw,2rem)" }}
           >

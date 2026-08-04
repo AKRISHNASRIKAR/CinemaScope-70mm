@@ -102,15 +102,50 @@ export const CastSectionSkeleton = () => (
   </div>
 );
 
+/* ── Trending Row Skeleton ─────────────────────────────────────── */
+/*
+ * Matches TrendingRow: section header + a horizontal strip of ranked cards
+ * at clamp(118px, 13vw, 190px) wide.
+ */
+export const TrendingRowSkeleton = ({ count = 6 }) => (
+  <section className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem,3vw,2.5rem)", paddingBottom: "clamp(0.5rem,1vw,1rem)" }}>
+    <div className="center-container">
+      <div
+        className="border-b border-white/[0.08]"
+        style={{ paddingBottom: "clamp(0.5rem,1vh,0.75rem)", marginBottom: "clamp(0.85rem,1.8vh,1.25rem)" }}
+      >
+        <div className="skeleton rounded" style={{ height: "0.6rem", width: "4rem", marginBottom: "0.5rem" }} />
+        <div className="skeleton rounded" style={{ height: "clamp(1.1rem,2vw,1.6rem)", width: "9rem" }} />
+      </div>
+
+      <div className="flex overflow-hidden pb-2" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex-shrink-0 flex flex-col" style={{ width: "clamp(118px, 13vw, 190px)" }}>
+            <div className="aspect-[2/3] rounded-card bg-white/5">
+              <Shimmer showIcon />
+            </div>
+            <div className="skeleton rounded" style={{ height: "0.7rem", width: "75%", marginTop: "clamp(0.4rem,0.8vh,0.6rem)" }} />
+            <div className="skeleton rounded mt-1" style={{ height: "0.55rem", width: "45%" }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 /* ── Genre Row Grid Skeleton ───────────────────────────────────── */
 /*
- * Used inside GenreRow — matches the 2/3/4 column grid of GenreRowContent.
+ * Used inside GenreRow — matches the auto-fill grid of GenreRowContent.
  * Shows exactly 4 cards (FILMS_PER_PAGE).
  */
 export const GenreRowSkeleton = () => (
   <div
-    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-    style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)", marginTop: "clamp(0.75rem, 1.5vh, 1rem)" }}
+    className="grid"
+    style={{
+      gridTemplateColumns: "repeat(auto-fill, minmax(clamp(120px, 15vw, 190px), 1fr))",
+      gap: "clamp(0.75rem, 2vw, 1.25rem)",
+      marginTop: "clamp(0.75rem, 1.5vh, 1rem)",
+    }}
   >
     {Array.from({ length: 4 }).map((_, i) => (
       <div key={i} className="flex flex-col">
@@ -150,7 +185,7 @@ export const FilmRowSkeleton = ({ count = 5 }) => (
 /* ── Similar Movies Row Skeleton ───────────────────────────────── */
 /*
  * Used for SimilarMovies section — 5 cards in a grid,
- * matching grid-cols-2 sm:3 lg:4 xl:5 with aspect-[2/3].
+ * matching the auto-fill grid with aspect-[2/3] cards.
  */
 export const SimilarMoviesSkeleton = () => (
   <div

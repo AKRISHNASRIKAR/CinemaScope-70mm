@@ -1,23 +1,21 @@
-import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
+import { useState, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
-import { CircularProgress } from "@mui/material";
 
-import FilmCard from "@/components/ui/FilmCard";
+import FilmGrid from "@/components/ui/FilmGrid";
+import { monthYear } from "@/lib/utils/formatDate";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_MAP } from "@/lib/constants";
+import { backdropUrl } from "@/lib/utils/tmdbImage";
 
 /* ── Constants ────────────────────────────────────────────────── */
-const SORT_OPTIONS = [
-  { label: "Popularity", value: "popularity.desc", voteCt: false },
-  { label: "Rating", value: "vote_average.desc", voteCt: true },
-  { label: "Newest", value: "release_date.desc", voteCt: false },
-  { label: "Oldest", value: "release_date.asc", voteCt: false },
-];
+/* Sort UI is intentionally disabled (see git history); discover queries
+   still run on popularity so the default ordering is unchanged. */
+const DEFAULT_SORT = "popularity.desc";
 
 const FILTER_TABS = [
   { label: "All", endpoint: "discover" },
@@ -26,105 +24,197 @@ const FILTER_TABS = [
   { label: "Coming Soon", endpoint: "upcoming" },
 ];
 
-/* ── 1. Genre Hero Section (Stateless) ────────────────────────── */
-const GenreHero = ({ genreName, heroPosterUrls, navHeight }) => (
-  <div className="relative w-full overflow-hidden" style={{ paddingTop: navHeight, minHeight: "clamp(220px, 35vh, 360px)" }}>
-    {heroPosterUrls.length > 0 && (
-      <div className="absolute inset-0 flex" style={{ gap: 0, filter: "blur(18px)", transform: "scale(1.1)" }} aria-hidden>
-        {heroPosterUrls.map((url, i) => (
-          <div key={i} className="flex-1 bg-center bg-cover" style={{ backgroundImage: `url(${url})` }} />
-        ))}
+/** Builds the TMDB endpoint for a given tab + page. */
+const buildUrl = (genreId, endpoint, page = 1) =>
+  endpoint === "discover"
+    ? `/discover/movie?page=${page}&with_genres=${genreId}&sort_by=${DEFAULT_SORT}`
+    : `/movie/${endpoint}?page=${page}&with_genres=${genreId}`;
+
+/* ── 1. Genre Hero ────────────────────────────────────────────── */
+/* Reads the same SWR key as the grid, so the artwork comes from cache
+   rather than a second network request. */
+const GenreHero = ({ genreName, url, navHeight }) => {
+  const { data } = useSWR(url, fetcher);
+  const [artLoaded, setArtLoaded] = useState(false);
+
+  const feature = data?.results?.find((f) => f.backdrop_path) ?? null;
+  const art = backdropUrl(feature?.backdrop_path);
+  const total = data?.total_results;
+
+  return (
+    <header
+      className="relative w-full overflow-hidden"
+      style={{ paddingTop: navHeight, minHeight: "clamp(260px, 42vh, 460px)" }}
+    >
+      {/* Full-bleed backdrop */}
+      {art && (
+        <img
+          src={art}
+          alt=""
+          aria-hidden
+          loading="eager"
+          fetchpriority="high"
+          onLoad={() => setArtLoaded(true)}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            objectPosition: "center 20%",
+            filter: "blur(6px) saturate(1.15)",
+            transform: "scale(1.06)",
+            opacity: artLoaded ? 0.5 : 0,
+            transition: "opacity 900ms ease",
+          }}
+        />
+      )}
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-base via-base/80 to-base/50" />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(70% 90% at 0% 100%, rgba(201,168,67,0.14) 0%, rgba(9,9,9,0) 65%)" }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "150px 150px",
+        }}
+      />
+
+      <div
+        className="relative center-container flex flex-col justify-end"
+        style={{ paddingTop: "clamp(2rem, 6vh, 4rem)", paddingBottom: "clamp(1.5rem, 4vh, 2.5rem)" }}
+      >
+        <p
+          className="font-mono text-gold uppercase"
+          style={{ fontSize: "clamp(0.5rem, 0.85vw, 0.68rem)", letterSpacing: "0.32em" }}
+        >
+          Browse genre
+        </p>
+        <h1
+          className="font-display font-bold text-white leading-[0.9] tracking-tight"
+          style={{ fontSize: "clamp(2.2rem, 6.5vw, 5.5rem)", marginTop: "clamp(0.4rem, 1vh, 0.75rem)" }}
+        >
+          {genreName}
+        </h1>
+        <p
+          className="font-body text-white/45"
+          style={{ fontSize: "clamp(0.68rem, 1.1vw, 0.875rem)", marginTop: "clamp(0.5rem, 1.2vh, 0.85rem)" }}
+        >
+          {total ? `${total.toLocaleString()} films` : "Curated from TMDB"}
+          {feature?.title ? ` · Featuring ${feature.title}` : ""}
+        </p>
       </div>
-    )}
-    <div className="absolute inset-0 bg-black/80" />
-    <div className="relative z-10 flex flex-col justify-end" style={{ padding: "clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 4rem)", paddingBottom: "clamp(2rem, 4vh, 3rem)" }}>
-      <p className="font-mono tracking-[0.3em] text-white/40 uppercase" style={{ fontSize: "clamp(0.55rem, 1vw, 0.7rem)", marginBottom: "clamp(0.4rem, 1vh, 0.75rem)" }}>Browse</p>
-      <h1 className="font-display font-bold text-white leading-none tracking-tight" style={{ fontSize: "clamp(2.5rem, 7vw, 6rem)" }}>{genreName.toUpperCase()}</h1>
-      <p className="font-body text-white/40 mt-2" style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.875rem)" }}>Curated from TMDB · {genreName} films</p>
+    </header>
+  );
+};
+
+/* ── 2. Filter pills ──────────────────────────────────────────── */
+const FilterBar = ({ active, onChange }) => (
+  <div
+    className="sticky top-0 w-full border-b border-white/[0.06]"
+    style={{
+      zIndex: 30,
+      background: "rgba(9,9,9,0.82)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+    }}
+  >
+    <div className="center-container">
+      <div
+        className="flex items-center overflow-x-auto scrollbar-hide"
+        style={{ gap: "clamp(0.35rem, 1vw, 0.6rem)", padding: "clamp(0.6rem, 1.4vh, 0.9rem) 0" }}
+      >
+        {FILTER_TABS.map((tab) => {
+          const isActive = active.label === tab.label;
+          return (
+            <button
+              key={tab.label}
+              onClick={() => onChange(tab)}
+              aria-pressed={isActive}
+              className={`flex-shrink-0 font-body font-medium uppercase whitespace-nowrap rounded-full border transition-all duration-300 hover:scale-[1.03] cursor-pointer ${
+                isActive
+                  ? "bg-gold text-black border-gold"
+                  : "bg-white/[0.04] text-white/55 border-white/10 hover:text-white hover:border-white/25"
+              }`}
+              style={{
+                fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)",
+                letterSpacing: "0.14em",
+                padding: "0.5rem 1.15rem",
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   </div>
 );
 
-/* ── 2. Data-driven Grid Component ────────────────────────────── */
-const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
-  const [page, setPage] = useState(1);
-  const [extraFilms, setExtraFilms] = useState([]);
+/* ── 3. Data-driven grid ──────────────────────────────────────── */
+/* Mounted with key={url} by the page, so switching tabs remounts this
+   component and pagination state resets without an effect. */
+const GenreGrid = ({ genreId, endpoint, url }) => {
+  const { data } = useSWR(url, fetcher, { suspense: true });
+  const [extraPages, setExtraPages] = useState([]);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [totalPages, setTotalPages] = useState(1);
 
-  // Initial URL for page 1
-  const getUrl = (p) => {
-    const genreParam = `&with_genres=${genreId}`;
-    const sortParam = `&sort_by=${sortBy.value}`;
-    const voteParam = sortBy.voteCt ? "&vote_count.gte=200" : "";
-    if (filterTab.endpoint === "discover") {
-      return `/discover/movie?page=${p}${genreParam}${sortParam}${voteParam}`;
-    }
-    return `/movie/${filterTab.endpoint}?page=${p}${genreParam}`;
-  };
+  const page = extraPages.length + 1;
+  const totalPages = data?.total_pages ?? 1;
 
-  const { data } = useSWR(getUrl(1), fetcher, { suspense: true });
-  
-  useEffect(() => {
-    // Reset when filters change
-    setPage(1);
-    setExtraFilms([]);
-    if (data?.results) {
-      setTotalPages(data.total_pages);
-      const urls = data.results
-        .filter((f) => f.poster_path)
-        .slice(0, 8)
-        .map((f) => `https://image.tmdb.org/t/p/w342${f.poster_path}`);
-      setHeroPosterUrls(urls);
-    }
-  }, [genreId, sortBy, filterTab, data, setHeroPosterUrls]);
+  // Later pages can repeat titles from earlier ones — dedupe by id.
+  const films = Array.from(
+    new Map(
+      [...(data?.results || []), ...extraPages.flat()].map((f) => [f.id, f])
+    ).values()
+  );
 
-  const handleLoadMore = async () => {
-    const nextPage = page + 1;
+  const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const moreData = await fetcher(getUrl(nextPage));
-      setExtraFilms((prev) => [...prev, ...moreData.results]);
-      setPage(nextPage);
+      const next = await fetcher(buildUrl(genreId, endpoint, page + 1));
+      setExtraPages((prev) => [...prev, next.results || []]);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load more films", e);
     } finally {
       setLoadingMore(false);
     }
   };
 
-  const allFilms = [...(data?.results || []), ...extraFilms];
-
-  if (allFilms.length === 0) {
+  if (films.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24">
-        <p className="font-body text-muted">No films found for this combination.</p>
+      <div className="flex flex-col items-center justify-center text-center" style={{ padding: "clamp(3rem, 10vh, 6rem) 0" }}>
+        <p className="font-display font-bold text-white/30" style={{ fontSize: "clamp(1rem, 2vw, 1.4rem)" }}>
+          No films in this selection
+        </p>
+        <p className="font-body text-muted" style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)", marginTop: "0.5rem" }}>
+          Try another filter above.
+        </p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
-        {allFilms.map((film) => (
-          <FilmCard 
-            key={`${film.id}-${page}`} 
-            film={film} 
-            subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
-          />
-        ))}
-      </div>
-      
+      <FilmGrid films={films} subtitleFor={(f) => monthYear(f.release_date)} />
+
       {page < totalPages && (
         <div className="flex justify-center" style={{ marginTop: "clamp(2rem, 4vw, 3rem)" }}>
           <button
-            onClick={handleLoadMore}
+            onClick={loadMore}
             disabled={loadingMore}
-            className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50"
-            style={{ padding: "0.75rem 2.5rem" }}
+            className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-gold/40 text-white/70 hover:text-white hover:bg-gold/10 hover:border-gold/70 transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+            style={{ padding: "0.85rem 2.5rem", fontSize: "clamp(0.6rem, 0.95vw, 0.75rem)" }}
           >
-            {loadingMore && <CircularProgress size={14} sx={{ color: "#c9a843" }} />}
-            {loadingMore ? "Loading…" : "Load More"}
+            {loadingMore && (
+              <span
+                aria-hidden
+                className="rounded-full border-2 border-gold border-t-transparent"
+                style={{ width: "0.85rem", height: "0.85rem", animation: "spin 0.8s linear infinite" }}
+              />
+            )}
+            {loadingMore ? "Loading…" : "Load more"}
           </button>
         </div>
       )}
@@ -138,88 +228,26 @@ const GenrePage = () => {
   const genreId = parseInt(id, 10);
   const genreName = GENRE_MAP[genreId] ?? "Genre";
 
-  const [sortBy, setSortBy] = useState(SORT_OPTIONS[0]);
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
-  const [heroPosterUrls, setHeroPosterUrls] = useState([]);
-  const [isSticky, setIsSticky] = useState(true);
-  const sentinelRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsSticky(!entry.isIntersecting);
-      },
-      { rootMargin: "0px", threshold: 0 }
-    );
-    if (sentinelRef.current) observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, []);
+  const url = buildUrl(genreId, filterTab.endpoint, 1);
 
   const NAV_HEIGHT = "var(--navbar-height, 3.5rem)";
 
   return (
-    <div className="min-h-screen bg-base relative">
+    <div className="min-h-screen bg-base text-white">
       <BackButton fallbackRoute="/" />
-      <GenreHero genreName={genreName} heroPosterUrls={heroPosterUrls} navHeight={NAV_HEIGHT} />
 
-      <div 
-        className={`${isSticky ? 'sticky' : 'relative'} bg-[#090909] border-b border-white/5 w-full transition-all duration-200`} 
-        style={{ top: isSticky ? "var(--navbar-height, 4rem)" : "auto", zIndex: 30 }}
-      >
-        <div className="center-container">
-          <div className="flex items-center justify-between flex-wrap" style={{ gap: "clamp(0.5rem, 1vw, 1rem)", padding: "clamp(0.75rem, 1.5vh, 1rem) 0" }}>
-            
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none" style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}>
-                {FILTER_TABS.map((tab) => (
-                  <button
-                    key={tab.label}
-                    onClick={() => setFilterTab(tab)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.12em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[10px] whitespace-nowrap ${filterTab.label === tab.label ? "text-gold border-gold" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
-                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+      <GenreHero genreName={genreName} url={url} navHeight={NAV_HEIGHT} />
 
-            {/* 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="font-mono text-white/30 text-[10px] uppercase hidden sm:inline">Sort</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setSortBy(opt)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.1em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[9px] whitespace-nowrap ${sortBy.value === opt.value ? "text-gold border-gold" : "bg-transparent text-white/30 border-transparent hover:text-white"}`}
-                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            */}
-          </div>
-        </div>
-      </div>
+      <FilterBar active={filterTab} onChange={setFilterTab} />
 
-      <div className="center-container w-full py-10">
+      <div className="center-container" style={{ paddingTop: "clamp(1.5rem, 4vh, 2.5rem)", paddingBottom: "clamp(3rem, 8vh, 5rem)" }}>
         <ErrorBoundary>
           <Suspense fallback={<FilmGridSkeleton />}>
-            <GenreGrid 
-              genreId={genreId} 
-              sortBy={sortBy} 
-              filterTab={filterTab} 
-              setHeroPosterUrls={setHeroPosterUrls} 
-            />
+            <GenreGrid key={url} genreId={genreId} endpoint={filterTab.endpoint} url={url} />
           </Suspense>
         </ErrorBoundary>
       </div>
-
-      {/* Sentinel for IntersectionObserver */}
-      <div ref={sentinelRef} className="w-full h-1" />
 
       <Footer />
     </div>
