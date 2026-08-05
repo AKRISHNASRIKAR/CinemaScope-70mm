@@ -1,18 +1,10 @@
 /**
- * ComparePage — side-by-side film comparison.
+ * ComparePage — compact side-by-side film comparison.
  *
  * Route: /compare?a=FILM_ID&b=FILM_ID
- *
- * Users can:
- *  - Search for two films using the inline search inputs
- *  - Compare poster, rating, runtime, genres, release year, overview
- *  - Navigate to either film's detail page
- *
- * Data: SWR + TMDB /movie/{id} endpoint (no new dependencies).
- * State: film IDs stored in URL search params so the comparison is shareable.
  */
 
-import React, { Suspense, useState, useCallback } from "react";
+import React, { Suspense, useState, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -21,6 +13,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import StarIcon from "@mui/icons-material/Star";
 
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
@@ -33,7 +26,7 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
   const [query, setQuery]     = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const debounceRef           = React.useRef(null);
+  const debounceRef           = useRef(null);
 
   const search = useCallback((q) => {
     setQuery(q);
@@ -43,10 +36,13 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
       setLoading(true);
       try {
         const data = await fetcher(`/search/movie?query=${encodeURIComponent(q)}&page=1`);
-        setResults((data.results || []).slice(0, 6));
-      } catch { setResults([]); }
-      finally { setLoading(false); }
-    }, 350);
+        setResults((data.results || []).slice(0, 5));
+      } catch { 
+        setResults([]); 
+      } finally { 
+        setLoading(false); 
+      }
+    }, 300);
   }, []);
 
   const pick = (film) => {
@@ -59,25 +55,25 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
     <div className="relative w-full">
       <div className="relative flex items-center">
         <SearchIcon
-          sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)" }}
-          className="absolute left-3 text-white/30 pointer-events-none"
+          sx={{ fontSize: "1rem" }}
+          className="absolute left-3 text-white/40 pointer-events-none"
         />
         <input
           type="text"
           value={query}
           onChange={(e) => search(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-surface border border-white/10 focus:border-gold/40 focus:ring-1 focus:ring-gold/20 text-white placeholder-white/25 font-body rounded-card outline-none"
-          style={{ padding: "0.6rem 2.5rem 0.6rem 2.25rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
+          className="w-full bg-white/[0.04] border border-white/10 focus:border-gold/50 focus:bg-white/[0.07] text-white placeholder-white/30 font-body rounded-card outline-none transition-all duration-normal"
+          style={{ padding: "0.55rem 2.25rem 0.55rem 2.25rem", fontSize: "clamp(0.75rem,1vw,0.85rem)" }}
           aria-label={placeholder}
         />
         {query && (
           <button
             onClick={() => { setQuery(""); setResults([]); }}
-            className="absolute right-3 text-white/30 hover:text-white/70 cursor-pointer"
+            className="absolute right-3 text-white/40 hover:text-white cursor-pointer"
             aria-label="Clear search"
           >
-            <CloseIcon sx={{ fontSize: "clamp(0.8rem,1.2vw,1rem)" }} />
+            <CloseIcon sx={{ fontSize: "0.9rem" }} />
           </button>
         )}
       </div>
@@ -85,19 +81,17 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
       {/* Dropdown results */}
       {results.length > 0 && (
         <div
-          className="absolute top-full left-0 right-0 z-50 mt-1 rounded-card border border-white/10 bg-elevated overflow-hidden shadow-card-hover"
+          className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-card border border-white/12 bg-[#121212] overflow-hidden shadow-2xl backdrop-blur-md"
           role="listbox"
-          aria-label="Search results"
         >
           {results.map((film) => (
             <button
               key={film.id}
               onClick={() => pick(film)}
               role="option"
-              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors duration-fast cursor-pointer text-left"
-              style={{ fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
+              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/8 transition-colors duration-fast cursor-pointer text-left border-b border-white/5 last:border-none"
             >
-              <div className="flex-shrink-0 rounded overflow-hidden bg-surface" style={{ width: "2rem", height: "3rem" }}>
+              <div className="flex-shrink-0 rounded overflow-hidden bg-surface" style={{ width: "1.75rem", height: "2.6rem" }}>
                 {film.poster_path ? (
                   <img
                     src={posterUrl(film.poster_path, "w92")}
@@ -106,13 +100,13 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full bg-white/5" />
+                  <div className="w-full h-full bg-white/10 flex items-center justify-center text-[0.5rem] text-muted">N/A</div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-body font-medium text-white line-clamp-1">{film.title}</p>
+                <p className="font-body font-medium text-white text-xs truncate">{film.title}</p>
                 {film.release_date && (
-                  <p className="font-mono text-muted" style={{ fontSize: "clamp(0.55rem,0.85vw,0.65rem)" }}>
+                  <p className="font-mono text-muted text-[0.65rem]">
                     {film.release_date.slice(0, 4)}
                   </p>
                 )}
@@ -122,115 +116,69 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
         </div>
       )}
       {loading && (
-        <p className="absolute top-full left-0 mt-1 font-body text-muted" style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}>
-          Searching…
-        </p>
+        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-[#121212] border border-white/10 rounded-card z-50">
+          <p className="font-mono text-muted text-xs text-center animate-pulse">Searching films…</p>
+        </div>
       )}
     </div>
   );
 };
 
-/* ── Single film column ─────────────────────────────────────────── */
-const FilmColumn = ({ id, onClear }) => {
+/* ── Compact Film Card Header ───────────────────────────────────── */
+const FilmCardHeader = ({ id, onClear }) => {
   const navigate = useNavigate();
   const { data: film } = useSWR(id ? `/movie/${id}` : null, fetcher, { suspense: true });
 
   if (!film) return null;
 
-  const poster = posterUrl(film.poster_path, "w342") ?? "/fallback-image-film.jpg";
+  const poster = posterUrl(film.poster_path, "w185") ?? "/fallback-image-film.jpg";
   const year   = film.release_date?.slice(0, 4) ?? "—";
-  const genres = film.genres?.map((g) => g.name).join(", ") || "—";
-  const rating = film.vote_average ? film.vote_average.toFixed(1) : "—";
-  const runtime = film.runtime ? `${film.runtime} min` : "—";
 
   return (
-    <div className="flex flex-col" style={{ gap: "clamp(1rem,2vh,1.5rem)" }}>
-      {/* Poster */}
-      <div className="relative group">
-        <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card-hover">
-          <LazyImage src={poster} alt={film.title} fallbackType="poster" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-normal" />
-        </div>
-        {/* Clear button */}
-        <button
-          onClick={onClear}
-          aria-label={`Remove ${film.title}`}
-          className="absolute top-2 right-2 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 transition-all duration-fast cursor-pointer opacity-0 group-hover:opacity-100"
-          style={{ width: "1.75rem", height: "1.75rem" }}
+    <div className="relative flex items-center gap-3.5 p-3 rounded-card bg-white/[0.03] border border-white/10 group">
+      {/* Compact Poster */}
+      <div 
+        className="relative flex-shrink-0 overflow-hidden rounded shadow-md bg-surface cursor-pointer" 
+        style={{ width: "clamp(60px, 8vw, 80px)", aspectRatio: "2/3" }}
+        onClick={() => navigate(`/film/${film.id}`)}
+      >
+        <LazyImage src={poster} alt={film.title} fallbackType="poster" className="w-full h-full object-cover" />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 pr-6">
+        <span className="font-mono text-gold text-[0.65rem] tracking-wider uppercase">{year}</span>
+        <h3 
+          className="font-display font-bold text-white text-sm sm:text-base leading-tight truncate cursor-pointer hover:text-gold transition-colors"
+          onClick={() => navigate(`/film/${film.id}`)}
         >
-          <CloseIcon sx={{ fontSize: "0.85rem" }} />
+          {film.title}
+        </h3>
+        {film.tagline && (
+          <p className="font-body italic text-muted text-[0.7rem] truncate mt-0.5">
+            "{film.tagline}"
+          </p>
+        )}
+        <button
+          onClick={() => navigate(`/film/${film.id}`)}
+          className="inline-flex items-center gap-1 font-mono text-[0.65rem] text-gold/80 hover:text-gold mt-1.5 transition-colors cursor-pointer"
+        >
+          Details <OpenInNewIcon sx={{ fontSize: "0.7rem" }} />
         </button>
       </div>
 
-      {/* Title */}
-      <div style={{ minHeight: "clamp(2.5rem,5vh,3.5rem)" }}>
-        <h2
-          className="font-display font-bold text-white leading-tight tracking-tight"
-          style={{ fontSize: "clamp(1.1rem,2vw,1.6rem)" }}
-        >
-          {film.title}
-        </h2>
-        {film.tagline && (
-          <p className="font-body italic text-muted mt-1" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-            {film.tagline}
-          </p>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="flex flex-col" style={{ gap: "clamp(0.5rem,1vh,0.75rem)" }}>
-        {[
-          ["Rating",  <span className="text-gold font-semibold">{rating}</span>, "/ 10"],
-          ["Year",    year],
-          ["Runtime", runtime],
-          ["Genres",  genres],
-        ].map(([label, value, suffix]) => (
-          <div key={label} className="flex items-baseline justify-between border-b border-white/6 pb-2">
-            <span className="font-mono text-muted uppercase tracking-[0.12em]" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>
-              {label}
-            </span>
-            <span className="font-body text-white/80 text-right ml-4" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-              {value}{suffix && <span className="text-muted ml-1">{suffix}</span>}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Overview */}
-      {film.overview && (
-        <p className="font-body text-white/55 leading-relaxed line-clamp-4" style={{ fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}>
-          {film.overview}
-        </p>
-      )}
-
-      {/* View full page */}
+      {/* Clear button */}
       <button
-        onClick={() => navigate(`/film/${film.id}`)}
-        className="flex items-center gap-2 font-body font-medium text-gold border border-gold/30 hover:bg-gold/10 hover:border-gold/60 rounded-card transition-all duration-normal cursor-pointer self-start"
-        style={{ padding: "0.6rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}
+        onClick={onClear}
+        aria-label={`Remove ${film.title}`}
+        className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 hover:text-white transition-all cursor-pointer"
+        style={{ width: "1.5rem", height: "1.5rem" }}
       >
-        View Full Page <OpenInNewIcon sx={{ fontSize: "0.85rem" }} />
+        <CloseIcon sx={{ fontSize: "0.85rem" }} />
       </button>
     </div>
   );
 };
-
-/* ── Empty slot ─────────────────────────────────────────────────── */
-const EmptySlot = ({ label, onSelect }) => (
-  <div className="flex flex-col" style={{ gap: "clamp(1rem,2vh,1.5rem)" }}>
-    {/* Poster placeholder */}
-    <div
-      className="rounded-card aspect-[2/3] bg-surface border border-white/8 flex flex-col items-center justify-center"
-      style={{ gap: "0.75rem" }}
-    >
-      <SearchIcon sx={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", color: "rgba(255,255,255,0.12)" }} />
-      <p className="font-body text-muted text-center px-4" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-        Search for a film to compare
-      </p>
-    </div>
-    <FilmSearch onSelect={(film) => onSelect(film.id)} placeholder={label} />
-  </div>
-);
 
 /* ── Main Page ──────────────────────────────────────────────────── */
 const ComparePage = () => {
@@ -238,81 +186,198 @@ const ComparePage = () => {
   const idA = searchParams.get("a") || "";
   const idB = searchParams.get("b") || "";
 
+  const { data: filmA } = useSWR(idA ? `/movie/${idA}` : null, fetcher);
+  const { data: filmB } = useSWR(idB ? `/movie/${idB}` : null, fetcher);
+
   const setId = (key, id) => {
     const next = new URLSearchParams(searchParams);
     if (id) next.set(key, id); else next.delete(key);
-    setSearchParams(next);
+    setSearchParams(next, { replace: true });
   };
 
   const swap = () => {
     const next = new URLSearchParams();
     if (idB) next.set("a", idB);
     if (idA) next.set("b", idA);
-    setSearchParams(next);
+    setSearchParams(next, { replace: true });
   };
+
+  // Helper metrics formatted
+  const formatRating = (film) => film?.vote_average ? film.vote_average.toFixed(1) : "—";
+  const formatRuntime = (film) => film?.runtime ? `${film.runtime} min` : "—";
+  const formatGenres = (film) => film?.genres?.map(g => g.name).join(", ") || "—";
+  const formatLanguage = (film) => film?.original_language ? film.original_language.toUpperCase() : "—";
+  const formatVotes = (film) => film?.vote_count ? film.vote_count.toLocaleString() : "—";
+
+  // Comparison metric row helper
+  const MetricRow = ({ label, valA, valB, highlightA = false, highlightB = false }) => (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-3 border-b border-white/6 text-xs sm:text-sm">
+      <div className={`text-right font-body ${highlightA ? "text-gold font-semibold" : "text-white/80"}`}>
+        {valA || "—"}
+      </div>
+      <div className="px-2 font-mono text-[0.65rem] text-muted uppercase tracking-widest text-center min-w-[70px] sm:min-w-[100px]">
+        {label}
+      </div>
+      <div className={`text-left font-body ${highlightB ? "text-gold font-semibold" : "text-white/80"}`}>
+        {valB || "—"}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
       <BackButton fallbackRoute="/" />
 
       <div
-        className="flex-1 center-container"
-        style={{ paddingTop: "clamp(5rem,10vh,7rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
+        className="flex-1 center-container w-full max-w-4xl mx-auto px-4"
+        style={{ paddingTop: "clamp(4rem,7vh,5.5rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
       >
-        {/* Header */}
-        <div style={{ marginBottom: "clamp(1.5rem,3vh,2.5rem)" }}>
-          <p className="font-mono text-gold uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)", marginBottom: "0.4rem" }}>
-            Compare
-          </p>
-          <h1 className="font-display font-bold text-white leading-none tracking-tight" style={{ fontSize: "clamp(1.8rem,4vw,3rem)" }}>
-            Film Comparison
+        {/* Compact Header */}
+        <div className="text-center" style={{ marginBottom: "clamp(1.5rem,3vh,2.5rem)" }}>
+          <span className="font-mono text-gold text-xs uppercase tracking-[0.2em] px-2.5 py-1 rounded-full bg-gold/10 border border-gold/20 inline-block mb-2">
+            Comparison Tool
+          </span>
+          <h1 className="font-display font-bold text-white text-2xl sm:text-3xl tracking-tight">
+            Film Showdown
           </h1>
-          <p className="font-body text-muted mt-2" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-            Pick two films to compare side by side.
+          <p className="font-body text-muted text-xs sm:text-sm mt-1">
+            Compare two movies side-by-side to discover key specs and differences.
           </p>
         </div>
 
-        {/* Swap button — only when both slots filled */}
-        {idA && idB && (
-          <div className="flex justify-center" style={{ padding: "clamp(1rem,2vh,1.5rem) 0" }}>
-            <button
-              onClick={swap}
-              className="flex items-center gap-2 font-body font-medium text-white/60 hover:text-white border border-white/10 hover:border-white/25 rounded-full transition-all duration-normal cursor-pointer"
-              style={{ padding: "0.5rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}
-            >
-              <SwapHorizIcon sx={{ fontSize: "1rem" }} /> Swap
-            </button>
+        {/* Film Selection Header Row */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 mb-6">
+          {/* Slot A */}
+          <div className="w-full">
+            {idA ? (
+              <ErrorBoundary>
+                <Suspense fallback={<div className="h-20 rounded-card bg-white/5 animate-pulse" />}>
+                  <FilmCardHeader id={idA} onClear={() => setId("a", "")} />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <div className="p-3 rounded-card bg-white/[0.02] border border-dashed border-white/15 flex flex-col justify-center gap-2">
+                <span className="font-mono text-muted text-[0.65rem] uppercase tracking-wider">Film A</span>
+                <FilmSearch onSelect={(film) => setId("a", film.id)} placeholder="Select first film…" />
+              </div>
+            )}
+          </div>
+
+          {/* Swap / VS Badge */}
+          <div className="flex justify-center my-1 md:my-0">
+            {idA && idB ? (
+              <button
+                onClick={swap}
+                className="flex items-center justify-center gap-1 w-9 h-9 rounded-full bg-gold/15 hover:bg-gold/25 border border-gold/30 text-gold transition-all duration-normal cursor-pointer hover:scale-105"
+                title="Swap Films"
+                aria-label="Swap films"
+              >
+                <SwapHorizIcon sx={{ fontSize: "1.2rem" }} />
+              </button>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-mono text-[0.65rem] font-bold text-muted">
+                VS
+              </div>
+            )}
+          </div>
+
+          {/* Slot B */}
+          <div className="w-full">
+            {idB ? (
+              <ErrorBoundary>
+                <Suspense fallback={<div className="h-20 rounded-card bg-white/5 animate-pulse" />}>
+                  <FilmCardHeader id={idB} onClear={() => setId("b", "")} />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <div className="p-3 rounded-card bg-white/[0.02] border border-dashed border-white/15 flex flex-col justify-center gap-2">
+                <span className="font-mono text-muted text-[0.65rem] uppercase tracking-wider">Film B</span>
+                <FilmSearch onSelect={(film) => setId("b", film.id)} placeholder="Select second film…" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Structured Comparison Metrics Table */}
+        {(idA || idB) && (
+          <div className="rounded-card bg-white/[0.02] border border-white/8 p-4 sm:p-6 shadow-xl backdrop-blur-sm">
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-muted border-b border-white/10 pb-3 mb-2 text-center">
+              Direct Specification Breakdown
+            </h2>
+
+            {/* Rating */}
+            <MetricRow
+              label="Rating"
+              valA={filmA?.vote_average ? <span className="inline-flex items-center gap-1 font-mono font-bold"><StarIcon sx={{ fontSize: "0.9rem" }} /> {formatRating(filmA)} / 10</span> : null}
+              valB={filmB?.vote_average ? <span className="inline-flex items-center gap-1 font-mono font-bold"><StarIcon sx={{ fontSize: "0.9rem" }} /> {formatRating(filmB)} / 10</span> : null}
+              highlightA={filmA?.vote_average > filmB?.vote_average}
+              highlightB={filmB?.vote_average > filmA?.vote_average}
+            />
+
+            {/* Votes Count */}
+            <MetricRow
+              label="Vote Count"
+              valA={formatVotes(filmA)}
+              valB={formatVotes(filmB)}
+              highlightA={filmA?.vote_count > filmB?.vote_count}
+              highlightB={filmB?.vote_count > filmA?.vote_count}
+            />
+
+            {/* Release Year */}
+            <MetricRow
+              label="Release Year"
+              valA={filmA?.release_date?.slice(0, 4)}
+              valB={filmB?.release_date?.slice(0, 4)}
+            />
+
+            {/* Runtime */}
+            <MetricRow
+              label="Runtime"
+              valA={formatRuntime(filmA)}
+              valB={formatRuntime(filmB)}
+            />
+
+            {/* Genres */}
+            <MetricRow
+              label="Genres"
+              valA={formatGenres(filmA)}
+              valB={formatGenres(filmB)}
+            />
+
+            {/* Language */}
+            <MetricRow
+              label="Language"
+              valA={formatLanguage(filmA)}
+              valB={formatLanguage(filmB)}
+            />
+
+            {/* Overview Comparison */}
+            <div className="mt-5 pt-4 border-t border-white/10">
+              <p className="font-mono text-[0.65rem] uppercase tracking-widest text-muted text-center mb-3">
+                Plot Overview
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3 rounded bg-white/[0.02] border border-white/5 text-xs text-white/70 leading-relaxed">
+                  <p className="font-semibold text-white/90 mb-1">{filmA?.title || "Film A"}</p>
+                  {filmA?.overview || <span className="italic text-muted">Select Film A to view overview</span>}
+                </div>
+                <div className="p-3 rounded bg-white/[0.02] border border-white/5 text-xs text-white/70 leading-relaxed">
+                  <p className="font-semibold text-white/90 mb-1">{filmB?.title || "Film B"}</p>
+                  {filmB?.overview || <span className="italic text-muted">Select Film B to view overview</span>}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Two-column comparison grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "clamp(1.5rem,4vw,3rem)" }}>
-          {/* Column A */}
-          {idA ? (
-            <ErrorBoundary>
-              <Suspense fallback={
-                <div className="aspect-[2/3] rounded-card skeleton" />
-              }>
-                <FilmColumn id={idA} onClear={() => setId("a", "")} />
-              </Suspense>
-            </ErrorBoundary>
-          ) : (
-            <EmptySlot label="Search film A…" onSelect={(id) => setId("a", id)} />
-          )}
-
-          {/* Column B */}
-          {idB ? (
-            <ErrorBoundary>
-              <Suspense fallback={
-                <div className="aspect-[2/3] rounded-card skeleton" />
-              }>
-                <FilmColumn id={idB} onClear={() => setId("b", "")} />
-              </Suspense>
-            </ErrorBoundary>
-          ) : (
-            <EmptySlot label="Search film B…" onSelect={(id) => setId("b", id)} />
-          )}
-        </div>
+        {/* Empty state helper if neither is selected */}
+        {!idA && !idB && (
+          <div className="text-center py-10">
+            <p className="font-body text-muted text-sm">
+              Use the search inputs above to select two films and start comparing.
+            </p>
+          </div>
+        )}
       </div>
 
       <Footer />

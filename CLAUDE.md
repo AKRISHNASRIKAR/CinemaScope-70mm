@@ -252,6 +252,7 @@ the user is treated as unauthenticated and redirected rather than left on a spin
 
 ## Global UI & UX Refinements
 
+- **Scroll Restoration:** `src/hooks/useScrollRestoration.js` (mounted as `ScrollManager` inside `<Router>` in `App.jsx`) owns window scroll for every navigation — `<BrowserRouter>` otherwise keeps the previous page's offset, so a new page mounts mid-scroll. Rules: **PUSH** → top, **REPLACE** → untouched (URL-sync only, e.g. SearchPage query + ComparePage `a`/`b` params, both of which pass `{ replace: true }`), **POP** → returns to the saved offset, re-applying it for up to 1s while Suspense-ed content fills in. Native `history.scrollRestoration` is set to `manual` since it fires before async data lands.
 - **Navbar Height Calculation:** The `Navbar` component measures its actual DOM height on mount and exposes it globally via the CSS custom property `--navbar-height` on the `:root` element. This guarantees perfect offsets for fixed elements like the `BackButton` and sticky filter tabs across all responsive breakpoints.
 - **Accessibility & Motion:** All interactive elements feature a clear `focus-visible` gold outline. The application respects system accessibility settings globally via a `@media (prefers-reduced-motion: reduce)` rule that disables all CSS transitions and animations when requested by the user.
 - **Future Improvements:** For a comprehensive list of planned frontend enhancements, low-effort high-impact tasks, and accessibility goals, see the living suggestions document at [docs/implement.md](./docs/implement.md).

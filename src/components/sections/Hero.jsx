@@ -200,14 +200,21 @@ const Hero = ({ film, relatedFilms = [] }) => {
       )}
 
       {/* ══ LAYER C — permanent vignette overlay (never transitions) ══ */}
-      <div className="absolute inset-0" style={{ zIndex: 3, pointerEvents: "none" }}>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/30 to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/40 to-transparent" />
+      <div 
+        className="absolute inset-0 cursor-pointer" 
+        style={{ zIndex: 3 }}
+        onClick={goToFilm}
+        aria-label={`View ${current?.title || current?.original_title}`}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/30 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
         {/* Film grain */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
+          className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
             backgroundRepeat: "repeat",
@@ -369,14 +376,6 @@ const Hero = ({ film, relatedFilms = [] }) => {
                     <span className="font-mono text-white/40" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>/ 10</span>
                   </span>
                 )}
-
-                <button
-                  onClick={goToFilm}
-                  className="font-body font-semibold text-black bg-gold hover:bg-gold-lt rounded-full transition-all duration-300 hover:scale-[1.04] active:scale-[0.99] cursor-pointer"
-                  style={{ padding: "0.6rem 1.6rem", fontSize: "clamp(0.65rem,1vw,0.82rem)" }}
-                >
-                  View film
-                </button>
               </motion.div>
 
               </motion.div>

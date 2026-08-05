@@ -1,14 +1,20 @@
+import { useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
-
+import ScrollRow from "@/components/ui/ScrollRow";
+import FilmCard from "@/components/ui/FilmCard";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 /* ── Main Page ─────────────────────────────────────────────────── */
 const Profile = () => {
   const { user, isAuthenticated, logout } = useAuth0();
   const navigate = useNavigate();
+  const { recentFilms, clearRecent } = useRecentlyViewed();
+  const [activeTab, setActiveTab] = useState("recent");
 
   if (!isAuthenticated) {
     return (
@@ -108,98 +114,121 @@ const Profile = () => {
         {/* ── Divider ─────────────────────────────────────────── */}
         <div className="border-t border-white/8" style={{ marginTop: "clamp(1.5rem,3vh,2.5rem)" }} />
 
-        {/* ── Stats row — commented out until watch history feature is built ── */}
-        {/*
-        <div
-          className="grid grid-cols-3"
-          style={{ gap: "clamp(0.75rem,2vw,1.25rem)", marginTop: "clamp(1.5rem,3vh,2.5rem)" }}
-        >
-          <StatCard
-            icon={<MovieIcon sx={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }} />}
-            value="—"
-            label="Films Watched"
-          />
-          <StatCard
-            icon={<StarIcon sx={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }} />}
-            value="—"
-            label="Reviews"
-          />
-          <StatCard
-            icon={<FavoriteIcon sx={{ fontSize: "clamp(1.1rem,1.8vw,1.4rem)" }} />}
-            value="—"
-            label="Favourites"
-          />
-        </div>
-        */}
-
-        {/* ── Account section ─────────────────────────────────── */}
-        <div
-          className="rounded-card border border-white/8 bg-white/[0.02]"
-          style={{ marginTop: "clamp(1.5rem,3vh,2.5rem)", padding: "clamp(1.25rem,3vw,2rem)" }}
-        >
-          <h2
-            className="font-display font-bold text-white"
-            style={{ fontSize: "clamp(0.9rem,1.5vw,1.2rem)", marginBottom: "clamp(1rem,2vh,1.5rem)" }}
-          >
-            Account
-          </h2>
-
-          <div className="flex flex-col" style={{ gap: "clamp(0.5rem,1vh,0.75rem)" }}>
-            {/* Auth provider badge */}
-            <div className="flex items-center justify-between py-3 border-b border-white/6">
-              <span className="font-body text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-                Signed in via
-              </span>
-              <span className="font-mono text-white/70 uppercase tracking-[0.1em]" style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}>
-                Auth0
-              </span>
-            </div>
-            {/* Email */}
-            <div className="flex items-center justify-between py-3 border-b border-white/6">
-              <span className="font-body text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-                Email
-              </span>
-              <span className="font-body text-white/70" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-                {user.email}
-              </span>
-            </div>
-            {/* Email verified */}
-            <div className="flex items-center justify-between py-3">
-              <span className="font-body text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>
-                Email verified
-              </span>
-              <span
-                className={`font-mono uppercase tracking-[0.1em] ${user.email_verified ? "text-green-400" : "text-red-400"}`}
-                style={{ fontSize: "clamp(0.55rem,0.85vw,0.7rem)" }}
-              >
-                {user.email_verified ? "Yes" : "No"}
-              </span>
-            </div>
+        {/* ── Stats row ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-center sm:justify-start" style={{ gap: "clamp(1.5rem,3vw,2.5rem)", marginTop: "clamp(1.5rem,3vh,2.5rem)" }}>
+          <div className="text-center sm:text-left">
+            <p className="font-display font-bold text-white leading-none" style={{ fontSize: "clamp(1.2rem, 2vw, 1.5rem)" }}>
+              {recentFilms.length}
+            </p>
+            <p className="font-mono text-muted uppercase tracking-[0.1em] mt-1" style={{ fontSize: "clamp(0.55rem,0.8vw,0.65rem)" }}>
+              Films Viewed
+            </p>
+          </div>
+          <div className="w-px h-8 bg-white/10" />
+          <div className="text-center sm:text-left">
+            <p className="font-display font-bold text-white leading-none" style={{ fontSize: "clamp(1.2rem, 2vw, 1.5rem)" }}>
+              0
+            </p>
+            <p className="font-mono text-muted uppercase tracking-[0.1em] mt-1" style={{ fontSize: "clamp(0.55rem,0.8vw,0.65rem)" }}>
+              Watchlist
+            </p>
           </div>
         </div>
 
-        {/* ── Action buttons ───────────────────────────────────── */}
-        <div
-          className="flex flex-col sm:flex-row"
-          style={{ gap: "clamp(0.75rem,1.5vw,1rem)", marginTop: "clamp(1.5rem,3vh,2.5rem)", marginBottom: "clamp(2rem,4vh,3rem)" }}
-        >
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center justify-center gap-2 font-body font-medium text-white/80 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 hover:border-white/20 rounded-card transition-all duration-normal cursor-pointer flex-1"
-            style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
-          >
-            <HomeIcon sx={{ fontSize: "1rem" }} />
-            Back to Home
-          </button>
-          <button
-            onClick={() => logout({ returnTo: `${window.location.origin}/` })}
-            className="flex items-center justify-center gap-2 font-body font-medium text-gold border border-gold/30 hover:bg-gold/10 hover:border-gold/60 rounded-card transition-all duration-normal cursor-pointer flex-1"
-            style={{ padding: "0.75rem 1.5rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
-          >
-            <LogoutIcon sx={{ fontSize: "1rem" }} />
-            Sign Out
-          </button>
+        {/* ── Tabs ─────────────────────────────────────────────── */}
+        <div className="flex items-center gap-6 border-b border-white/10" style={{ marginTop: "clamp(2rem,4vh,3.5rem)" }}>
+          {[
+            { id: "recent", label: "Recently Viewed" },
+            { id: "watchlist", label: "Watchlist" },
+            { id: "favorites", label: "Favorites" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 font-body font-medium uppercase tracking-[0.1em] transition-colors cursor-pointer ${
+                activeTab === tab.id ? "text-gold border-b-2 border-gold" : "text-white/40 hover:text-white"
+              }`}
+              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* ── Tab Content ──────────────────────────────────────── */}
+        <div style={{ minHeight: "250px", marginTop: "clamp(1.5rem,3vh,2.5rem)" }}>
+          {activeTab === "recent" && (
+            recentFilms.length > 0 ? (
+              <div className="w-full">
+                <SectionHeader
+                  title=""
+                  action={
+                    <button
+                      onClick={clearRecent}
+                      className="font-body text-muted hover:text-white/80 transition-colors duration-fast cursor-pointer"
+                      style={{ fontSize: "clamp(0.55rem,0.85vw,0.7rem)" }}
+                    >
+                      Clear Recently Viewed
+                    </button>
+                  }
+                />
+                <ScrollRow
+                  showArrows={recentFilms.length > 5}
+                  scrollAmount={280}
+                  gap="clamp(0.75rem,1.5vw,1.25rem)"
+                  arrowSize="2.25rem"
+                  ariaLabel="Recently viewed films"
+                >
+                  {recentFilms.map((film) => (
+                    <div
+                      key={film.id}
+                      className="flex-shrink-0 transition-all duration-300 hover:scale-[1.02]"
+                      style={{ width: "clamp(110px,12vw,160px)", scrollSnapAlign: "start" }}
+                    >
+                      <FilmCard film={film} />
+                    </div>
+                  ))}
+                </ScrollRow>
+              </div>
+            ) : (
+              <p className="font-body text-muted text-center py-8">You haven't viewed any films recently. Start exploring!</p>
+            )
+          )}
+          
+          {activeTab === "watchlist" && (
+            <p className="font-body text-muted text-center py-8">You haven't added any films to your watchlist yet.</p>
+          )}
+
+          {activeTab === "favorites" && (
+            <p className="font-body text-muted text-center py-8">You haven't favorited any films yet.</p>
+          )}
+        </div>
+
+        {/* ── Account info (bottom) ────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10" style={{ marginTop: "clamp(2rem,5vh,4rem)", paddingTop: "clamp(1.5rem,3vh,2rem)" }}>
+          <div className="flex items-center gap-4 text-white/50 mb-4 sm:mb-0">
+            <span className="font-body text-sm">Signed in as <strong>{user.email}</strong> via Auth0</span>
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors cursor-pointer"
+              style={{ fontSize: "0.85rem" }}
+            >
+              <HomeIcon sx={{ fontSize: "1rem" }} />
+              Home
+            </button>
+            <button
+              onClick={() => logout({ returnTo: `${window.location.origin}/` })}
+              className="flex items-center gap-2 text-gold/80 hover:text-gold transition-colors cursor-pointer"
+              style={{ fontSize: "0.85rem" }}
+            >
+              <LogoutIcon sx={{ fontSize: "1rem" }} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <Footer />

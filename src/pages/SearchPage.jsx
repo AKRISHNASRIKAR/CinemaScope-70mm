@@ -285,7 +285,9 @@ const SearchPage = () => {
   const commit = (val) => {
     const q = val.trim();
     setSearchTerm(q);
-    setSearchParams(q ? { q } : {});
+    /* replace: the URL mirrors the input — each keystroke shouldn't add a
+       history entry the user has to back out of, or re-scroll the page. */
+    setSearchParams(q ? { q } : {}, { replace: true });
   };
 
   const handleInputChange = (val) => {

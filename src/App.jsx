@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/ui/ProtectedRoute";
+import useScrollRestoration from "@/hooks/useScrollRestoration";
 
 /* ── Route-level code splitting ─────────────────────────────────
    Each page is a separate chunk — only the current page's JS is
@@ -28,9 +29,18 @@ const PageLoader = () => (
   </div>
 );
 
+/* ── Scroll behaviour for every navigation ──────────────────────
+   Must live inside <Router> to read location. Renders nothing.
+─────────────────────────────────────────────────────────────── */
+const ScrollManager = () => {
+  useScrollRestoration();
+  return null;
+};
+
 function App() {
   return (
     <Router>
+      <ScrollManager />
       <Header />
       {/* id="main-content" is the skip-nav target */}
       <main id="main-content">
