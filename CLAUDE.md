@@ -190,6 +190,51 @@ the user is treated as unauthenticated and redirected rather than left on a spin
 
 ---
 
+## Share Card (Collector Card) — `src/features/share-card/`
+
+Self-contained feature module: users build a collectible card for any film and
+export it as a PNG for social. Frontend-only — nothing is persisted or uploaded.
+
+**Entry point:** `<ShareCardButton film={film} />` in `FilmPage`'s `FilmHero`
+action row. Everything below it is lazy — the modal is a `React.lazy` chunk, and
+the Three.js scene is a second `React.lazy` chunk inside it, so neither
+`three`/`@react-three/fiber`/`drei` (886 kB) nor `html-to-image` is fetched until
+the user opens the card.
+
+**One card, three renderers.** `ShareCard.jsx` is the single source of truth for
+the artwork. It is (1) rasterized into the WebGL card's face texture,
+(2) captured by `html-to-image` on the off-screen `ExportStage` to make the PNG,
+and (3) rendered directly as the preview whenever WebGL is unavailable or the
+user prefers reduced motion. The exported image never comes from a WebGL
+screenshot, so preview and export can never drift apart.
+
+**Card geometry lives in `constants/cardLayout.js`.** The card is authored in
+`em` with `1em = width / EM_DIVISOR`, so one layout renders at 300px (modal),
+540px (textures) and 620–740px (export). The 3D stamp is a separate plane, so
+its anchor is shared from there rather than duplicated — `STAMP_TOP_EM` is
+measured from the card's **top** because the poster's top edge is fixed while
+its bottom edge moves with the optional caption.
+
+**Gotchas worth keeping:**
+- `html-to-image` renders through an SVG `<foreignObject>`, which cannot reach
+  the document's web fonts and silently drops some CSS. `utils/fontEmbed.js`
+  builds the `@font-face` CSS by hand (its own font-inliner throws SecurityError
+  on the cross-origin Google Fonts sheet). Avoid `mask-image` and other exotic
+  effects on anything that gets captured — see the note in `CardStamp.jsx`.
+- TMDB's CDN is CORS-open (`access-control-allow-origin: *`), so **no proxy is
+  needed**. But a plain `<img>` elsewhere on the page caches a *non-CORS*
+  response that the HTTP cache will not hand to a later CORS request, which
+  fails as a bare "Failed to fetch". `toDataURL()` retries with
+  `cache: "no-cache"`, which fixes that URL for good.
+- Rasterizing at 1080px does not complete in a hidden/occluded tab, so the
+  export has a timeout rather than sitting on "Preparing…" forever.
+
+**Future backend:** `serializeCardData()` in `utils/shareCard.js` is the shape a
+future `/card/:id` would persist (theme, stamp, rating, caption, TMDB id, card
+number). Nothing calls it yet — it is the contract, not an API.
+
+---
+
 ## Known Issues / TODOs
 
 - Auth0 is non-functional without valid credentials — but browsing no longer depends on it: only `/profile` and `/compare` require login, and `ProtectedRoute` times out after 3s instead of spinning forever
@@ -199,6 +244,12 @@ the user is treated as unauthenticated and redirected rather than left on a spin
 - No test coverage — see `docs/improvements.md` for the testing strategy
 - CI/CD pipeline not yet set up — immediate next infrastructure task
 - Watch Providers shows US region by default; no region selector yet
+- Share Card: the Three.js chunk is 886 kB (240 kB gzip). It is lazy-loaded and
+  never touches initial page load, but it is the one heavy dependency in the app
+- Share Card: story-format (1080×1920) export takes a few seconds on slower
+  machines — the blurred backdrop dominates the rasterization cost
+- Share Card: card state (theme/stamp/rating/caption) is per-modal-session only;
+  reopening the modal starts fresh, pending the `/card/:id` backend
 
 ## Docs
 

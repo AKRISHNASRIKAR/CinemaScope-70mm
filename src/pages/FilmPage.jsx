@@ -18,6 +18,7 @@ import FilmCard from "@/components/ui/FilmCard";
 import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
+import { ShareCardButton } from "@/features/share-card";
 
 const INITIAL_CAST = 8;
 const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
@@ -172,6 +173,11 @@ const FilmHero = ({ id }) => {
                 {runtime && <Pill>{runtime}</Pill>}
                 {film.original_language && <Pill>{film.original_language}</Pill>}
                 {film.genres?.map((g) => <Pill key={g.id}>{g.name}</Pill>)}
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center" style={{ gap: "0.75rem", marginTop: "clamp(0.9rem, 2.2vh, 1.5rem)" }}>
+                <ShareCardButton film={film} />
               </div>
 
               {/* Overview — shown in full */}
