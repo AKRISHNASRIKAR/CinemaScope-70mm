@@ -14,5 +14,5 @@
 export const EM_DIVISOR = 20;      // card width in em
 export const CARD_ASPECT = 5 / 7;  // width / height
 
-export const STAMP_TOP_EM = 23.8;
+export const STAMP_TOP_EM = 21.8;
 export const STAMP_RIGHT_EM = 0.95;
