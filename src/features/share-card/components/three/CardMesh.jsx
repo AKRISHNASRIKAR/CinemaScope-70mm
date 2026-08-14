@@ -76,7 +76,7 @@ const StampMesh = ({ canvas, rotateDeg = 0, reduced, emScale }) => {
   const y = CARD_H / 2 - STAMP_TOP_EM * EM - h / 2;
 
   return (
-    <mesh ref={mesh} position={[x, y, CARD_T / 2 + 0.012]} rotation={[0, 0, -THREE.MathUtils.degToRad(rotateDeg)]}>
+    <mesh renderOrder={2} ref={mesh} position={[x, y, CARD_T / 2 + 0.012]} rotation={[0, 0, -THREE.MathUtils.degToRad(rotateDeg)]}>
       <planeGeometry args={[w, h]} />
       {/* alphaTest drops the fully transparent surround so the plane reads
           as ink on the card rather than a decal on a dark plate. Kept low
@@ -118,7 +118,7 @@ const CardMesh = ({ frontCanvas, backCanvas, stampCanvas, stampRotate, stampEmSc
 
       {/* Front face */}
       {frontTex && (
-        <mesh position={[0, 0, CARD_T / 2 + 0.002]}>
+        <mesh renderOrder={1} position={[0, 0, CARD_T / 2 + 0.002]}>
           <planeGeometry args={[CARD_W, CARD_H]} />
           <FaceMaterial map={frontTex} theme={theme} />
         </mesh>
@@ -126,7 +126,7 @@ const CardMesh = ({ frontCanvas, backCanvas, stampCanvas, stampRotate, stampEmSc
 
       {/* Back face — rotated π so it reads correctly when flipped */}
       {backTex && (
-        <mesh position={[0, 0, -(CARD_T / 2 + 0.002)]} rotation={[0, Math.PI, 0]}>
+        <mesh renderOrder={1} position={[0, 0, -(CARD_T / 2 + 0.002)]} rotation={[0, Math.PI, 0]}>
           <planeGeometry args={[CARD_W, CARD_H]} />
           <FaceMaterial map={backTex} theme={theme} />
         </mesh>

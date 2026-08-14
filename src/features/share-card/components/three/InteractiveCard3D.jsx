@@ -27,7 +27,7 @@ const StudioEnvironment = () => {
     // RoomEnvironment is a bright studio box; at full strength its
     // reflection washes a broad white band across the card face. Dim it
     // to a hint of sheen — the card should read matte and cinematic.
-    scene.environmentIntensity = 0.28;
+    scene.environmentIntensity = 0.12;
     return () => {
       scene.environment = null;
       envMap.dispose();
@@ -78,7 +78,7 @@ const SheenLight = ({ pointer }) => {
       : REST;
     easing.damp3(l.position, target, 0.18, delta);
   });
-  return <pointLight ref={light} position={REST} intensity={2.6} distance={10} decay={2} color="#fff3d6" />;
+  return <pointLight ref={light} position={REST} intensity={1.2} distance={10} decay={2} color="#fff3d6" />;
 };
 
 const InteractiveCard3D = ({
@@ -107,7 +107,7 @@ const InteractiveCard3D = ({
   >
     <StudioEnvironment />
     <ambientLight intensity={0.5} />
-    <directionalLight position={[3, 4, 5]} intensity={0.6} />
+    <directionalLight position={[3, 4, 5]} intensity={0.3} />
     <directionalLight position={[-4, -2, 3]} intensity={0.25} color="#c9a843" />
     <SheenLight pointer={pointer} />
     <CardRig pointer={pointer} flipped={flipped} reduced={reduced} coarse={coarse}>
