@@ -114,6 +114,10 @@ const ShareCardModal = ({ film, onClose }) => {
   const { data: credits } = useSWR(`/movie/${film.id}/credits`, fetcher);
   const director = credits?.crew?.find((c) => c.job === "Director")?.name ?? null;
 
+  const { data: images } = useSWR(`/movie/${film.id}/images`, fetcher);
+  const posters = images?.posters?.slice(0, 10) || [];
+  const [selectedPosterPath, setSelectedPosterPath] = useState(film.poster_path);
+
   // Data-URL copies of TMDB art: deterministic captures, no re-fetch
   // per rasterization. TMDB CDN is CORS-open, so remote URLs also work
   // as a fallback while these load.
@@ -121,15 +125,15 @@ const ShareCardModal = ({ film, onClose }) => {
   const [backdropData, setBackdropData] = useState(null);
   useEffect(() => {
     let alive = true;
-    toDataURL(posterUrl(film.poster_path, "w780")).then((d) => alive && d && setPosterData(d));
+    toDataURL(posterUrl(selectedPosterPath, "w780")).then((d) => alive && d && setPosterData(d));
     // The backdrop is only ever shown blurred behind the card, so a small
     // source is indistinguishable — and it keeps the base64 payload (and
     // therefore the export rasterization) meaningfully faster.
     toDataURL(backdropUrl(film.backdrop_path, "w780")).then((d) => alive && d && setBackdropData(d));
     return () => { alive = false; };
-  }, [film.poster_path, film.backdrop_path]);
+  }, [selectedPosterPath, film.backdrop_path]);
 
-  const posterSrc = posterData ?? posterUrl(film.poster_path, "w780");
+  const posterSrc = posterData ?? posterUrl(selectedPosterPath, "w780");
   const backdropSrc = backdropData ?? backdropUrl(film.backdrop_path, "w780");
 
   const cardData = useMemo(
@@ -382,6 +386,9 @@ const ShareCardModal = ({ film, onClose }) => {
               onCaptionChange={setCaption}
               format={format}
               onFormatChange={setFormat}
+              posters={posters}
+              selectedPosterPath={selectedPosterPath}
+              onPosterChange={setSelectedPosterPath}
               onShare={handleShare}
               onDownload={handleDownload}
               exporting={exporting}

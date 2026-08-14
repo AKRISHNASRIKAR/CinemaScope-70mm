@@ -86,6 +86,7 @@ const ShareCardControls = ({
   rating, tmdbRating, onRatingChange,
   caption, onCaptionChange,
   format, onFormatChange,
+  posters, selectedPosterPath, onPosterChange,
   onShare, onDownload,
   exporting, error, status,
 }) => (
@@ -207,6 +208,36 @@ const ShareCardControls = ({
         })}
       </div>
     </div>
+
+    {/* Posters */}
+    {posters && posters.length > 0 && (
+      <div>
+        <Label hint="optional">Poster</Label>
+        <div className="flex overflow-x-auto scrollbar-hide" style={{ gap: "0.5rem", paddingBottom: "0.5rem" }} role="group" aria-label="Card poster">
+          {posters.map((p) => {
+            const active = p.file_path === selectedPosterPath;
+            return (
+              <button
+                key={p.file_path}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onPosterChange(p.file_path)}
+                className={`relative shrink-0 rounded-card overflow-hidden transition-all duration-fast cursor-pointer ${
+                  active ? "ring-2 ring-gold opacity-100" : "ring-1 ring-white/10 opacity-60 hover:opacity-100"
+                }`}
+                style={{ width: "3.5rem", aspectRatio: "2/3" }}
+              >
+                <img
+                  src={`https://image.tmdb.org/t/p/w185${p.file_path}`}
+                  alt="Poster option"
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    )}
 
     {/* Actions */}
     <div className="flex flex-wrap items-center" style={{ gap: "0.75rem", marginTop: "0.25rem" }}>
