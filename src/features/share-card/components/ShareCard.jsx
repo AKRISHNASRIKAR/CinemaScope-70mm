@@ -90,7 +90,13 @@ const ShareCard = ({ data, width = 320, showStamp = true, animateStamp = false, 
       <div style={{ height: 1, background: theme.ruleColor, margin: "0.55em 0 0.7em" }} />
 
       {/* Artwork */}
-      <CardPoster src={movie.posterSrc} title={movie.title} theme={theme} offset={data.posterOffset} />
+      <CardPoster
+        src={movie?.posterSrc}
+        title={movie?.title}
+        theme={theme}
+        offset={data.posterOffset}
+        scale={data.posterScale}
+      />
 
       {/* Title — parallax layer */}
       <h3
@@ -101,6 +107,7 @@ const ShareCard = ({ data, width = 320, showStamp = true, animateStamp = false, 
           lineHeight: 1.08,
           letterSpacing: "-0.01em",
           color: theme.titleColor,
+          backgroundPosition: "var(--foil-x, 50%) var(--foil-y, 50%)",
           margin: 0,
           marginTop: "0.7em",
           display: "-webkit-box",
@@ -229,7 +236,23 @@ const ShareCard = ({ data, width = 320, showStamp = true, animateStamp = false, 
       )}
 
       {/* Foil / light reflection */}
-      <CardFoil mode={theme.foil} />
+      {!theme.foilGradient && <CardFoil mode={theme.foil} />}
+
+      {theme.foilGradient && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: theme.foilGradient,
+            backgroundSize: "250% 250%",
+            backgroundPosition: "var(--foil-x, 50%) var(--foil-y, 50%)",
+            mixBlendMode: theme.foilBlend ?? "screen",
+            opacity: theme.foilOpacity ?? 0.8,
+            pointerEvents: "none",
+          }}
+        />
+      )}
     </div>
   );
 };

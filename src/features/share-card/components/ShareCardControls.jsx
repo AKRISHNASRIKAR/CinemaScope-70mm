@@ -19,21 +19,33 @@ const Label = ({ children, hint }) => (
   </div>
 );
 
-/** Half-star rating: pointer for halves, arrow keys for keyboard. */
 const RatingControl = ({ value, tmdbValue, onChange }) => {
   const [hover, setHover] = useState(null);
   const trackRef = useRef(null);
+  const isDragging = useRef(false);
   const display = hover ?? value ?? tmdbValue;
 
   const valueFromEvent = (e) => {
     const rect = trackRef.current.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    return Math.max(0.5, Math.round(x * 10) / 2);
+    // Add a virtual 12px padding on edges so users don't have to hit the exact pixel edge for 0 or 5 stars
+    const padding = 12;
+    const usableWidth = rect.width - padding * 2;
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left - padding) / usableWidth));
+    return Math.round(x * 10) / 2;
   };
 
   const nudge = (delta) => {
     const base = value ?? tmdbValue ?? 0;
-    onChange(Math.min(5, Math.max(0.5, base + delta)));
+    onChange(Math.min(5, Math.max(0, base + delta)));
+  };
+
+  const handlePointerMove = (e) => {
+    if (isDragging.current) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      onChange(valueFromEvent(e));
+    } else {
+      setHover(valueFromEvent(e));
+    }
   };
 
   return (
@@ -43,19 +55,35 @@ const RatingControl = ({ value, tmdbValue, onChange }) => {
         role="slider"
         tabIndex={0}
         aria-label="Your rating"
-        aria-valuemin={0.5}
+        aria-valuemin={0}
         aria-valuemax={5}
         aria-valuenow={value ?? 0}
-        aria-valuetext={value ? `${value} of 5 stars` : "Using TMDB rating"}
+        aria-valuetext={value != null ? `${value} of 5 stars` : "Using TMDB rating"}
         className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded-card"
         style={{ fontSize: "1.6rem", padding: "0.25rem", touchAction: "none" }}
-        onPointerMove={(e) => setHover(valueFromEvent(e))}
-        onPointerLeave={() => setHover(null)}
-        onClick={(e) => onChange(valueFromEvent(e))}
+        onPointerDown={(e) => {
+          isDragging.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          onChange(valueFromEvent(e));
+        }}
+        onPointerMove={handlePointerMove}
+        onPointerUp={(e) => {
+          isDragging.current = false;
+          e.currentTarget.releasePointerCapture(e.pointerId);
+          onChange(valueFromEvent(e));
+          setHover(null);
+        }}
+        onPointerCancel={() => {
+          isDragging.current = false;
+          setHover(null);
+        }}
+        onPointerLeave={() => {
+          if (!isDragging.current) setHover(null);
+        }}
         onKeyDown={(e) => {
           if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); nudge(0.5); }
           if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); nudge(-0.5); }
-          if (e.key === "Home") { e.preventDefault(); onChange(0.5); }
+          if (e.key === "Home") { e.preventDefault(); onChange(0); }
           if (e.key === "End") { e.preventDefault(); onChange(5); }
           if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); onChange(null); }
         }}

@@ -7,7 +7,7 @@
  */
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-const CardPoster = ({ src, title, theme, offset = { x: 0, y: 0 } }) => (
+const CardPoster = ({ src, title, theme, offset = { x: 0, y: 0 }, scale = 1 }) => (
   <div
     style={{
       flex: "1 1 0%",
@@ -36,7 +36,7 @@ const CardPoster = ({ src, title, theme, offset = { x: 0, y: 0 } }) => (
           filter: theme.posterFilter,
           // Slight over-scale hides edges revealed by parallax drift
           transform:
-            "translate3d(calc(var(--plx-x, 0) * 10px), calc(var(--plx-y, 0) * 10px), 0) scale(1.05)",
+            `translate3d(calc(var(--plx-x, 0) * 10px), calc(var(--plx-y, 0) * 10px), 0) scale(${1.05 * scale})`,
         }}
       />
     ) : (

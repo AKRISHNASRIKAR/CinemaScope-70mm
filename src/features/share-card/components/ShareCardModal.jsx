@@ -111,6 +111,7 @@ const ShareCardModal = ({ film, onClose }) => {
   const [status, setStatus] = useState(null);
   
   const [posterOffset, setPosterOffset] = useState({ x: 0, y: 0 });
+  const [posterScale, setPosterScale] = useState(1);
   const dragStart = useRef(null);
 
   /* ── Data ────────────────────────────────────────────────────── */
@@ -139,6 +140,11 @@ const ShareCardModal = ({ film, onClose }) => {
   const posterSrc = posterData ?? posterUrl(selectedPosterPath, "w780");
   const backdropSrc = backdropData ?? backdropUrl(film.backdrop_path, "w780");
 
+  useEffect(() => {
+    setPosterOffset({ x: 0, y: 0 });
+    setPosterScale(1);
+  }, [posterSrc]);
+
   const cardData = useMemo(
     () => ({
       movie: {
@@ -156,8 +162,9 @@ const ShareCardModal = ({ film, onClose }) => {
       caption: caption.trim(),
       themeId,
       posterOffset,
+      posterScale,
     }),
-    [film, posterSrc, director, rating, stampId, caption, themeId, posterOffset]
+    [film, posterSrc, director, rating, stampId, caption, themeId, posterOffset, posterScale]
   );
 
   const theme = getTheme(themeId);
@@ -292,7 +299,14 @@ const ShareCardModal = ({ film, onClose }) => {
           <section
             aria-label="Card preview"
             className="relative flex flex-col items-center justify-center bg-base overflow-hidden"
-            style={{ padding: "clamp(1.25rem, 3vw, 2rem)", minHeight: "min(30rem, 72vh)" }}
+            style={{ padding: "clamp(1.25rem, 3vw, 2rem)", minHeight: "min(30rem, 72vh)", touchAction: "none" }}
+            onWheel={(e) => {
+              // Zoom poster with trackpad pinch or scroll wheel
+              if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 0) {
+                e.preventDefault();
+                setPosterScale((s) => Math.max(0.5, Math.min(3, s - e.deltaY * 0.005)));
+              }
+            }}
             onPointerDown={(e) => {
               if (flipped) return;
               dragStart.current = {
@@ -442,9 +456,9 @@ const ShareCardModal = ({ film, onClose }) => {
             onError={() => setTextureFailed(true)}
             pixelRatio={TEXTURE_PIXEL_RATIO}
             delay={40}
-            deps={[themeId, rating, cardData.caption, cardData.posterOffset, posterSrc, director, film.id]}
+            deps={[themeId, rating, cardData.caption, cardData.posterOffset, cardData.posterScale, posterSrc, director, film.id]}
           >
-            <ShareCard data={cardData} width={TEXTURE_CARD_WIDTH} showStamp={false} />
+            <ShareCard data={cardData} width={TEXTURE_CARD_WIDTH} showStamp={false} isTextureCapture={true} />
           </TextureSource>
           <TextureSource
             onCanvas={setBackCanvas}

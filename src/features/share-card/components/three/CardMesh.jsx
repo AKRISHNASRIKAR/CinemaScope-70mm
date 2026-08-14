@@ -92,11 +92,7 @@ const FaceMaterial = ({ map, theme }) => (
     transparent
     roughness={0.58}
     metalness={0.05}
-    clearcoat={theme.clearcoat}
-    clearcoatRoughness={0.38}
-    iridescence={theme.iridescence}
-    iridescenceIOR={1.35}
-    envMapIntensity={theme.envIntensity}
+    envMapIntensity={0.2}
   />
 );
 
