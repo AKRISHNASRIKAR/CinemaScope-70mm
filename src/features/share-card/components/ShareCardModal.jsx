@@ -372,7 +372,7 @@ const ShareCardModal = ({ film, onClose }) => {
           {/* Controls */}
           <section
             aria-label="Card options"
-            style={{ padding: "clamp(1.25rem, 3vw, 1.75rem)" }}
+            style={{ padding: "clamp(1.25rem, 3vw, 1.75rem)", minWidth: 0 }}
           >
             <ShareCardControls
               themeId={themeId}
@@ -406,6 +406,7 @@ const ShareCardModal = ({ film, onClose }) => {
             onCanvas={setFrontCanvas}
             onError={() => setTextureFailed(true)}
             pixelRatio={TEXTURE_PIXEL_RATIO}
+            delay={40}
             deps={[themeId, rating, cardData.caption, posterSrc, director, film.id]}
           >
             <ShareCard data={cardData} width={TEXTURE_CARD_WIDTH} showStamp={false} />
