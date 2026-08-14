@@ -109,6 +109,9 @@ const ShareCardModal = ({ film, onClose }) => {
   const [format, setFormat] = useState("square");
   const [flipped, setFlipped] = useState(false);
   const [status, setStatus] = useState(null);
+  
+  const [posterOffset, setPosterOffset] = useState({ x: 0, y: 0 });
+  const dragStart = useRef(null);
 
   /* ── Data ────────────────────────────────────────────────────── */
   const { data: credits } = useSWR(`/movie/${film.id}/credits`, fetcher);
@@ -152,8 +155,9 @@ const ShareCardModal = ({ film, onClose }) => {
       stampId,
       caption: caption.trim(),
       themeId,
+      posterOffset,
     }),
-    [film, posterSrc, director, rating, stampId, caption, themeId]
+    [film, posterSrc, director, rating, stampId, caption, themeId, posterOffset]
   );
 
   const theme = getTheme(themeId);
@@ -289,15 +293,46 @@ const ShareCardModal = ({ film, onClose }) => {
             aria-label="Card preview"
             className="relative flex flex-col items-center justify-center bg-base overflow-hidden"
             style={{ padding: "clamp(1.25rem, 3vw, 2rem)", minHeight: "min(30rem, 72vh)" }}
+            onPointerDown={(e) => {
+              if (flipped) return;
+              dragStart.current = {
+                startX: e.clientX,
+                startY: e.clientY,
+                startOffsetX: posterOffset.x,
+                startOffsetY: posterOffset.y,
+                moved: false,
+              };
+              pointer.current.active = false;
+            }}
             onPointerMove={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
-              pointer.current = {
-                x: ((e.clientX - r.left) / r.width - 0.5) * 2,
-                y: ((e.clientY - r.top) / r.height - 0.5) * 2,
-                active: true,
-              };
+              if (dragStart.current) {
+                dragStart.current.moved = true;
+                const dx = e.clientX - dragStart.current.startX;
+                const dy = e.clientY - dragStart.current.startY;
+                const emSize = r.width / 20; // 20 is EM_DIVISOR
+                setPosterOffset({
+                  x: dragStart.current.startOffsetX + (dx / emSize),
+                  y: dragStart.current.startOffsetY + (dy / emSize),
+                });
+              } else {
+                pointer.current = {
+                  x: ((e.clientX - r.left) / r.width - 0.5) * 2,
+                  y: ((e.clientY - r.top) / r.height - 0.5) * 2,
+                  active: true,
+                };
+              }
             }}
-            onPointerLeave={() => { pointer.current = { x: 0, y: 0, active: false }; }}
+            onPointerUp={(e) => {
+              if (dragStart.current && !dragStart.current.moved) {
+                setFlipped((f) => !f);
+              }
+              dragStart.current = null;
+            }}
+            onPointerLeave={() => { 
+              dragStart.current = null;
+              pointer.current = { x: 0, y: 0, active: false }; 
+            }}
           >
             {/* Ambient glow behind the card */}
             <div
@@ -340,7 +375,7 @@ const ShareCardModal = ({ film, onClose }) => {
                       pointer={pointer}
                       reduced={reduced}
                       coarse={coarse}
-                      onToggleFlip={() => setFlipped((f) => !f)}
+                      onToggleFlip={() => {}}
                     />
                   </div>
                 </Suspense>
@@ -407,7 +442,7 @@ const ShareCardModal = ({ film, onClose }) => {
             onError={() => setTextureFailed(true)}
             pixelRatio={TEXTURE_PIXEL_RATIO}
             delay={40}
-            deps={[themeId, rating, cardData.caption, posterSrc, director, film.id]}
+            deps={[themeId, rating, cardData.caption, cardData.posterOffset, posterSrc, director, film.id]}
           >
             <ShareCard data={cardData} width={TEXTURE_CARD_WIDTH} showStamp={false} />
           </TextureSource>

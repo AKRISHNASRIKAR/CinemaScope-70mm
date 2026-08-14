@@ -90,7 +90,7 @@ const ShareCard = ({ data, width = 320, showStamp = true, animateStamp = false, 
       <div style={{ height: 1, background: theme.ruleColor, margin: "0.55em 0 0.7em" }} />
 
       {/* Artwork */}
-      <CardPoster src={movie.posterSrc} title={movie.title} theme={theme} />
+      <CardPoster src={movie.posterSrc} title={movie.title} theme={theme} offset={data.posterOffset} />
 
       {/* Title — parallax layer */}
       <h3
