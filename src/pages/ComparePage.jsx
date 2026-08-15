@@ -4,7 +4,7 @@
  * Route: /compare?a=FILM_ID&b=FILM_ID
  */
 
-import React, { Suspense, useState, useCallback, useRef } from "react";
+import { Suspense, useState, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -156,7 +156,7 @@ const FilmCardHeader = ({ id, onClear }) => {
         </h3>
         {film.tagline && (
           <p className="font-body italic text-muted text-[0.7rem] truncate mt-0.5">
-            "{film.tagline}"
+            &ldquo;{film.tagline}&rdquo;
           </p>
         )}
         <button

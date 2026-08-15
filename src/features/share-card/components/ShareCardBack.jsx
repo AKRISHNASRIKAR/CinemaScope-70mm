@@ -98,17 +98,11 @@ const ShareCardBack = ({ data, width = 320, className = "", style = {} }) => {
           padding: "1.4em",
         }}
       >
-        <span
-          style={{
-            fontFamily: '"Playfair Display", Georgia, serif',
-            fontWeight: 700,
-            fontSize: "2.6em",
-            lineHeight: 1,
-            color: theme.frameColor,
-          }}
-        >
-          C
-        </span>
+        <img
+          src="/favicon.jpeg"
+          alt="CinemaScope Logo"
+          style={{ width: "3.2em", height: "3.2em", objectFit: "contain", opacity: 0.9, borderRadius: "0.4em" }}
+        />
         <span
           style={{
             fontFamily: '"Epilogue", system-ui, sans-serif',

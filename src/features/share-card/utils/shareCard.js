@@ -129,6 +129,22 @@ export async function shareOrDownload(blob, filename, { title, text }) {
 }
 
 /**
+ * Copy a PNG blob and plain text directly to the clipboard.
+ * Avoids desktop OS share sheet bugs that concatenate local file paths.
+ */
+export async function copyToClipboard(blob, { text }) {
+  if (typeof navigator === "undefined" || !navigator.clipboard || !navigator.clipboard.write) {
+    throw new Error("Clipboard API not supported");
+  }
+  const item = new ClipboardItem({
+    "image/png": blob,
+    "text/plain": new Blob([text], { type: "text/plain" }),
+  });
+  await navigator.clipboard.write([item]);
+  return "copied";
+}
+
+/**
  * FUTURE COMPATIBILITY — serializable card descriptor.
  * A future backend can persist exactly this shape to power /card/:id.
  * V1 does not persist anything; this is the contract, not an API.

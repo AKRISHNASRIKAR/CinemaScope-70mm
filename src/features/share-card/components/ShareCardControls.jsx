@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import IosShareIcon from "@mui/icons-material/IosShare";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CropIcon from "@mui/icons-material/Crop";
 import { CARD_THEMES } from "../constants/cardThemes";
 import { STAMPS } from "../constants/stamps";
 import CardRating from "./CardRating";
@@ -114,8 +116,8 @@ const ShareCardControls = ({
   rating, tmdbRating, onRatingChange,
   caption, onCaptionChange,
   format, onFormatChange,
-  posters, selectedPosterPath, onPosterChange,
-  onShare, onDownload,
+  posters, selectedPosterPath, onPosterChange, onAdjustClick,
+  onShare, onDownload, onCopy,
   exporting, error, status,
 }) => (
   <div className="flex flex-col" style={{ gap: "1.4rem" }}>
@@ -264,6 +266,17 @@ const ShareCardControls = ({
             );
           })}
         </div>
+        <div className="flex mt-2">
+          <button
+            type="button"
+            onClick={onAdjustClick}
+            className="flex items-center gap-2 font-mono uppercase text-muted hover:text-white border border-white/10 hover:border-white/30 rounded-full bg-transparent transition-all duration-fast cursor-pointer"
+            style={{ fontSize: "0.58rem", letterSpacing: "0.16em", padding: "0.35rem 0.9rem" }}
+          >
+            <CropIcon sx={{ fontSize: "0.8rem" }} />
+            Adjust Framing
+          </button>
+        </div>
       </div>
     )}
 
@@ -289,6 +302,16 @@ const ShareCardControls = ({
         <FileDownloadOutlinedIcon sx={{ fontSize: "1rem" }} />
         Download PNG
       </button>
+      <button
+        type="button"
+        onClick={onCopy}
+        disabled={exporting}
+        className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.14em] border border-white/20 text-white/70 hover:text-white hover:border-gold/60 bg-transparent rounded-card transition-all duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+        style={{ fontSize: "0.68rem", padding: "0.8rem 1.6rem" }}
+      >
+        <ContentCopyIcon sx={{ fontSize: "1rem" }} />
+        Copy
+      </button>
     </div>
 
     {/* Status / errors — polite live region */}
@@ -300,6 +323,7 @@ const ShareCardControls = ({
       {error ||
         (status === "shared" && "Card shared.") ||
         (status === "downloaded" && "PNG saved to your downloads.") ||
+        (status === "copied" && "Copied image and text to clipboard.") ||
         ""}
     </p>
   </div>

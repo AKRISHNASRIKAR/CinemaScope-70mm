@@ -86,7 +86,11 @@ const StampMesh = ({ canvas, rotateDeg = 0, reduced, emScale }) => {
   );
 };
 
-const FaceMaterial = ({ map, theme }) => (
+/* NOTE: this no longer reads the theme — clearcoat / iridescence / envIntensity
+   were replaced by a flat envMapIntensity while tuning the card's look. The
+   theme still carries those fields (see constants/cardThemes.js) but nothing
+   consumes them, so themes currently differ only by edge colour and artwork. */
+const FaceMaterial = ({ map }) => (
   <meshPhysicalMaterial
     map={map}
     transparent
@@ -116,7 +120,7 @@ const CardMesh = ({ frontCanvas, backCanvas, stampCanvas, stampRotate, stampEmSc
       {frontTex && (
         <mesh renderOrder={1} position={[0, 0, CARD_T / 2 + 0.002]}>
           <planeGeometry args={[CARD_W, CARD_H]} />
-          <FaceMaterial map={frontTex} theme={theme} />
+          <FaceMaterial map={frontTex} />
         </mesh>
       )}
 
@@ -124,7 +128,7 @@ const CardMesh = ({ frontCanvas, backCanvas, stampCanvas, stampRotate, stampEmSc
       {backTex && (
         <mesh renderOrder={1} position={[0, 0, -(CARD_T / 2 + 0.002)]} rotation={[0, Math.PI, 0]}>
           <planeGeometry args={[CARD_W, CARD_H]} />
-          <FaceMaterial map={backTex} theme={theme} />
+          <FaceMaterial map={backTex} />
         </mesh>
       )}
 

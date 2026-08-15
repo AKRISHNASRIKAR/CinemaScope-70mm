@@ -1,4 +1,3 @@
-import React from "react";
 import MovieCreationIcon from "@mui/icons-material/MovieCreation";
 
 /* ── Base Shimmer ──────────────────────────────────────────────── */

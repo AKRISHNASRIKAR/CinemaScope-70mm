@@ -13,22 +13,51 @@ import { GENRE_MAP } from "@/lib/constants";
 import { backdropUrl } from "@/lib/utils/tmdbImage";
 
 /* ── Constants ────────────────────────────────────────────────── */
-/* Sort UI is intentionally disabled (see git history); discover queries
-   still run on popularity so the default ordering is unchanged. */
-const DEFAULT_SORT = "popularity.desc";
+/* Every tab goes through /discover/movie.
+   TMDB's curated list endpoints — /movie/now_playing, /movie/top_rated,
+   /movie/upcoming — silently IGNORE `with_genres`. They used to back
+   three of these tabs, which is why "In Theaters" on the Action page
+   returned whatever was in cinemas, genre or not. /discover is the only
+   endpoint that actually combines a genre with other criteria, so the
+   date windows and vote thresholds those lists imply are rebuilt here. */
+
+const iso = (d) => d.toISOString().slice(0, 10);
+const today = () => iso(new Date());
+const monthsAgo = (n) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return iso(d);
+};
+
+/* Theatrical (2) or Digital (3) — %7C is an encoded `|`, TMDB's OR. */
+const RELEASE_TYPE_IN_THEATERS = "2%7C3";
+/* Keeps "Top Rated" off obscure titles with a handful of 10/10 votes. */
+const TOP_RATED_MIN_VOTES = 300;
 
 const FILTER_TABS = [
-  { label: "All", endpoint: "discover" },
-  { label: "In Theaters", endpoint: "now_playing" },
-  { label: "Top Rated", endpoint: "top_rated" },
-  { label: "Coming Soon", endpoint: "upcoming" },
+  { label: "All", key: "all" },
+  { label: "In Theaters", key: "theaters" },
+  { label: "Top Rated", key: "top" },
+  { label: "Coming Soon", key: "upcoming" },
 ];
 
-/** Builds the TMDB endpoint for a given tab + page. */
-const buildUrl = (genreId, endpoint, page = 1) =>
-  endpoint === "discover"
-    ? `/discover/movie?page=${page}&with_genres=${genreId}&sort_by=${DEFAULT_SORT}`
-    : `/movie/${endpoint}?page=${page}&with_genres=${genreId}`;
+/** Builds the /discover query for a given tab + page. */
+const buildUrl = (genreId, key, page = 1) => {
+  const base = `/discover/movie?page=${page}&with_genres=${genreId}`;
+  switch (key) {
+    case "theaters":
+      return (
+        `${base}&sort_by=popularity.desc&with_release_type=${RELEASE_TYPE_IN_THEATERS}` +
+        `&primary_release_date.gte=${monthsAgo(1)}&primary_release_date.lte=${today()}`
+      );
+    case "top":
+      return `${base}&sort_by=vote_average.desc&vote_count.gte=${TOP_RATED_MIN_VOTES}`;
+    case "upcoming":
+      return `${base}&sort_by=popularity.desc&primary_release_date.gte=${today()}`;
+    default:
+      return `${base}&sort_by=popularity.desc`;
+  }
+};
 
 /* ── 1. Genre Hero ────────────────────────────────────────────── */
 /* Reads the same SWR key as the grid, so the artwork comes from cache
@@ -155,7 +184,7 @@ const FilterBar = ({ active, onChange }) => (
 /* ── 3. Data-driven grid ──────────────────────────────────────── */
 /* Mounted with key={url} by the page, so switching tabs remounts this
    component and pagination state resets without an effect. */
-const GenreGrid = ({ genreId, endpoint, url }) => {
+const GenreGrid = ({ genreId, tabKey, url }) => {
   const { data } = useSWR(url, fetcher, { suspense: true });
   const [extraPages, setExtraPages] = useState([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -173,7 +202,7 @@ const GenreGrid = ({ genreId, endpoint, url }) => {
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const next = await fetcher(buildUrl(genreId, endpoint, page + 1));
+      const next = await fetcher(buildUrl(genreId, tabKey, page + 1));
       setExtraPages((prev) => [...prev, next.results || []]);
     } catch (e) {
       console.error("Failed to load more films", e);
@@ -229,7 +258,7 @@ const GenrePage = () => {
   const genreName = GENRE_MAP[genreId] ?? "Genre";
 
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
-  const url = buildUrl(genreId, filterTab.endpoint, 1);
+  const url = buildUrl(genreId, filterTab.key, 1);
 
   const NAV_HEIGHT = "var(--navbar-height, 3.5rem)";
 
@@ -244,7 +273,7 @@ const GenrePage = () => {
       <div className="center-container" style={{ paddingTop: "clamp(1.5rem, 4vh, 2.5rem)", paddingBottom: "clamp(3rem, 8vh, 5rem)" }}>
         <ErrorBoundary>
           <Suspense fallback={<FilmGridSkeleton />}>
-            <GenreGrid key={url} genreId={genreId} endpoint={filterTab.endpoint} url={url} />
+            <GenreGrid key={url} genreId={genreId} tabKey={filterTab.key} url={url} />
           </Suspense>
         </ErrorBoundary>
       </div>

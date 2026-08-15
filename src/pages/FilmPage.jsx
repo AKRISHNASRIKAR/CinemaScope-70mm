@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState, useEffect } from "react";
+import { Fragment, Suspense, useRef, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
@@ -22,6 +22,113 @@ import { ShareCardButton } from "@/features/share-card";
 
 const INITIAL_CAST = 8;
 const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
+
+/* ── Key crew ──────────────────────────────────────────────────────
+   Director only for now. Kept as a table because TMDB spells roles
+   several ways and adding writer/composer later is one more row.
+─────────────────────────────────────────────────────────────────── */
+const CREW_ROLES = [
+  { label: "Directed by", jobs: ["Director"] },
+];
+
+/** Some films credit eight writers — show three and count the rest. */
+const MAX_CREW_NAMES = 3;
+
+/**
+ * Pull the key crew out of TMDB's flat `crew` array.
+ * Dedupes by person id, because TMDB frequently lists the same person
+ * twice under different job titles (Villeneuve is Director *and* Screenplay).
+ */
+function keyCrew(crew = []) {
+  return CREW_ROLES.map(({ label, jobs }) => {
+    const people = [
+      ...new Map(
+        crew.filter((c) => jobs.includes(c.job)).map((c) => [c.id, c])
+      ).values(),
+    ];
+    if (!people.length) return null;
+    return { label, people: people.slice(0, MAX_CREW_NAMES), extra: people.length - MAX_CREW_NAMES };
+  }).filter(Boolean);
+}
+
+/* ── Key crew block ───────────────────────────────────────────────
+   Fetched with the SAME SWR key as <CastSection/>, so the two share one
+   cache entry and one network request. Deliberately NOT suspense: the
+   hero's title and poster shouldn't wait on a credits call. Space is
+   reserved while it loads so the panel doesn't shift underneath.
+─────────────────────────────────────────────────────────────────── */
+const KeyCrew = ({ id }) => {
+  const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher);
+  const navigate = useNavigate();
+
+  const rows = credits ? keyCrew(credits.crew) : [];
+  const loading = !credits;
+
+  // Nothing to show and nothing coming — collapse entirely.
+  if (!loading && rows.length === 0) return null;
+
+  const labelStyle = {
+    fontSize: "clamp(0.45rem, 0.72vw, 0.58rem)",
+    letterSpacing: "0.22em",
+  };
+  const valueStyle = { fontSize: "clamp(0.68rem, 1.02vw, 0.85rem)" };
+
+  return (
+    /* Stacked on phones, two-column from `sm` up — a genuine layout *change*
+       rather than continuous scaling, so a breakpoint beats clamp() here:
+       beside the poster at 390px the metadata column is only ~220px. */
+    <dl
+      className="grid items-baseline grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)]"
+      style={{
+        columnGap: "clamp(0.6rem, 1.4vw, 1.1rem)",
+        rowGap: "clamp(0.15rem, 0.4vh, 0.3rem)",
+        marginTop: "clamp(0.6rem, 1.5vh, 1rem)",
+        /* Reserve the row height so the rating and pills below don't
+           jump when credits land. */
+        minHeight: loading ? "clamp(1rem, 2vh, 1.3rem)" : undefined,
+      }}
+    >
+      {loading
+        ? [0].map((i) => (
+            <Fragment key={i}>
+              <dt className="skeleton rounded-sm" style={{ height: "0.55rem", width: "clamp(3.5rem,6vw,5rem)" }} aria-hidden />
+              <dd className="skeleton rounded-sm" style={{ height: "0.55rem", width: "42%" }} aria-hidden />
+            </Fragment>
+          ))
+        : rows.map(({ label, people, extra }) => (
+            <Fragment key={label}>
+              {/* mt on mobile separates stacked pairs; reset once two-column */}
+              <dt
+                className="font-mono text-muted uppercase whitespace-nowrap mt-[0.5rem] first:mt-0 sm:mt-0"
+                style={labelStyle}
+              >
+                {label}
+              </dt>
+              <dd className="font-body text-white/80 min-w-0" style={valueStyle}>
+                {people.map((p, i) => (
+                  <Fragment key={p.id}>
+                    {i > 0 && <span className="text-faint">, </span>}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/person/${p.id}`)}
+                      className="text-left hover:text-gold focus-visible:text-gold transition-colors duration-fast cursor-pointer bg-transparent border-0 p-0"
+                      style={{ font: "inherit", color: "inherit" }}
+                    >
+                      {p.name}
+                    </button>
+                  </Fragment>
+                ))}
+                {extra > 0 && (
+                  <span className="text-faint" style={{ marginLeft: "0.3rem" }}>
+                    +{extra} more
+                  </span>
+                )}
+              </dd>
+            </Fragment>
+          ))}
+    </dl>
+  );
+};
 
 /* ── Metadata pill ────────────────────────────────────────────── */
 const Pill = ({ children, accent = false }) => (
@@ -147,6 +254,9 @@ const FilmHero = ({ id }) => {
                 </p>
               )}
 
+              {/* Key crew — director, writer, composer, cinematographer */}
+              <KeyCrew id={id} />
+
               {/* Rating */}
               <div className="flex items-center" style={{ gap: "0.4rem", marginTop: "clamp(0.6rem, 1.6vh, 1.1rem)" }}>
                 <StarIcon sx={{ fontSize: "clamp(1rem, 1.8vw, 1.5rem)", color: "#c9a843" }} />
@@ -180,34 +290,39 @@ const FilmHero = ({ id }) => {
                 <ShareCardButton film={film} />
               </div>
 
-              {/* Overview — shown in full */}
-              {film.overview && (
-                <div style={{ marginTop: "clamp(1rem, 2.5vh, 1.75rem)" }}>
-                  <p
-                    className="font-mono text-gold uppercase"
-                    style={{ fontSize: "clamp(0.45rem, 0.75vw, 0.6rem)", letterSpacing: "0.28em", marginBottom: "clamp(0.35rem,0.8vh,0.6rem)" }}
-                  >
-                    Synopsis
-                  </p>
-                  <p
-                    className="font-body text-white/70 leading-relaxed"
-                    style={{ fontSize: "clamp(0.72rem, 1.1vw, 0.95rem)" }}
-                  >
-                    {film.overview}
-                  </p>
-                </div>
-              )}
-
-              {film.release_date && (
-                <p
-                  className="font-mono text-faint"
-                  style={{ fontSize: "clamp(0.5rem, 0.85vw, 0.68rem)", marginTop: "clamp(0.75rem, 1.8vh, 1.25rem)" }}
-                >
-                  Released {new Date(film.release_date).toDateString()}
-                </p>
-              )}
             </div>
           </div>
+
+          {/* ── Synopsis — full panel width ──────────────────────
+              Deliberately outside the poster/metadata row. In the metadata
+              column it was reading at ~200px wide on a phone; full width it
+              gets a proper measure, capped at 78ch so it doesn't sprawl on
+              a wide desktop. */}
+          {film.overview && (
+            <div style={{ marginTop: "clamp(1.25rem, 3vh, 2rem)" }}>
+              <p
+                className="font-mono text-gold uppercase"
+                style={{ fontSize: "clamp(0.45rem, 0.75vw, 0.6rem)", letterSpacing: "0.28em", marginBottom: "clamp(0.35rem,0.8vh,0.6rem)" }}
+              >
+                Synopsis
+              </p>
+              <p
+                className="font-body text-white/70 leading-relaxed"
+                style={{ fontSize: "clamp(0.72rem, 1.1vw, 0.95rem)", maxWidth: "78ch" }}
+              >
+                {film.overview}
+              </p>
+            </div>
+          )}
+
+          {film.release_date && (
+            <p
+              className="font-mono text-faint"
+              style={{ fontSize: "clamp(0.5rem, 0.85vw, 0.68rem)", marginTop: "clamp(0.75rem, 1.8vh, 1.25rem)" }}
+            >
+              Released {new Date(film.release_date).toDateString()}
+            </p>
+          )}
         </div>
       </div>
     </>

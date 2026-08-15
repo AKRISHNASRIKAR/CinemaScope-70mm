@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 import { fetcher } from "@/lib/api/fetcher";
 import { posterUrl, profileUrl } from "@/lib/utils/tmdbImage";
@@ -18,7 +19,7 @@ const Header = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuthenticated, logout } = useAuth0();
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const navbarRef = useRef(null);
@@ -327,33 +328,50 @@ const Header = () => {
                 Compare
               </button>
 
-              <button
-                onClick={() => navigate(isAuthenticated ? "/profile" : "/login")}
-                aria-label={isAuthenticated ? "Go to profile" : "Sign in"}
-                className="cursor-pointer transition-all duration-normal hover:scale-105 active:scale-95"
-              >
-                {isAuthenticated && user?.picture ? (
-                  <img
-                    src={user.picture}
-                    alt={user.name}
-                    className="rounded-full object-cover ring-2 ring-white/15 hover:ring-white/40 transition-all duration-normal"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(isAuthenticated ? "/profile" : "/login")}
+                  aria-label={isAuthenticated ? "Go to profile" : "Sign in"}
+                  className="cursor-pointer transition-all duration-normal hover:scale-105 active:scale-95"
+                >
+                  {isAuthenticated && user?.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="rounded-full object-cover ring-2 ring-white/15 hover:ring-white/40 transition-all duration-normal"
+                      style={{
+                        width: "clamp(1.75rem, 3vw, 2.25rem)",
+                        height: "clamp(1.75rem, 3vw, 2.25rem)",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-normal"
+                      style={{
+                        width: "clamp(1.75rem, 3vw, 2.25rem)",
+                        height: "clamp(1.75rem, 3vw, 2.25rem)",
+                      }}
+                    >
+                      <PersonOutlineIcon sx={{ fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)" }} />
+                    </div>
+                  )}
+                </button>
+
+                {isAuthenticated && (
+                  <button
+                    onClick={() => logout({ logoutParams: { returnTo: `${window.location.origin}/` } })}
+                    aria-label="Sign out"
+                    className="flex items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white/50 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all duration-normal cursor-pointer hover:scale-105 active:scale-95 ml-1"
                     style={{
                       width: "clamp(1.75rem, 3vw, 2.25rem)",
                       height: "clamp(1.75rem, 3vw, 2.25rem)",
                     }}
-                  />
-                ) : (
-                  <div
-                    className="rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-normal"
-                    style={{
-                      width: "clamp(1.75rem, 3vw, 2.25rem)",
-                      height: "clamp(1.75rem, 3vw, 2.25rem)",
-                    }}
+                    title="Sign Out"
                   >
-                    <PersonOutlineIcon sx={{ fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)" }} />
-                  </div>
+                    <LogoutIcon sx={{ fontSize: "clamp(0.9rem, 1.4vw, 1.05rem)" }} />
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
 
           </nav>

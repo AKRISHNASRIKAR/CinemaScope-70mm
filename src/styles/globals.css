@@ -76,6 +76,54 @@ p, .font-body {
   line-height: 1.55;
 }
 
+/* ── Range slider ───────────────────────────────────────────────
+   Native range inputs ignore most styling, so the track and thumb are
+   rebuilt per-engine. Kept here rather than inline because pseudo-
+   elements can't be expressed in a style prop. */
+.cs-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+  cursor: pointer;
+}
+
+.cs-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid #090909;
+  box-shadow: 0 0 0 1px var(--color-gold);
+  transition: transform 150ms ease;
+}
+.cs-range::-webkit-slider-thumb:hover  { transform: scale(1.15); }
+.cs-range:active::-webkit-slider-thumb { transform: scale(0.95); }
+
+.cs-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid #090909;
+  box-shadow: 0 0 0 1px var(--color-gold);
+}
+.cs-range::-moz-range-track {
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.cs-range:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 6px;
+}
+
 /* ── Interactive States ── */
 button, a {
   outline: none;

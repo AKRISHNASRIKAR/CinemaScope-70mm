@@ -12,7 +12,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { DEFAULT_THEME_ID, getTheme } from "../constants/cardThemes";
 import { getStamp } from "../constants/stamps";
 import { EM_DIVISOR } from "../constants/cardLayout";
-import { toDataURL, cardFileName, downloadBlob, shareOrDownload, describeCard } from "../utils/shareCard";
+import { toDataURL, cardFileName, downloadBlob, shareOrDownload, describeCard, copyToClipboard } from "../utils/shareCard";
 import { useCardExport } from "../hooks/useCardExport";
 import { useCardTilt } from "../hooks/useCardTilt";
 
@@ -22,6 +22,7 @@ import ShareCardControls from "./ShareCardControls";
 import ExportStage from "./ExportStage";
 import TextureSource from "./TextureSource";
 import CardStamp from "./CardStamp";
+import PosterAdjustModal from "./PosterAdjustModal";
 
 // three + fiber + drei live in their own chunk — only fetched when the
 // 3D preview actually renders (WebGL available, motion allowed).
@@ -109,10 +110,10 @@ const ShareCardModal = ({ film, onClose }) => {
   const [format, setFormat] = useState("square");
   const [flipped, setFlipped] = useState(false);
   const [status, setStatus] = useState(null);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   
   const [posterOffset, setPosterOffset] = useState({ x: 0, y: 0 });
   const [posterScale, setPosterScale] = useState(1);
-  const dragStart = useRef(null);
 
   /* ── Data ────────────────────────────────────────────────────── */
   const { data: credits } = useSWR(`/movie/${film.id}/credits`, fetcher);
@@ -138,12 +139,14 @@ const ShareCardModal = ({ film, onClose }) => {
   }, [selectedPosterPath, film.backdrop_path]);
 
   const posterSrc = posterData ?? posterUrl(selectedPosterPath, "w780");
+  // Consumed by <ExportStage> as the blurred bed behind the card. Falls back
+  // to the remote URL until the data-URL copy resolves.
   const backdropSrc = backdropData ?? backdropUrl(film.backdrop_path, "w780");
 
   useEffect(() => {
     setPosterOffset({ x: 0, y: 0 });
     setPosterScale(1);
-  }, [posterSrc]);
+  }, [format]);
 
   const cardData = useMemo(
     () => ({
@@ -199,11 +202,20 @@ const ShareCardModal = ({ film, onClose }) => {
       const blob = await exportCard(format);
       const result = await shareOrDownload(blob, cardFileName(film.title, format), {
         title: film.title,
-        text: `My CinemaScope card for ${film.title}`,
+        text: "Try Yours Now : https://cscope.vercel.app/",
       });
       if (result !== "cancelled") setStatus(result);
     } catch { /* surfaced via hook error state */ }
   }, [exportCard, format, film.title]);
+
+  const handleCopy = useCallback(async () => {
+    setStatus(null);
+    try {
+      const blob = await exportCard(format);
+      await copyToClipboard(blob, { text: "Try Yours Now : https://cscope.vercel.app/" });
+      setStatus("copied");
+    } catch { /* surfaced via hook error state */ }
+  }, [exportCard, format]);
 
   /* ── Modal a11y: focus trap, Escape, scroll lock ─────────────── */
   const panelRef = useRef(null);
@@ -232,7 +244,7 @@ const ShareCardModal = ({ film, onClose }) => {
   }, []);
 
   const previewWidth = useMemo(
-    () => Math.min(300, (typeof window !== "undefined" ? window.innerWidth : 1024) - 112),
+    () => Math.min(380, (typeof window !== "undefined" ? window.innerWidth : 1024) - 112),
     []
   );
 
@@ -300,52 +312,8 @@ const ShareCardModal = ({ film, onClose }) => {
             aria-label="Card preview"
             className="relative flex flex-col items-center justify-center bg-base overflow-hidden"
             style={{ padding: "clamp(1.25rem, 3vw, 2rem)", minHeight: "min(30rem, 72vh)", touchAction: "none" }}
-            onWheel={(e) => {
-              // Zoom poster with trackpad pinch or scroll wheel
-              if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 0) {
-                e.preventDefault();
-                setPosterScale((s) => Math.max(0.5, Math.min(3, s - e.deltaY * 0.005)));
-              }
-            }}
-            onPointerDown={(e) => {
-              if (flipped) return;
-              dragStart.current = {
-                startX: e.clientX,
-                startY: e.clientY,
-                startOffsetX: posterOffset.x,
-                startOffsetY: posterOffset.y,
-                moved: false,
-              };
-              pointer.current.active = false;
-            }}
-            onPointerMove={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              if (dragStart.current) {
-                dragStart.current.moved = true;
-                const dx = e.clientX - dragStart.current.startX;
-                const dy = e.clientY - dragStart.current.startY;
-                const emSize = r.width / 20; // 20 is EM_DIVISOR
-                setPosterOffset({
-                  x: dragStart.current.startOffsetX + (dx / emSize),
-                  y: dragStart.current.startOffsetY + (dy / emSize),
-                });
-              } else {
-                pointer.current = {
-                  x: ((e.clientX - r.left) / r.width - 0.5) * 2,
-                  y: ((e.clientY - r.top) / r.height - 0.5) * 2,
-                  active: true,
-                };
-              }
-            }}
-            onPointerUp={(e) => {
-              if (dragStart.current && !dragStart.current.moved) {
-                setFlipped((f) => !f);
-              }
-              dragStart.current = null;
-            }}
-            onPointerLeave={() => { 
-              dragStart.current = null;
-              pointer.current = { x: 0, y: 0, active: false }; 
+            onClick={() => {
+              if (show3D) setFlipped((f) => !f);
             }}
           >
             {/* Ambient glow behind the card */}
@@ -377,7 +345,7 @@ const ShareCardModal = ({ film, onClose }) => {
                     <HtmlCardPreview data={cardData} width={previewWidth} flipped={flipped} tiltDisabled={coarse || reduced} reduced={reduced} />
                   }
                 >
-                  <div style={{ width: "100%", height: "clamp(20rem, 56vh, 28rem)" }}>
+                  <div style={{ width: "100%", height: "clamp(24rem, 65vh, 36rem)" }}>
                     <InteractiveCard3D
                       frontCanvas={frontCanvas}
                       backCanvas={backCanvas}
@@ -402,7 +370,7 @@ const ShareCardModal = ({ film, onClose }) => {
             <div className="flex flex-col items-center" style={{ gap: "0.5rem", marginTop: "1rem" }}>
               <button
                 type="button"
-                onClick={() => setFlipped((f) => !f)}
+                onClick={(e) => { e.stopPropagation(); setFlipped((f) => !f); }}
                 aria-pressed={flipped}
                 className="flex items-center gap-2 font-mono uppercase text-muted hover:text-white border border-white/10 hover:border-white/30 rounded-full bg-transparent transition-all duration-fast cursor-pointer"
                 style={{ fontSize: "0.58rem", letterSpacing: "0.16em", padding: "0.45rem 1.1rem" }}
@@ -410,11 +378,6 @@ const ShareCardModal = ({ film, onClose }) => {
                 <FlipIcon sx={{ fontSize: "0.8rem" }} />
                 {flipped ? "Show front" : "Flip card"}
               </button>
-              {show3D && !coarse && (
-                <span className="font-mono text-faint uppercase" style={{ fontSize: "0.52rem", letterSpacing: "0.14em" }}>
-                  Move to tilt · Click to flip
-                </span>
-              )}
             </div>
           </section>
 
@@ -438,8 +401,10 @@ const ShareCardModal = ({ film, onClose }) => {
               posters={posters}
               selectedPosterPath={selectedPosterPath}
               onPosterChange={setSelectedPosterPath}
+              onAdjustClick={() => setShowAdjustModal(true)}
               onShare={handleShare}
               onDownload={handleDownload}
+              onCopy={handleCopy}
               exporting={exporting}
               error={error}
               status={status}
@@ -493,6 +458,21 @@ const ShareCardModal = ({ film, onClose }) => {
           backdropSrc={backdropSrc}
           onReady={handleStageReady}
           onError={handleStageError}
+        />
+      )}
+      
+      {/* Poster Adjust Modal */}
+      {showAdjustModal && (
+        <PosterAdjustModal
+          isOpen={showAdjustModal}
+          onClose={() => setShowAdjustModal(false)}
+          cardData={cardData}
+          initialScale={posterScale}
+          initialOffset={posterOffset}
+          onSave={(scale, offset) => {
+            setPosterScale(scale);
+            setPosterOffset(offset);
+          }}
         />
       )}
     </div>,

@@ -3,15 +3,13 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
-import LogoutIcon from "@mui/icons-material/Logout";
-import HomeIcon from "@mui/icons-material/Home";
 import ScrollRow from "@/components/ui/ScrollRow";
 import FilmCard from "@/components/ui/FilmCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 /* ── Main Page ─────────────────────────────────────────────────── */
 const Profile = () => {
-  const { user, isAuthenticated, logout } = useAuth0();
+  const { user, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
   const { recentFilms, clearRecent } = useRecentlyViewed();
   const [activeTab, setActiveTab] = useState("recent");
@@ -191,42 +189,17 @@ const Profile = () => {
                 </ScrollRow>
               </div>
             ) : (
-              <p className="font-body text-muted text-center py-8">You haven't viewed any films recently. Start exploring!</p>
+              <p className="font-body text-muted text-center py-8">You haven&apos;t viewed any films recently. Start exploring!</p>
             )
           )}
           
           {activeTab === "watchlist" && (
-            <p className="font-body text-muted text-center py-8">You haven't added any films to your watchlist yet.</p>
+            <p className="font-body text-muted text-center py-8">You haven&apos;t added any films to your watchlist yet.</p>
           )}
 
           {activeTab === "favorites" && (
-            <p className="font-body text-muted text-center py-8">You haven't favorited any films yet.</p>
+            <p className="font-body text-muted text-center py-8">You haven&apos;t favorited any films yet.</p>
           )}
-        </div>
-
-        {/* ── Account info (bottom) ────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10" style={{ marginTop: "clamp(2rem,5vh,4rem)", paddingTop: "clamp(1.5rem,3vh,2rem)" }}>
-          <div className="flex items-center gap-4 text-white/50 mb-4 sm:mb-0">
-            <span className="font-body text-sm">Signed in as <strong>{user.email}</strong> via Auth0</span>
-          </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors cursor-pointer"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <HomeIcon sx={{ fontSize: "1rem" }} />
-              Home
-            </button>
-            <button
-              onClick={() => logout({ returnTo: `${window.location.origin}/` })}
-              className="flex items-center gap-2 text-gold/80 hover:text-gold transition-colors cursor-pointer"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <LogoutIcon sx={{ fontSize: "1rem" }} />
-              Sign Out
-            </button>
-          </div>
         </div>
 
       </div>

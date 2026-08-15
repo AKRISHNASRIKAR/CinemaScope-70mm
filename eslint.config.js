@@ -33,6 +33,18 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+
+      /* This is a plain-JSX codebase with no runtime PropTypes anywhere, so
+         this rule only ever fires — it produced 325 of 350 errors and drowned
+         out the real ones. Prop contracts belong in TypeScript, which is the
+         actual fix; until then the rule is pure noise. */
+      'react/prop-types': 'off',
+
+      /* React 18 only passes `fetchpriority` through to the DOM in lowercase.
+         The camelCase `fetchPriority` the rule wants is React 19's spelling —
+         on 18 it logs "React does not recognize the fetchPriority prop" and is
+         the wrong thing to write. Revisit when upgrading to React 19. */
+      'react/no-unknown-property': ['error', { ignore: ['fetchpriority'] }],
     },
   },
 ]

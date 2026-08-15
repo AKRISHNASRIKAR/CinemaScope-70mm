@@ -1,6 +1,5 @@
 import { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ScrollRow from "@/components/ui/ScrollRow";
 import { posterUrl } from "@/lib/utils/tmdbImage";
 
 const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }) => {
