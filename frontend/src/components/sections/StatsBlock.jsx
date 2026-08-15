@@ -55,7 +55,7 @@ const StatsBlock = ({ featuredFilm }) => {
             Top Picks<br />by Genre
           </h2>
           <p className="font-body font-light text-muted leading-relaxed max-w-sm" style={{ fontSize: "clamp(0.75rem, 1.1vw, 0.9rem)" }}>
-            Discover award‑winning cinema, hidden gems, and everything in between. Your personal guide to the world's greatest films.
+            Discover award-winning cinema, hidden gems, and everything in between. Your personal guide to the world&apos;s greatest films.
           </p>
         </div>
       </div>

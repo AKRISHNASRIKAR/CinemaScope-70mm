@@ -1,25 +1,22 @@
-import { useNavigate } from "react-router-dom";
+import { memo } from "react";
+import { Link } from "react-router-dom";
 import LazyImage from "@/components/ui/LazyImage";
 import { posterUrl } from "@/lib/utils/tmdbImage";
 
-const FilmCard = ({ film, subtitle, className = "" }) => {
-  const navigate = useNavigate();
-
+const FilmCard = ({ film, subtitle, className = "", eager = false, imageSize = "w342" }) => {
   return (
-    <div
-      onClick={() => navigate(`/film/${film.id}`)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
-      role="button"
-      tabIndex={0}
-      aria-label={film.title}
-      className={`group cursor-pointer flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded-card ${className}`}
+    <Link
+      to={`/film/${film.id}`}
+      aria-label={`View ${film.title || "film details"}`}
+      className={`group flex flex-col rounded-card focus-ring ${className}`}
     >
       <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
         <LazyImage
-          src={posterUrl(film.poster_path, "w342") ?? "/fallback-image-film.jpg"}
-          alt={film.title}
+          src={posterUrl(film.poster_path, imageSize) ?? "/fallback-image-film.jpg"}
+          alt={film.title ? `${film.title} poster` : "Film poster"}
           fallbackType="poster"
-          className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105"
+          eager={eager}
+          className="poster-image w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-normal" />
       </div>
@@ -34,8 +31,8 @@ const FilmCard = ({ film, subtitle, className = "" }) => {
           {subtitle}
         </p>
       )}
-    </div>
+    </Link>
   );
 };
 
-export default FilmCard;
+export default memo(FilmCard);

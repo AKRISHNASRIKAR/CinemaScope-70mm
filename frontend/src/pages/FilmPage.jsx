@@ -1,25 +1,271 @@
-import React, { Suspense, useRef, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Fragment, Suspense, useRef, useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 
+import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
+import BookmarkAddedOutlinedIcon from "@mui/icons-material/BookmarkAddedOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 import TvIcon from "@mui/icons-material/Tv";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import Footer from "@/components/layout/Footer";
-import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
+import PersonCard from "@/components/ui/PersonCard";
+import SEO from "@/components/seo/SEO";
 import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
-import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
+import { useSession } from "@/hooks/useSession";
+import { useWatchHistory } from "@/hooks/useWatchHistory";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { posterUrl, backdropUrl } from "@/lib/utils/tmdbImage";
+import { ShareCardButton } from "@/features/share-card";
 
 const INITIAL_CAST = 8;
-const ROTATIONS = [-3, 2, -1.5, 3, -2, 1, -2.5, 1.5, -1, 2.5, -3, 0.5];
+
+/* ── Key crew ──────────────────────────────────────────────────────
+   Director only for now. Kept as a table because TMDB spells roles
+   several ways and adding writer/composer later is one more row.
+─────────────────────────────────────────────────────────────────── */
+const CREW_ROLES = [
+  { label: "Directed by", jobs: ["Director"] },
+];
+
+/** Some films credit eight writers — show three and count the rest. */
+const MAX_CREW_NAMES = 3;
+
+/**
+ * Pull the key crew out of TMDB's flat `crew` array.
+ * Dedupes by person id, because TMDB frequently lists the same person
+ * twice under different job titles (Villeneuve is Director *and* Screenplay).
+ */
+function keyCrew(crew = []) {
+  return CREW_ROLES.map(({ label, jobs }) => {
+    const people = [
+      ...new Map(
+        crew.filter((c) => jobs.includes(c.job)).map((c) => [c.id, c])
+      ).values(),
+    ];
+    if (!people.length) return null;
+    return { label, people: people.slice(0, MAX_CREW_NAMES), extra: people.length - MAX_CREW_NAMES };
+  }).filter(Boolean);
+}
+
+/* ── Key crew block ───────────────────────────────────────────────
+   Fetched with the SAME SWR key as <CastSection/>, so the two share one
+   cache entry and one request through the Edge Function proxy.
+   Deliberately NOT suspense: the hero's title and poster shouldn't wait
+   on a credits call. Space is reserved while it loads.
+─────────────────────────────────────────────────────────────────── */
+const KeyCrew = ({ id }) => {
+  const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher);
+  const navigate = useNavigate();
+
+  const rows = credits ? keyCrew(credits.crew) : [];
+  const loading = !credits;
+
+  if (!loading && rows.length === 0) return null;
+
+  const labelStyle = { fontSize: "clamp(0.45rem, 0.72vw, 0.58rem)", letterSpacing: "0.22em" };
+  const valueStyle = { fontSize: "clamp(0.68rem, 1.02vw, 0.85rem)" };
+
+  return (
+    /* Stacked on phones, two-column from `sm` up — a genuine layout *change*
+       rather than continuous scaling, so a breakpoint beats clamp() here. */
+    <dl
+      className="grid items-baseline grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)]"
+      style={{
+        columnGap: "clamp(0.6rem, 1.4vw, 1.1rem)",
+        rowGap: "clamp(0.15rem, 0.4vh, 0.3rem)",
+        marginTop: "clamp(0.6rem, 1.5vh, 1rem)",
+        minHeight: loading ? "clamp(1rem, 2vh, 1.3rem)" : undefined,
+      }}
+    >
+      {loading
+        ? [0].map((i) => (
+            <Fragment key={i}>
+              <dt className="skeleton rounded-sm" style={{ height: "0.55rem", width: "clamp(3.5rem,6vw,5rem)" }} aria-hidden />
+              <dd className="skeleton rounded-sm" style={{ height: "0.55rem", width: "42%" }} aria-hidden />
+            </Fragment>
+          ))
+        : rows.map(({ label, people, extra }) => (
+            <Fragment key={label}>
+              <dt
+                className="font-mono text-muted uppercase whitespace-nowrap mt-[0.5rem] first:mt-0 sm:mt-0"
+                style={labelStyle}
+              >
+                {label}
+              </dt>
+              <dd className="font-body text-white/80 min-w-0" style={valueStyle}>
+                {people.map((p, i) => (
+                  <Fragment key={p.id}>
+                    {i > 0 && <span className="text-faint">, </span>}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/person/${p.id}`)}
+                      className="text-left hover:text-gold focus-visible:text-gold transition-colors duration-fast cursor-pointer bg-transparent border-0 p-0"
+                      style={{ font: "inherit", color: "inherit" }}
+                    >
+                      {p.name}
+                    </button>
+                  </Fragment>
+                ))}
+                {extra > 0 && (
+                  <span className="text-faint" style={{ marginLeft: "0.3rem" }}>
+                    +{extra} more
+                  </span>
+                )}
+              </dd>
+            </Fragment>
+          ))}
+    </dl>
+  );
+};
+
+const toIsoDuration = (minutes) => {
+  if (!minutes) return undefined;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `PT${hours ? `${hours}H` : ""}${mins ? `${mins}M` : ""}`;
+};
+
+const toDescription = (film) =>
+  film.overview ||
+  `${film.title} film details, cast, watch providers, similar movies, and ratings on CinemaScope.`;
+
+const FilmActions = ({ film }) => {
+  const { isAuthenticated } = useSession();
+  const { history, isLoading: historyLoading, logWatch } = useWatchHistory({
+    enabled: isAuthenticated,
+    limit: 12,
+  });
+  const {
+    isLoading: watchlistLoading,
+    addToWatchlist,
+    removeFromWatchlist,
+    isInWatchlist,
+  } = useWatchlist({ enabled: isAuthenticated });
+  const [status, setStatus] = useState("");
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const inWatchlist = isAuthenticated && isInWatchlist(film.id);
+  const watched = isAuthenticated && history.some((item) => item.tmdb_id === film.id);
+  const payload = {
+    tmdb_id: film.id,
+    title: film.title,
+    poster_path: film.poster_path ?? null,
+  };
+
+  const handleWatchlist = async () => {
+    setPendingAction("watchlist");
+    setStatus("");
+    try {
+      if (inWatchlist) {
+        await removeFromWatchlist(film.id);
+        setStatus("Removed from watchlist.");
+      } else {
+        await addToWatchlist(payload);
+        setStatus("Added to watchlist.");
+      }
+    } catch (error) {
+      setStatus(error.message || "Could not update watchlist.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleWatched = async () => {
+    setPendingAction("watched");
+    setStatus("");
+    try {
+      await logWatch(payload);
+      setStatus(watched ? "Watch date refreshed." : "Marked as watched.");
+    } catch (error) {
+      setStatus(error.message || "Could not update watch history.");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div
+        className="mt-8 flex flex-wrap items-center"
+        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
+      >
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 rounded-card border border-gold/35 bg-gold/10 px-4 py-2 font-body font-medium text-gold transition-all duration-normal hover:border-gold/70 hover:bg-gold/15 hover:text-gold-lt"
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          <LoginOutlinedIcon sx={{ fontSize: "1rem" }} />
+          Sign in to save
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <div
+        className="flex flex-wrap items-center"
+        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
+      >
+        <button
+          type="button"
+          onClick={handleWatchlist}
+          disabled={watchlistLoading || pendingAction === "watchlist"}
+          aria-pressed={inWatchlist}
+          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
+            inWatchlist
+              ? "border-gold/60 bg-gold/15 text-gold"
+              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
+          }`}
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          {inWatchlist ? (
+            <BookmarkAddedOutlinedIcon sx={{ fontSize: "1rem" }} />
+          ) : (
+            <BookmarkAddOutlinedIcon sx={{ fontSize: "1rem" }} />
+          )}
+          {inWatchlist ? "In Watchlist" : "Watchlist"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleWatched}
+          disabled={historyLoading || pendingAction === "watched"}
+          aria-pressed={watched}
+          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
+            watched
+              ? "border-white/20 bg-white/10 text-white"
+              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
+          }`}
+          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
+        >
+          <VisibilityOutlinedIcon sx={{ fontSize: "1rem" }} />
+          {watched ? "Watched" : "Mark Watched"}
+        </button>
+      </div>
+
+      {status && (
+        <p
+          className="mt-3 font-body text-muted"
+          style={{ fontSize: "clamp(0.62rem,0.95vw,0.75rem)" }}
+          role="status"
+          aria-live="polite"
+        >
+          {status}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /* ── Film Hero Section ────────────────────────── */
 const FilmHero = ({ id }) => {
@@ -30,21 +276,47 @@ const FilmHero = ({ id }) => {
   // Record this film as recently viewed on mount
   useEffect(() => { addFilm(film); }, [film, addFilm]);
 
-  const us = releaseDates.results?.find((e) => e.iso_3166_1 === "US");
+  const us = releaseDates?.results?.find((e) => e.iso_3166_1 === "US");
   const certification = us?.release_dates?.[0]?.certification || "N/A";
 
   const backdrop = backdropUrl(film.backdrop_path);
   const posterSrc = posterUrl(film.poster_path, "w500") ?? "/fallback-image-film.jpg";
+  const description = toDescription(film);
 
   return (
     <>
+      <SEO
+        title={film.title}
+        description={description}
+        image={backdrop || posterSrc}
+        type="video.movie"
+        canonicalPath={`/film/${film.id}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Movie",
+          name: film.title,
+          description,
+          image: posterSrc,
+          datePublished: film.release_date || undefined,
+          genre: film.genres?.map((genre) => genre.name),
+          duration: toIsoDuration(film.runtime),
+          aggregateRating: film.vote_average
+            ? {
+                "@type": "AggregateRating",
+                ratingValue: film.vote_average.toFixed(1),
+                ratingCount: film.vote_count || undefined,
+                bestRating: 10,
+                worstRating: 0,
+              }
+            : undefined,
+        }}
+      />
       <section className="relative w-full overflow-hidden" style={{ height: "clamp(40vh,55vh,65vh)" }}>
         {backdrop && (
           <img
             src={backdrop}
             alt={film.title}
             loading="eager"
-            fetchpriority="high"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: "top center" }}
           />
@@ -69,7 +341,6 @@ const FilmHero = ({ id }) => {
                 src={posterSrc}
                 alt={film.title}
                 loading="eager"
-                fetchpriority="high"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -80,6 +351,9 @@ const FilmHero = ({ id }) => {
             {film.tagline && (
               <p className="font-body italic text-muted mt-2" style={{ fontSize: "clamp(0.75rem,1.2vw,1rem)" }}>{film.tagline}</p>
             )}
+
+            {/* Key crew — director */}
+            <KeyCrew id={film.id} />
             <div className="flex items-baseline mt-4" style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)" }}>
               <span className="text-gold font-mono font-semibold" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>⭐ {film.vote_average ? film.vote_average.toFixed(1) : "N/A"}</span>
               <span className="font-mono text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>/ 10</span>
@@ -103,6 +377,14 @@ const FilmHero = ({ id }) => {
                 <p className="font-body text-white/70 leading-relaxed mt-2 line-clamp-3" style={{ fontSize: "clamp(0.75rem,1.1vw,0.9rem)" }}>{film.overview}</p>
               </div>
             )}
+            <FilmActions film={film} />
+
+            {/* Share card — deliberately OUTSIDE FilmActions, which early-returns
+                a sign-in prompt when signed out. Building a card needs no account
+                (nothing is uploaded), so gating it behind auth would be wrong. */}
+            <div className="mt-4">
+              <ShareCardButton film={film} />
+            </div>
           </div>
         </div>
       </div>
@@ -113,7 +395,6 @@ const FilmHero = ({ id }) => {
 /* ── Cast Section ─────────────────────────────── */
 const CastSection = ({ id }) => {
   const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher, { suspense: true });
-  const navigate = useNavigate();
   const [showAllCast, setShowAllCast] = useState(false);
   const [castInView, setCastInView] = useState(false);
   const castSectionRef = useRef(null);
@@ -144,7 +425,7 @@ const CastSection = ({ id }) => {
         className="relative rounded-card overflow-hidden"
         style={{
           padding: "clamp(1.5rem,3vw,2.5rem)",
-          background: "#0c0c0c",
+          background: "var(--color-section-dark)",
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")`,
         }}
       >
@@ -153,52 +434,21 @@ const CastSection = ({ id }) => {
         </h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
-          {visibleCast.map((member, i) => {
-            const rot = ROTATIONS[i % ROTATIONS.length];
-            const imgSrc = member.profile_path ? profileUrl(member.profile_path, "w200") : null;
-
-            return (
-              <div
-                key={`${member.id}-${member.credit_id}`}
-                onClick={() => navigate(`/person/${member.id}`)}
-                className="cursor-pointer w-full max-w-[clamp(110px,14vw,160px)] mx-auto"
-                style={{ transform: `rotate(${rot}deg)`, transition: "transform 200ms ease, box-shadow 200ms ease" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "rotate(0deg) translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "4px 6px 20px rgba(0,0,0,0.55)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = `rotate(${rot}deg)`;
-                  e.currentTarget.style.boxShadow = "3px 4px 14px rgba(0,0,0,0.35)";
-                }}
-              >
-                <div className="bg-white/95 flex flex-col" style={{ padding: "clamp(6px,0.8vw,10px) clamp(6px,0.8vw,10px) clamp(18px,2.5vw,28px)", boxShadow: "3px 4px 14px rgba(0,0,0,0.35)", borderRadius: "2px" }}>
-                  <div className="relative w-full aspect-[3/4] overflow-hidden" style={{ borderRadius: "1px" }}>
-                    {castInView ? (
-                      imgSrc ? (
-                        <LazyImage src={imgSrc} alt={member.name} fallbackType="person" className="w-full h-full object-cover object-top" />
-                      ) : (
-                        <div className="w-full h-full bg-[#ddd] flex items-center justify-center">
-                          <PersonOutlineIcon sx={{ fontSize: "clamp(1.5rem,3vw,2rem)", color: "#aaa" }} />
-                        </div>
-                      )
-                    ) : (
-                      <div className="skeleton w-full h-full" aria-hidden />
-                    )}
-                  </div>
-                  <div style={{ paddingTop: "clamp(6px,0.8vw,10px)" }}>
-                    <p className="font-mono font-medium text-ink uppercase leading-tight line-clamp-1" style={{ fontSize: "clamp(0.45rem,0.7vw,0.6rem)", letterSpacing: "0.08em" }}>{member.name}</p>
-                    {member.character && <p className="font-body text-ink-muted leading-tight line-clamp-1" style={{ fontSize: "clamp(0.4rem,0.6vw,0.5rem)", marginTop: "2px" }}>{member.character}</p>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {visibleCast.map((member, i) => (
+            <PersonCard
+              key={`${member.id}-${member.credit_id}`}
+              person={member}
+              subtitle={member.character}
+              index={i}
+              deferImage={!castInView}
+            />
+          ))}
         </div>
 
         {cast.length > INITIAL_CAST && (
           <div className="flex justify-center" style={{ marginTop: "clamp(1.5rem,3vh,2rem)" }}>
             <button
+              type="button"
               onClick={() => setShowAllCast((v) => !v)}
               className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/60 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card"
               style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)", padding: "0.75rem 2rem" }}
@@ -257,7 +507,7 @@ const WatchProviders = ({ id }) => {
       >
         <div className="flex items-center justify-between" style={{ marginBottom: "clamp(1rem,2vh,1.5rem)" }}>
           <div className="flex items-center gap-2">
-            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "#c9a843" }} />
+            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "var(--color-gold)" }} />
             <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>
               Where to Watch
             </h2>
@@ -314,7 +564,7 @@ const WatchProviders = ({ id }) => {
 /* ── 5. Similar Movies (Data-driven) ───────────────────────────── */
 const SimilarMovies = ({ id }) => {
   const { data: similar } = useSWR(`/movie/${id}/similar`, fetcher, { suspense: true });
-  const movies = similar.results || [];
+  const movies = similar?.results || [];
 
   if (movies.length === 0) return null;
 

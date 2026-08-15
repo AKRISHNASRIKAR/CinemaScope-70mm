@@ -12,7 +12,7 @@
  * State: film IDs stored in URL search params so the comparison is shareable.
  */
 
-import React, { Suspense, useState, useCallback } from "react";
+import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -26,34 +26,51 @@ import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import LazyImage from "@/components/ui/LazyImage";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SEO from "@/components/seo/SEO";
 import { posterUrl } from "@/lib/utils/tmdbImage";
+import { useMovieSearch } from "@/hooks/useMovieSearch";
 
 /* ── Inline film search ─────────────────────────────────────────── */
 const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
   const [query, setQuery]     = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const debounceRef           = React.useRef(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const listboxId             = useId();
+  const { results, isLoading } = useMovieSearch(query, { limit: 6, delay: 350 });
 
-  const search = useCallback((q) => {
-    setQuery(q);
-    clearTimeout(debounceRef.current);
-    if (!q.trim()) { setResults([]); return; }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const data = await fetcher(`/search/movie?query=${encodeURIComponent(q)}&page=1`);
-        setResults((data.results || []).slice(0, 6));
-      } catch { setResults([]); }
-      finally { setLoading(false); }
-    }, 350);
-  }, []);
+  useEffect(() => {
+    setActiveIndex(results.length ? 0 : -1);
+  }, [results]);
 
-  const pick = (film) => {
+  const pick = useCallback((film) => {
     onSelect(film);
     setQuery("");
-    setResults([]);
-  };
+    setActiveIndex(-1);
+  }, [onSelect]);
+
+  const clear = useCallback(() => {
+    setQuery("");
+    setActiveIndex(-1);
+  }, []);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === "Escape") {
+      clear();
+      return;
+    }
+    if (!results.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((idx) => (idx + 1) % results.length);
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((idx) => (idx <= 0 ? results.length - 1 : idx - 1));
+    }
+    if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      pick(results[activeIndex]);
+    }
+  }, [activeIndex, clear, pick, results]);
 
   return (
     <div className="relative w-full">
@@ -65,15 +82,23 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
         <input
           type="text"
           value={query}
-          onChange={(e) => search(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="w-full bg-surface border border-white/10 focus:border-gold/40 focus:ring-1 focus:ring-gold/20 text-white placeholder-white/25 font-body rounded-card outline-none"
           style={{ padding: "0.6rem 2.5rem 0.6rem 2.25rem", fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
           aria-label={placeholder}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={results.length > 0}
+          aria-controls={results.length > 0 ? listboxId : undefined}
+          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${results[activeIndex]?.id}` : undefined}
+          aria-busy={isLoading}
         />
         {query && (
           <button
-            onClick={() => { setQuery(""); setResults([]); }}
+            type="button"
+            onClick={clear}
             className="absolute right-3 text-white/30 hover:text-white/70 cursor-pointer"
             aria-label="Clear search"
           >
@@ -85,16 +110,20 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
       {/* Dropdown results */}
       {results.length > 0 && (
         <div
+          id={listboxId}
           className="absolute top-full left-0 right-0 z-50 mt-1 rounded-card border border-white/10 bg-elevated overflow-hidden shadow-card-hover"
           role="listbox"
           aria-label="Search results"
         >
-          {results.map((film) => (
+          {results.map((film, index) => (
             <button
+              type="button"
               key={film.id}
+              id={`${listboxId}-${film.id}`}
               onClick={() => pick(film)}
               role="option"
-              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors duration-fast cursor-pointer text-left"
+              aria-selected={index === activeIndex}
+              className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors duration-fast cursor-pointer text-left ${index === activeIndex ? "bg-white/8" : ""}`}
               style={{ fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}
             >
               <div className="flex-shrink-0 rounded overflow-hidden bg-surface" style={{ width: "2rem", height: "3rem" }}>
@@ -121,7 +150,7 @@ const FilmSearch = ({ onSelect, placeholder = "Search a film…" }) => {
           ))}
         </div>
       )}
-      {loading && (
+      {isLoading && query.trim() && (
         <p className="absolute top-full left-0 mt-1 font-body text-muted" style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}>
           Searching…
         </p>
@@ -153,6 +182,7 @@ const FilmColumn = ({ id, onClear }) => {
         </div>
         {/* Clear button */}
         <button
+          type="button"
           onClick={onClear}
           aria-label={`Remove ${film.title}`}
           className="absolute top-2 right-2 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 transition-all duration-fast cursor-pointer opacity-0 group-hover:opacity-100"
@@ -180,10 +210,10 @@ const FilmColumn = ({ id, onClear }) => {
       {/* Stats */}
       <div className="flex flex-col" style={{ gap: "clamp(0.5rem,1vh,0.75rem)" }}>
         {[
-          ["Rating",  <span className="text-gold font-semibold">{rating}</span>, "/ 10"],
-          ["Year",    year],
+          ["Rating", <span key="rating-value" className="text-gold font-semibold">{rating}</span>, "/ 10"],
+          ["Year", year],
           ["Runtime", runtime],
-          ["Genres",  genres],
+          ["Genres", genres],
         ].map(([label, value, suffix]) => (
           <div key={label} className="flex items-baseline justify-between border-b border-white/6 pb-2">
             <span className="font-mono text-muted uppercase tracking-[0.12em]" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>
@@ -205,6 +235,7 @@ const FilmColumn = ({ id, onClear }) => {
 
       {/* View full page */}
       <button
+        type="button"
         onClick={() => navigate(`/film/${film.id}`)}
         className="flex items-center gap-2 font-body font-medium text-gold border border-gold/30 hover:bg-gold/10 hover:border-gold/60 rounded-card transition-all duration-normal cursor-pointer self-start"
         style={{ padding: "0.6rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}
@@ -253,6 +284,11 @@ const ComparePage = () => {
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
+      <SEO
+        title="Film Comparison"
+        description="Compare two films side by side by rating, runtime, release year, genres, posters, and overview."
+        canonicalPath={`/compare${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}
+      />
       <BackButton fallbackRoute="/" />
 
       <div
@@ -276,6 +312,7 @@ const ComparePage = () => {
         {idA && idB && (
           <div className="flex justify-center" style={{ padding: "clamp(1rem,2vh,1.5rem) 0" }}>
             <button
+              type="button"
               onClick={swap}
               className="flex items-center gap-2 font-body font-medium text-white/60 hover:text-white border border-white/10 hover:border-white/25 rounded-full transition-all duration-normal cursor-pointer"
               style={{ padding: "0.5rem 1.25rem", fontSize: "clamp(0.65rem,1vw,0.8rem)" }}

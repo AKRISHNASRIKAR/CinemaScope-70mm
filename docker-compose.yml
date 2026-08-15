@@ -1,0 +1,30 @@
+# CinemaScope local development environment
+#
+# IMPORTANT: The Supabase local stack (PostgreSQL, Auth, Edge Functions, Studio)
+# is managed separately via the Supabase CLI, NOT by this compose file.
+# Run it with: cd backend && npx supabase start
+#
+# This file provides:
+#   - A containerized frontend dev server (alternative to `npm run dev`)
+#
+# Usage:
+#   cp frontend/.env.example frontend/.env   # fill in your values
+#   docker compose up
+
+services:
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - '5173:5173'
+    environment:
+      # Points to the Supabase local API running on the host machine
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://host.docker.internal:54321}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+
+volumes:
+  frontend_modules:

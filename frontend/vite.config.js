@@ -9,6 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    // Relying on Vite's default chunking algorithm to avoid circular dependencies
+    // and initialization ordering issues with React and Rollup.
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

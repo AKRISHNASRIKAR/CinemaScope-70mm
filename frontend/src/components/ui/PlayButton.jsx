@@ -2,6 +2,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 const PlayButton = ({ onClick }) => (
   <button
+    type="button"
     onClick={onClick}
     aria-label="Play film"
     className="

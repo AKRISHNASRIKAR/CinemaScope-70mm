@@ -23,5 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
-
 .env
+.env.local
+.env.*.local
+
+# Architecture doc — large design reference, local only
+ARCHITECTURE.md
+
+# Docker data volumes
+docker/data/
+.docker/

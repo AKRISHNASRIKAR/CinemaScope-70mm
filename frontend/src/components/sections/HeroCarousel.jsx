@@ -1,12 +1,12 @@
 import { useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import ScrollRow from "@/components/ui/ScrollRow";
+import { Link } from "react-router-dom";
 import { posterUrl } from "@/lib/utils/tmdbImage";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }) => {
-  const navigate  = useNavigate();
   const cardRefs  = useRef({});
   const stripRef  = useRef(null);
+  const shouldReduceMotion = useReducedMotion();
 
   /* ── Smooth-scroll active card into view when hero film changes ── */
   useEffect(() => {
@@ -16,9 +16,9 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
     if (el && container) {
       const targetScroll =
         el.offsetLeft - container.offsetWidth / 2 + el.offsetWidth / 2;
-      container.scrollTo({ left: targetScroll, behavior: "smooth" });
+      container.scrollTo({ left: targetScroll, behavior: shouldReduceMotion ? "auto" : "smooth" });
     }
-  }, [activeFilmId]);
+  }, [activeFilmId, shouldReduceMotion]);
 
   if (!films.length) return null;
 
@@ -39,7 +39,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
       <div className="relative flex items-center group/hc">
         {films.length > 5 && (
           <button
-            onClick={() => stripRef.current?.scrollBy({ left: -180, behavior: "smooth" })}
+            type="button"
+            onClick={() => stripRef.current?.scrollBy({ left: -180, behavior: shouldReduceMotion ? "auto" : "smooth" })}
             aria-label="Scroll Now Showing left"
             className="
               hidden sm:flex absolute -left-3 z-20
@@ -61,8 +62,8 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
           aria-label="Now Showing films"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "ArrowLeft")  { e.preventDefault(); stripRef.current?.scrollBy({ left: -180, behavior: "smooth" }); }
-            if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: "smooth" }); }
+            if (e.key === "ArrowLeft")  { e.preventDefault(); stripRef.current?.scrollBy({ left: -180, behavior: shouldReduceMotion ? "auto" : "smooth" }); }
+            if (e.key === "ArrowRight") { e.preventDefault(); stripRef.current?.scrollBy({ left:  180, behavior: shouldReduceMotion ? "auto" : "smooth" }); }
           }}
           /* Significant top padding for headroom, light bottom padding for stability */
           className="flex items-end overflow-x-auto overflow-y-visible scrollbar-hide pt-12 pb-4 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"
@@ -80,29 +81,23 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
             const src = posterUrl(film.poster_path, "w200") ?? "/fallback-image-film.jpg";
 
             return (
-              <div
+              <Link
+                to={`/film/${film.id}`}
                 key={film.id}
                 ref={(el) => { cardRefs.current[film.id] = el; }}
-                onClick={() => navigate(`/film/${film.id}`)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/film/${film.id}`); } }}
-                role="button"
-                tabIndex={0}
                 aria-label={`${film.title}${isActive ? " (currently showing)" : ""}`}
-                className="flex-shrink-0 cursor-pointer"
+                aria-current={isActive ? "true" : undefined}
+                className="interactive-lift flex-shrink-0 rounded-card focus-ring"
                 style={{
                   width: "clamp(70px,10vw,120px)",
                   scrollSnapAlign: "start",
-                  transform: "translateY(0)",
-                  transition: "transform 200ms ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
               >
                 <div
                   className="relative w-full aspect-[2/3] rounded-card overflow-hidden"
                   style={{
                     boxShadow: isActive
-                      ? "0 0 0 2px #c9a843, 0 4px 20px rgba(0,0,0,0.6)"
+                      ? "0 0 0 2px var(--color-gold), 0 4px 20px rgba(0,0,0,0.6)"
                       : "0 4px 16px rgba(0,0,0,0.5)",
                     transition: "box-shadow 200ms ease",
                   }}
@@ -125,14 +120,15 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
                 >
                   {film.title}
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>
 
         {films.length > 5 && (
           <button
-            onClick={() => stripRef.current?.scrollBy({ left: 180, behavior: "smooth" })}
+            type="button"
+            onClick={() => stripRef.current?.scrollBy({ left: 180, behavior: shouldReduceMotion ? "auto" : "smooth" })}
             aria-label="Scroll Now Showing right"
             className="
               hidden sm:flex absolute -right-1 z-20

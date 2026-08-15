@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
@@ -8,8 +8,10 @@ import FilmCard from "@/components/ui/FilmCard";
 import Footer from "@/components/layout/Footer";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SEO from "@/components/seo/SEO";
 import { FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_MAP } from "@/lib/constants";
+import { posterUrl } from "@/lib/utils/tmdbImage";
 
 /* ── Constants ────────────────────────────────────────────────── */
 const SORT_OPTIONS = [
@@ -18,12 +20,34 @@ const SORT_OPTIONS = [
   { label: "Newest", value: "release_date.desc", voteCt: false },
   { label: "Oldest", value: "release_date.asc", voteCt: false },
 ];
+const DEFAULT_SORT = SORT_OPTIONS[0];
+
+/* Every tab goes through /discover/movie.
+   TMDB's curated list endpoints — /movie/now_playing, /movie/top_rated,
+   /movie/upcoming — silently IGNORE `with_genres`. They used to back
+   three of these tabs, which is why "In Theaters" on the Action page
+   returned whatever was in cinemas, genre or not. /discover is the only
+   endpoint that combines a genre with other criteria, so the date
+   windows and vote thresholds those lists imply are rebuilt here. */
+
+const iso = (d) => d.toISOString().slice(0, 10);
+const today = () => iso(new Date());
+const monthsAgo = (n) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return iso(d);
+};
+
+/* Theatrical (2) or Digital (3) — %7C is an encoded `|`, TMDB's OR. */
+const RELEASE_TYPE_IN_THEATERS = "2%7C3";
+/* Keeps "Top Rated" off obscure titles with a handful of 10/10 votes. */
+const TOP_RATED_MIN_VOTES = 300;
 
 const FILTER_TABS = [
-  { label: "All", endpoint: "discover" },
-  { label: "In Theaters", endpoint: "now_playing" },
-  { label: "Top Rated", endpoint: "top_rated" },
-  { label: "Coming Soon", endpoint: "upcoming" },
+  { label: "All", key: "all" },
+  { label: "In Theaters", key: "theaters" },
+  { label: "Top Rated", key: "top" },
+  { label: "Coming Soon", key: "upcoming" },
 ];
 
 /* ── 1. Genre Hero Section (Stateless) ────────────────────────── */
@@ -52,18 +76,35 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Initial URL for page 1
-  const getUrl = (p) => {
-    const genreParam = `&with_genres=${genreId}`;
-    const sortParam = `&sort_by=${sortBy.value}`;
-    const voteParam = sortBy.voteCt ? "&vote_count.gte=200" : "";
-    if (filterTab.endpoint === "discover") {
-      return `/discover/movie?page=${p}${genreParam}${sortParam}${voteParam}`;
-    }
-    return `/movie/${filterTab.endpoint}?page=${p}${genreParam}`;
-  };
+  /* Builds the /discover query for a given tab + page.
+     The tab supplies the *criteria*; the sort dropdown still supplies the
+     ordering, so "Top Rated + Newest" means newest among well-rated films
+     rather than the tab silently overriding the user's choice. */
+  const getUrl = useCallback((p) => {
+    const base = `/discover/movie?page=${p}&with_genres=${genreId}&sort_by=${sortBy.value}`;
+    // A vote floor is needed whenever rating drives the order, and always
+    // on the Top Rated tab — otherwise one 10/10 vote tops the list.
+    const voteFloor = sortBy.voteCt || filterTab.key === "top"
+      ? `&vote_count.gte=${TOP_RATED_MIN_VOTES}`
+      : "";
 
-  const { data } = useSWR(getUrl(1), fetcher, { suspense: true });
+    switch (filterTab.key) {
+      case "theaters":
+        return (
+          `${base}${voteFloor}&with_release_type=${RELEASE_TYPE_IN_THEATERS}` +
+          `&primary_release_date.gte=${monthsAgo(1)}&primary_release_date.lte=${today()}`
+        );
+      case "top":
+        return `${base}${voteFloor}`;
+      case "upcoming":
+        return `${base}${voteFloor}&primary_release_date.gte=${today()}`;
+      default:
+        return `${base}${voteFloor}`;
+    }
+  }, [filterTab.key, genreId, sortBy.value, sortBy.voteCt]);
+
+  const initialUrl = useMemo(() => getUrl(1), [getUrl]);
+  const { data } = useSWR(initialUrl, fetcher, { suspense: true });
   
   useEffect(() => {
     // Reset when filters change
@@ -74,26 +115,26 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
       const urls = data.results
         .filter((f) => f.poster_path)
         .slice(0, 8)
-        .map((f) => `https://image.tmdb.org/t/p/w342${f.poster_path}`);
+        .map((f) => posterUrl(f.poster_path, "w342"));
       setHeroPosterUrls(urls);
     }
-  }, [genreId, sortBy, filterTab, data, setHeroPosterUrls]);
+  }, [data, genreId, sortBy, filterTab, setHeroPosterUrls]);
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
       const moreData = await fetcher(getUrl(nextPage));
-      setExtraFilms((prev) => [...prev, ...moreData.results]);
+      setExtraFilms((prev) => [...prev, ...(moreData?.results ?? [])]);
       setPage(nextPage);
     } catch (e) {
       console.error(e);
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [getUrl, page]);
 
-  const allFilms = [...(data?.results || []), ...extraFilms];
+  const allFilms = useMemo(() => [...(data?.results || []), ...extraFilms], [data?.results, extraFilms]);
 
   if (allFilms.length === 0) {
     return (
@@ -105,25 +146,28 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
 
   return (
     <>
-      <div className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
+      <ul className="grid justify-center" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(130px, 18vw, 200px), 1fr))", gap: "clamp(0.75rem, 2vw, 1.5rem)", justifyContent: "center" }}>
         {allFilms.map((film) => (
-          <FilmCard 
-            key={`${film.id}-${page}`} 
-            film={film} 
-            subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
-          />
+          <li key={film.id}>
+            <FilmCard 
+              film={film} 
+              subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined} 
+            />
+          </li>
         ))}
-      </div>
+      </ul>
       
       {page < totalPages && (
         <div className="flex justify-center" style={{ marginTop: "clamp(2rem, 4vw, 3rem)" }}>
           <button
+            type="button"
             onClick={handleLoadMore}
             disabled={loadingMore}
+            aria-busy={loadingMore}
             className="flex items-center gap-3 font-body font-medium tracking-[0.15em] uppercase rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-all duration-normal cursor-pointer disabled:opacity-50"
             style={{ padding: "0.75rem 2.5rem" }}
           >
-            {loadingMore && <CircularProgress size={14} sx={{ color: "#c9a843" }} />}
+            {loadingMore && <CircularProgress size={14} sx={{ color: "var(--color-gold)" }} />}
             {loadingMore ? "Loading…" : "Load More"}
           </button>
         </div>
@@ -138,7 +182,7 @@ const GenrePage = () => {
   const genreId = parseInt(id, 10);
   const genreName = GENRE_MAP[genreId] ?? "Genre";
 
-  const [sortBy, setSortBy] = useState(SORT_OPTIONS[0]);
+  const sortBy = DEFAULT_SORT;
   const [filterTab, setFilterTab] = useState(FILTER_TABS[0]);
   const [heroPosterUrls, setHeroPosterUrls] = useState([]);
   const [isSticky, setIsSticky] = useState(true);
@@ -159,42 +203,37 @@ const GenrePage = () => {
 
   return (
     <div className="min-h-screen bg-base relative">
+      <SEO
+        title={`${genreName} Movies`}
+        description={`Browse ${genreName} movies on CinemaScope, including popular, top rated, upcoming, and theatrical releases.`}
+        canonicalPath={`/genre/${genreId}`}
+      />
       <BackButton fallbackRoute="/" />
       <GenreHero genreName={genreName} heroPosterUrls={heroPosterUrls} navHeight={NAV_HEIGHT} />
 
       <div 
-        className={`${isSticky ? 'sticky' : 'relative'} bg-[#090909] border-b border-white/5 w-full transition-all duration-200`} 
+        className={`${isSticky ? "sticky" : "relative"} bg-base border-b border-white/5 w-full transition-all duration-200`} 
         style={{ top: isSticky ? "var(--navbar-height, 4rem)" : "auto", zIndex: 30 }}
       >
         <div className="center-container">
           <div className="flex items-center justify-between flex-wrap" style={{ gap: "clamp(0.5rem, 1vw, 1rem)", padding: "clamp(0.75rem, 1.5vh, 1rem) 0" }}>
             
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none" style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}>
+              <div
+                className="flex items-center overflow-x-auto scrollbar-hide flex-1 sm:flex-none"
+                style={{ gap: "clamp(0.25rem, 0.8vw, 0.5rem)" }}
+                aria-label={`${genreName} movie filters`}
+              >
                 {FILTER_TABS.map((tab) => (
                   <button
+                    type="button"
                     key={tab.label}
                     onClick={() => setFilterTab(tab)}
+                    aria-pressed={filterTab.label === tab.label}
                     className={`flex-shrink-0 font-body font-medium tracking-[0.12em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[10px] whitespace-nowrap ${filterTab.label === tab.label ? "text-gold border-gold" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                     style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
                   >
                     {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="font-mono text-white/30 text-[10px] uppercase hidden sm:inline">Sort</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                {SORT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setSortBy(opt)}
-                    className={`flex-shrink-0 font-body font-medium tracking-[0.1em] uppercase transition-all duration-fast cursor-pointer pb-2 border-b-2 text-[9px] whitespace-nowrap ${sortBy.value === opt.value ? "text-gold border-gold" : "bg-transparent text-white/30 border-transparent hover:text-white"}`}
-                    style={{ paddingLeft: "1rem", paddingRight: "1rem" }}
-                  >
-                    {opt.label}
                   </button>
                 ))}
               </div>
