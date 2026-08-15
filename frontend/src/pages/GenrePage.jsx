@@ -22,11 +22,32 @@ const SORT_OPTIONS = [
 ];
 const DEFAULT_SORT = SORT_OPTIONS[0];
 
+/* Every tab goes through /discover/movie.
+   TMDB's curated list endpoints — /movie/now_playing, /movie/top_rated,
+   /movie/upcoming — silently IGNORE `with_genres`. They used to back
+   three of these tabs, which is why "In Theaters" on the Action page
+   returned whatever was in cinemas, genre or not. /discover is the only
+   endpoint that combines a genre with other criteria, so the date
+   windows and vote thresholds those lists imply are rebuilt here. */
+
+const iso = (d) => d.toISOString().slice(0, 10);
+const today = () => iso(new Date());
+const monthsAgo = (n) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return iso(d);
+};
+
+/* Theatrical (2) or Digital (3) — %7C is an encoded `|`, TMDB's OR. */
+const RELEASE_TYPE_IN_THEATERS = "2%7C3";
+/* Keeps "Top Rated" off obscure titles with a handful of 10/10 votes. */
+const TOP_RATED_MIN_VOTES = 300;
+
 const FILTER_TABS = [
-  { label: "All", endpoint: "discover" },
-  { label: "In Theaters", endpoint: "now_playing" },
-  { label: "Top Rated", endpoint: "top_rated" },
-  { label: "Coming Soon", endpoint: "upcoming" },
+  { label: "All", key: "all" },
+  { label: "In Theaters", key: "theaters" },
+  { label: "Top Rated", key: "top" },
+  { label: "Coming Soon", key: "upcoming" },
 ];
 
 /* ── 1. Genre Hero Section (Stateless) ────────────────────────── */
@@ -55,16 +76,32 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Initial URL for page 1
+  /* Builds the /discover query for a given tab + page.
+     The tab supplies the *criteria*; the sort dropdown still supplies the
+     ordering, so "Top Rated + Newest" means newest among well-rated films
+     rather than the tab silently overriding the user's choice. */
   const getUrl = useCallback((p) => {
-    const genreParam = `&with_genres=${genreId}`;
-    const sortParam = `&sort_by=${sortBy.value}`;
-    const voteParam = sortBy.voteCt ? "&vote_count.gte=200" : "";
-    if (filterTab.endpoint === "discover") {
-      return `/discover/movie?page=${p}${genreParam}${sortParam}${voteParam}`;
+    const base = `/discover/movie?page=${p}&with_genres=${genreId}&sort_by=${sortBy.value}`;
+    // A vote floor is needed whenever rating drives the order, and always
+    // on the Top Rated tab — otherwise one 10/10 vote tops the list.
+    const voteFloor = sortBy.voteCt || filterTab.key === "top"
+      ? `&vote_count.gte=${TOP_RATED_MIN_VOTES}`
+      : "";
+
+    switch (filterTab.key) {
+      case "theaters":
+        return (
+          `${base}${voteFloor}&with_release_type=${RELEASE_TYPE_IN_THEATERS}` +
+          `&primary_release_date.gte=${monthsAgo(1)}&primary_release_date.lte=${today()}`
+        );
+      case "top":
+        return `${base}${voteFloor}`;
+      case "upcoming":
+        return `${base}${voteFloor}&primary_release_date.gte=${today()}`;
+      default:
+        return `${base}${voteFloor}`;
     }
-    return `/movie/${filterTab.endpoint}?page=${p}${genreParam}`;
-  }, [filterTab.endpoint, genreId, sortBy.value, sortBy.voteCt]);
+  }, [filterTab.key, genreId, sortBy.value, sortBy.voteCt]);
 
   const initialUrl = useMemo(() => getUrl(1), [getUrl]);
   const { data } = useSWR(initialUrl, fetcher, { suspense: true });

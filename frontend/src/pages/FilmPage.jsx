@@ -1,5 +1,5 @@
-import { Suspense, useRef, useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Fragment, Suspense, useRef, useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 
@@ -24,8 +24,108 @@ import { useSession } from "@/hooks/useSession";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { posterUrl, backdropUrl } from "@/lib/utils/tmdbImage";
+import { ShareCardButton } from "@/features/share-card";
 
 const INITIAL_CAST = 8;
+
+/* ── Key crew ──────────────────────────────────────────────────────
+   Director only for now. Kept as a table because TMDB spells roles
+   several ways and adding writer/composer later is one more row.
+─────────────────────────────────────────────────────────────────── */
+const CREW_ROLES = [
+  { label: "Directed by", jobs: ["Director"] },
+];
+
+/** Some films credit eight writers — show three and count the rest. */
+const MAX_CREW_NAMES = 3;
+
+/**
+ * Pull the key crew out of TMDB's flat `crew` array.
+ * Dedupes by person id, because TMDB frequently lists the same person
+ * twice under different job titles (Villeneuve is Director *and* Screenplay).
+ */
+function keyCrew(crew = []) {
+  return CREW_ROLES.map(({ label, jobs }) => {
+    const people = [
+      ...new Map(
+        crew.filter((c) => jobs.includes(c.job)).map((c) => [c.id, c])
+      ).values(),
+    ];
+    if (!people.length) return null;
+    return { label, people: people.slice(0, MAX_CREW_NAMES), extra: people.length - MAX_CREW_NAMES };
+  }).filter(Boolean);
+}
+
+/* ── Key crew block ───────────────────────────────────────────────
+   Fetched with the SAME SWR key as <CastSection/>, so the two share one
+   cache entry and one request through the Edge Function proxy.
+   Deliberately NOT suspense: the hero's title and poster shouldn't wait
+   on a credits call. Space is reserved while it loads.
+─────────────────────────────────────────────────────────────────── */
+const KeyCrew = ({ id }) => {
+  const { data: credits } = useSWR(`/movie/${id}/credits`, fetcher);
+  const navigate = useNavigate();
+
+  const rows = credits ? keyCrew(credits.crew) : [];
+  const loading = !credits;
+
+  if (!loading && rows.length === 0) return null;
+
+  const labelStyle = { fontSize: "clamp(0.45rem, 0.72vw, 0.58rem)", letterSpacing: "0.22em" };
+  const valueStyle = { fontSize: "clamp(0.68rem, 1.02vw, 0.85rem)" };
+
+  return (
+    /* Stacked on phones, two-column from `sm` up — a genuine layout *change*
+       rather than continuous scaling, so a breakpoint beats clamp() here. */
+    <dl
+      className="grid items-baseline grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)]"
+      style={{
+        columnGap: "clamp(0.6rem, 1.4vw, 1.1rem)",
+        rowGap: "clamp(0.15rem, 0.4vh, 0.3rem)",
+        marginTop: "clamp(0.6rem, 1.5vh, 1rem)",
+        minHeight: loading ? "clamp(1rem, 2vh, 1.3rem)" : undefined,
+      }}
+    >
+      {loading
+        ? [0].map((i) => (
+            <Fragment key={i}>
+              <dt className="skeleton rounded-sm" style={{ height: "0.55rem", width: "clamp(3.5rem,6vw,5rem)" }} aria-hidden />
+              <dd className="skeleton rounded-sm" style={{ height: "0.55rem", width: "42%" }} aria-hidden />
+            </Fragment>
+          ))
+        : rows.map(({ label, people, extra }) => (
+            <Fragment key={label}>
+              <dt
+                className="font-mono text-muted uppercase whitespace-nowrap mt-[0.5rem] first:mt-0 sm:mt-0"
+                style={labelStyle}
+              >
+                {label}
+              </dt>
+              <dd className="font-body text-white/80 min-w-0" style={valueStyle}>
+                {people.map((p, i) => (
+                  <Fragment key={p.id}>
+                    {i > 0 && <span className="text-faint">, </span>}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/person/${p.id}`)}
+                      className="text-left hover:text-gold focus-visible:text-gold transition-colors duration-fast cursor-pointer bg-transparent border-0 p-0"
+                      style={{ font: "inherit", color: "inherit" }}
+                    >
+                      {p.name}
+                    </button>
+                  </Fragment>
+                ))}
+                {extra > 0 && (
+                  <span className="text-faint" style={{ marginLeft: "0.3rem" }}>
+                    +{extra} more
+                  </span>
+                )}
+              </dd>
+            </Fragment>
+          ))}
+    </dl>
+  );
+};
 
 const toIsoDuration = (minutes) => {
   if (!minutes) return undefined;
@@ -251,6 +351,9 @@ const FilmHero = ({ id }) => {
             {film.tagline && (
               <p className="font-body italic text-muted mt-2" style={{ fontSize: "clamp(0.75rem,1.2vw,1rem)" }}>{film.tagline}</p>
             )}
+
+            {/* Key crew — director */}
+            <KeyCrew id={film.id} />
             <div className="flex items-baseline mt-4" style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)" }}>
               <span className="text-gold font-mono font-semibold" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>⭐ {film.vote_average ? film.vote_average.toFixed(1) : "N/A"}</span>
               <span className="font-mono text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>/ 10</span>
@@ -275,6 +378,13 @@ const FilmHero = ({ id }) => {
               </div>
             )}
             <FilmActions film={film} />
+
+            {/* Share card — deliberately OUTSIDE FilmActions, which early-returns
+                a sign-in prompt when signed out. Building a card needs no account
+                (nothing is uploaded), so gating it behind auth would be wrong. */}
+            <div className="mt-4">
+              <ShareCardButton film={film} />
+            </div>
           </div>
         </div>
       </div>

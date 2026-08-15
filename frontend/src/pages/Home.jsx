@@ -4,12 +4,14 @@ import { fetcher } from "@/lib/api/fetcher";
 
 import Hero from "@/components/sections/Hero";
 import GenreRow from "@/components/sections/GenreRow";
+import TrendingRow from "@/components/sections/TrendingRow";
 import Footer from "@/components/layout/Footer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
 import ScrollRow from "@/components/ui/ScrollRow";
+import SectionHeader from "@/components/ui/SectionHeader";
 import SEO from "@/components/seo/SEO";
-import { HomeHeroSkeleton } from "@/components/ui/Skeletons";
+import { HomeHeroSkeleton, TrendingRowSkeleton } from "@/components/ui/Skeletons";
 import { GENRE_SECTIONS } from "@/lib/constants";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
@@ -95,12 +97,17 @@ const Home = () => {
       {/* Recently Viewed — client-only, no Suspense needed */}
       <RecentlyViewedRow />
 
+      {/* Trending — independent boundary so a slow/failed fetch is contained */}
+      <ErrorBoundary>
+        <Suspense fallback={<TrendingRowSkeleton />}>
+          <TrendingRow />
+        </Suspense>
+      </ErrorBoundary>
+
       {/* Genre section header */}
-      <div className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem, 3vw, 2.5rem)", paddingBottom: "clamp(0.25rem, 0.5vw, 0.5rem)" }}>
+      <div className="w-full bg-base" style={{ paddingTop: "clamp(2rem, 4vw, 3rem)", paddingBottom: "clamp(0.25rem, 0.5vw, 0.5rem)" }}>
         <div className="center-container">
-          <h2 className="font-display font-bold text-white leading-tight tracking-tight" style={{ fontSize: "clamp(1.1rem, 2vw, 1.6rem)" }}>
-            Top Picks by Genre
-          </h2>
+          <SectionHeader eyebrow="Curated" title="Top Picks by Genre" divider={false} />
         </div>
       </div>
 

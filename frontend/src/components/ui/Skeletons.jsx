@@ -232,3 +232,99 @@ export const FilmGridSkeleton = ({ count = 12 }) => (
     ))}
   </div>
 );
+
+/* ── Ported from the standalone frontend ──────────────────────── */
+export const TrendingRowSkeleton = ({ count = 6 }) => (
+  <section className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem,3vw,2.5rem)", paddingBottom: "clamp(0.5rem,1vw,1rem)" }}>
+    <div className="center-container">
+      <div
+        className="border-b border-white/[0.08]"
+        style={{ paddingBottom: "clamp(0.5rem,1vh,0.75rem)", marginBottom: "clamp(0.85rem,1.8vh,1.25rem)" }}
+      >
+        <div className="skeleton rounded" style={{ height: "0.6rem", width: "4rem", marginBottom: "0.5rem" }} />
+        <div className="skeleton rounded" style={{ height: "clamp(1.1rem,2vw,1.6rem)", width: "9rem" }} />
+      </div>
+
+      <div className="flex overflow-hidden pb-2" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex-shrink-0 flex flex-col" style={{ width: "clamp(118px, 13vw, 190px)" }}>
+            <div className="aspect-[2/3] rounded-card bg-white/5">
+              <Shimmer showIcon />
+            </div>
+            <div className="skeleton rounded" style={{ height: "0.7rem", width: "75%", marginTop: "clamp(0.4rem,0.8vh,0.6rem)" }} />
+            <div className="skeleton rounded mt-1" style={{ height: "0.55rem", width: "45%" }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+export const SearchResultsSkeleton = ({ rows = 5, people = 4 }) => (
+  <div className="flex flex-wrap items-start" style={{ gap: "clamp(1.5rem, 4vw, 3.5rem)" }}>
+    {/* Films column */}
+    <div style={{ flex: "3 1 clamp(300px, 45vw, 620px)", minWidth: 0 }}>
+      <div
+        className="skeleton rounded"
+        style={{ height: "clamp(1rem,1.8vw,1.4rem)", width: "6rem", marginBottom: "clamp(0.85rem,1.8vh,1.25rem)" }}
+      />
+      <div className="flex flex-col" style={{ gap: "clamp(0.5rem, 1.2vh, 0.85rem)" }}>
+        {Array.from({ length: rows }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-stretch rounded-card border border-white/[0.06] bg-white/[0.02]"
+            style={{ gap: "clamp(0.75rem, 1.6vw, 1.25rem)", padding: "clamp(0.5rem, 1vw, 0.75rem)" }}
+          >
+            <div
+              className="flex-shrink-0 rounded-card bg-white/5"
+              style={{ width: "clamp(58px, 8vw, 92px)", aspectRatio: "2 / 3" }}
+            >
+              <Shimmer />
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: "0.5rem" }}>
+              <div className="skeleton rounded" style={{ height: "clamp(0.9rem,1.6vw,1.25rem)", width: "55%" }} />
+              <div className="skeleton rounded" style={{ height: "0.6rem", width: "30%" }} />
+              <div className="skeleton rounded" style={{ height: "0.55rem", width: "90%" }} />
+              <div className="skeleton rounded" style={{ height: "0.55rem", width: "70%" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* People column */}
+    <div style={{ flex: "1 1 clamp(240px, 24vw, 320px)", minWidth: 0 }}>
+      <div
+        className="skeleton rounded"
+        style={{ height: "clamp(1rem,1.8vw,1.4rem)", width: "5rem", marginBottom: "clamp(0.85rem,1.8vh,1.25rem)" }}
+      />
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: "repeat(auto-fill, minmax(clamp(96px, 12vw, 132px), 1fr))",
+          gap: "clamp(0.9rem, 2vw, 1.4rem)",
+        }}
+      >
+        {Array.from({ length: people }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-white/90 flex flex-col"
+            style={{
+              padding: "clamp(6px,0.8vw,10px) clamp(6px,0.8vw,10px) clamp(18px,2.5vw,28px)",
+              borderRadius: "2px",
+              boxShadow: "3px 4px 14px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div className="w-full aspect-[3/4]">
+              <Shimmer style={{ borderRadius: "1px" }} />
+            </div>
+            <div style={{ paddingTop: "clamp(6px,0.8vw,10px)" }}>
+              <div className="skeleton rounded" style={{ height: "0.5rem", width: "80%" }} />
+              <div className="skeleton rounded mt-1" style={{ height: "0.4rem", width: "55%" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 import Header from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/ui/ProtectedRoute";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import useScrollRestoration from "@/hooks/useScrollRestoration";
 
 /* ── Route-level code splitting ─────────────────────────────────
    Each page is a separate chunk — only the current page's JS is
@@ -57,9 +58,20 @@ const AppRoutes = () => {
   );
 };
 
+/* ── Scroll behaviour for every navigation ──────────────────────
+   Must live inside <Router> to read location. Renders nothing.
+   <BrowserRouter> keeps the previous page's offset, and React Router's
+   own <ScrollRestoration> only ships with data routers.
+─────────────────────────────────────────────────────────────── */
+const ScrollManager = () => {
+  useScrollRestoration();
+  return null;
+};
+
 function App() {
   return (
     <Router>
+      <ScrollManager />
       <Header />
       {/* id="main-content" is the skip-nav target */}
       <main id="main-content">
