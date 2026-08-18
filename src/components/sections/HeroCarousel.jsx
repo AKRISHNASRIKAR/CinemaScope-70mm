@@ -110,7 +110,7 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
                 >
                   <img
                     src={src}
-                    alt={film.title}
+                    alt=""
                     loading="lazy"
                     className="w-full h-full object-cover"
                     style={{ opacity: isActive ? 1 : 0.55, transition: "opacity 200ms ease" }}
