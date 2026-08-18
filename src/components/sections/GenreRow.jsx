@@ -79,18 +79,18 @@ const GenreRow = ({
           {/* ── Copy column ─────────────────────────────────── */}
           <div style={{ flex: "1 1 clamp(220px, 22vw, 320px)", minWidth: 0 }}>
             <h2
-              className={`font-display font-bold leading-[0.92] tracking-tight cursor-pointer transition-colors duration-fast outline-none ${headingColor} ${
-                isDark ? "hover:text-gold focus-visible:text-gold" : "hover:text-ink-muted focus-visible:text-ink-muted"
-              }`}
+              className={`font-display font-bold leading-[0.92] tracking-tight ${headingColor}`}
               style={{ fontSize: "clamp(1.6rem, 3.5vw, 3.5rem)" }}
-              role="button"
-              tabIndex={0}
-              onClick={goToGenrePage}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToGenrePage(); }
-              }}
             >
-              {genre}
+              <button
+                type="button"
+                className={`text-left cursor-pointer transition-colors duration-fast outline-none ${
+                  isDark ? "hover:text-gold focus-visible:text-gold" : "hover:text-ink-muted focus-visible:text-ink-muted"
+                }`}
+                onClick={goToGenrePage}
+              >
+                {genre}
+              </button>
             </h2>
 
             <p

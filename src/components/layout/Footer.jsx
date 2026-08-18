@@ -15,7 +15,7 @@ const Footer = () => {
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/60 hover:text-gold transition-colors duration-fast"
+            className="text-white/80 hover:text-gold transition-colors duration-fast"
           >
             @Krishna
           </a>

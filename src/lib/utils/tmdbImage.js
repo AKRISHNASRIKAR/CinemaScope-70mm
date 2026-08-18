@@ -23,5 +23,5 @@ export function tmdbImage(size, path) {
 
 /** Convenience wrappers */
 export const posterUrl   = (path, size = "w342")    => tmdbImage(size, path);
-export const backdropUrl = (path, size = "original") => tmdbImage(size, path);
+export const backdropUrl = (path, size = "w1280") => tmdbImage(size, path);
 export const profileUrl  = (path, size = "w200")    => tmdbImage(size, path);

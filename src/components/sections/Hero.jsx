@@ -405,14 +405,19 @@ const Hero = ({ film, relatedFilms = [] }) => {
                 key={f.id}
                 onClick={() => navigateTo(i)}
                 aria-label={`Go to film ${i + 1}`}
-                className="rounded-full cursor-pointer border-none"
-                style={{
-                  width:            i === displayIdx ? "24px"    : "8px",
-                  height:           "8px",
-                  backgroundColor:  i === displayIdx ? "#c9a843" : "rgba(255,255,255,0.25)",
-                  transition:       "width 300ms ease, background-color 300ms ease",
-                }}
-              />
+                className="cursor-pointer border-none bg-transparent flex items-center justify-center"
+                style={{ width: "32px", height: "32px", padding: 0 }}
+              >
+                <div
+                  className="rounded-full"
+                  style={{
+                    width:            i === displayIdx ? "24px"    : "8px",
+                    height:           "8px",
+                    backgroundColor:  i === displayIdx ? "#c9a843" : "rgba(255,255,255,0.25)",
+                    transition:       "width 300ms ease, background-color 300ms ease",
+                  }}
+                />
+              </button>
             ))}
           </div>
         )}

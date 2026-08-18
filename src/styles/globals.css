@@ -47,8 +47,8 @@ body {
 
 /* ── Shimmer skeleton ──────────────────────────────────────────── */
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 @keyframes spin {
@@ -56,13 +56,22 @@ body {
 }
 
 .skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #111111;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     90deg,
-    #111111 25%,
+    transparent 0%,
     #1c1c1c 50%,
-    #111111 75%
+    transparent 100%
   );
-  background-size: 200% 100%;
+  transform: translateX(-100%);
   animation: shimmer 1.5s infinite linear;
 }
 
