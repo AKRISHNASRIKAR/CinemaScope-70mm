@@ -6,12 +6,6 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// TEMPORARY build-time diagnostic — remove once Cloudflare env var visibility is confirmed.
-console.log("[env-check] VITE_SUPABASE_URL present:", Boolean(process.env.VITE_SUPABASE_URL));
-console.log("[env-check] VITE_SUPABASE_ANON_KEY present:", Boolean(process.env.VITE_SUPABASE_ANON_KEY));
-console.log("[env-check] VITE_BASE_URL present:", Boolean(process.env.VITE_BASE_URL));
-console.log("[env-check] VITE_API_KEY present:", Boolean(process.env.VITE_API_KEY));
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
