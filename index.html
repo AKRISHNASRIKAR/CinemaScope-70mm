@@ -8,6 +8,9 @@
     <!-- Google Fonts — loaded asynchronously to prevent render-blocking -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preconnect to TMDB API and Image CDN for faster LCP -->
+    <link rel="preconnect" href="https://api.themoviedb.org" crossorigin />
+    <link rel="preconnect" href="https://image.tmdb.org" />
     <link
       rel="preload"
       as="style"
@@ -25,6 +28,26 @@
         href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Epilogue:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&display=swap&subset=latin"
       />
     </noscript>
+    <script>
+      (function() {
+        var key = "%VITE_API_KEY%";
+        var base = "%VITE_BASE_URL%";
+        if (key && base && key.indexOf("%") === -1) {
+          fetch(base + "/movie/popular?api_key=" + key + "&language=en-US")
+            .then(function(r){return r.json();})
+            .then(function(data){
+              if (data && data.results && data.results[0]) {
+                var l = document.createElement("link");
+                l.rel = "preload";
+                l.as = "image";
+                l.href = "https://image.tmdb.org/t/p/w1280" + data.results[0].backdrop_path;
+                l.fetchpriority = "high";
+                document.head.appendChild(l);
+              }
+            }).catch(function(){});
+        }
+      })();
+    </script>
     <title>CinemaScope</title>
   </head>
   <body>
