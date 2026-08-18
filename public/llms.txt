@@ -1,0 +1,9 @@
+# CinemaScope
+
+CinemaScope is a cinematic film discovery web app.
+
+## Links
+
+- [Home](https://cscope.vercel.app/)
+- [Search](https://cscope.vercel.app/search)
+- [Login](https://cscope.vercel.app/login)

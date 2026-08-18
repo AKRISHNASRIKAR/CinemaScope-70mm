@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -310,13 +310,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
                 animate="visible"
                 exit="exit"
                 custom={0.08}
-                role="button"
-                tabIndex={0}
-                onClick={goToFilm}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToFilm(); }
-                }}
-                className="text-white leading-[0.9] tracking-tight cursor-pointer outline-none transition-colors duration-fast hover:text-white/80 focus-visible:text-white/80"
+                className="text-white leading-[0.9] tracking-tight"
                 style={{
                   fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
                   fontWeight: 700,
@@ -325,7 +319,13 @@ const Hero = ({ film, relatedFilms = [] }) => {
                   willChange: "opacity, transform",
                 }}
               >
-                {current?.title || current?.original_title}
+                <Link
+                  to={`/film/${current?.id}`}
+                  className="cursor-pointer outline-none transition-colors duration-fast hover:text-white/80 focus-visible:text-white/80"
+                  tabIndex={0}
+                >
+                  {current?.title || current?.original_title}
+                </Link>
               </motion.h1>
 
               {/* Metadata row */}
