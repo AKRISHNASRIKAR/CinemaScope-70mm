@@ -51,7 +51,7 @@ const TrendingRow = () => {
             >
               <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card">
                 <LazyImage
-                  src={posterUrl(film.poster_path, "w342")}
+                  src={posterUrl(film.poster_path, "w185")}
                   alt={film.title}
                   fallbackType="poster"
                   className="w-full h-full object-cover transition-transform duration-slow ease-cinematic group-hover:scale-105"

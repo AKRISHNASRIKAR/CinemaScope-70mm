@@ -18,13 +18,14 @@ const FilmGrid = ({
   minCard = "clamp(130px, 18vw, 200px)",
   gap = "clamp(0.75rem, 2vw, 1.5rem)",
   subtitleFor = (f) => monthYear(f.release_date),
+  dark = true,
 }) => (
   <div
     className="grid"
     style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCard}, 1fr))`, gap }}
   >
     {films.map((film) => (
-      <FilmCard key={film.id} film={film} subtitle={subtitleFor(film)} />
+      <FilmCard key={film.id} film={film} subtitle={subtitleFor(film)} dark={dark} />
     ))}
   </div>
 );

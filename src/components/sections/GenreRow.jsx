@@ -37,6 +37,7 @@ const GenreRowContent = ({ genreIds, activeTab, isDark }) => {
         minCard="clamp(120px, 15vw, 190px)"
         gap="clamp(0.75rem, 2vw, 1.25rem)"
         subtitleFor={(f) => monthYear(f.release_date)}
+        dark={isDark}
       />
     </div>
   );
