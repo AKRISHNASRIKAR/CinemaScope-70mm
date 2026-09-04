@@ -35,6 +35,7 @@ const GenreRowContent = ({ genreIds, activeTab, isDark }) => {
         <li key={film.id} className={isDark ? "text-white" : "text-ink"}>
           <FilmCard
             film={film}
+            dark={isDark}
             subtitle={film.release_date ? new Date(film.release_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : undefined}
           />
         </li>

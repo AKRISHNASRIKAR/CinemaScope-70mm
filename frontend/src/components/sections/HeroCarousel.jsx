@@ -78,7 +78,7 @@ const HeroCarousel = ({ films = [], label = "NOW SHOWING", activeFilmId = null }
         >
           {films.map((film) => {
             const isActive = film.id === activeFilmId;
-            const src = posterUrl(film.poster_path, "w200") ?? "/fallback-image-film.jpg";
+            const src = posterUrl(film.poster_path, "w154") ?? "/fallback-image-film.jpg";
 
             return (
               <Link

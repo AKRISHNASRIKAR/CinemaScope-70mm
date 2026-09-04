@@ -2,3 +2,15 @@ project_id = "jdcwheqgijtzfbxxvnjx"
 
 [functions.tmdb]
 verify_jwt = false
+
+# watchlist and watch-history verify auth manually via requireAuth() (see
+# _shared/auth.ts) so that the function can also serve CORS preflight
+# (OPTIONS) requests, which never carry an Authorization header. Leaving
+# verify_jwt at its default (true) makes the platform gateway reject every
+# preflight before it reaches the function code, which breaks all
+# cross-origin calls from the browser with a CORS error.
+[functions.watchlist]
+verify_jwt = false
+
+[functions.watch-history]
+verify_jwt = false

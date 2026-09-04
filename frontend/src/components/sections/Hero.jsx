@@ -23,7 +23,10 @@ const getGenres = (film) => {
   return [];
 };
 
-const backdropOf = (film) => backdropUrl(film?.backdrop_path);
+// "w1280" is plenty for a full-bleed backdrop at typical viewport widths —
+// "original" (often 3840px wide) wastes well over 1MB per hero image for no
+// visible gain since the section never renders wider than ~1600px.
+const backdropOf = (film) => backdropUrl(film?.backdrop_path, "w1280");
 
 /** Preloads an image; resolves on load, resolves (not rejects) on error */
 const preloadImage = (src) =>
@@ -199,6 +202,7 @@ const Hero = ({ film, relatedFilms = [] }) => {
           alt=""
           aria-hidden
           loading="eager"
+          fetchPriority="high"
           className="absolute inset-0 w-full h-full object-cover object-center"
           style={{ zIndex: 1, willChange: "opacity" }}
         />
@@ -288,14 +292,20 @@ const Hero = ({ film, relatedFilms = [] }) => {
               onClick={() => navigateTo(i)}
               aria-label={`Go to ${f.title || `film ${i + 1}`}`}
               aria-current={i === displayIdx ? "true" : undefined}
-              className="rounded-full cursor-pointer border-none transition-colors duration-[300ms]"
-              style={{
-                width:            i === displayIdx ? "24px"    : "8px",
-                height:           "8px",
-                backgroundColor:  i === displayIdx ? "var(--color-gold)" : "rgba(255,255,255,0.25)",
-                transition:       "width 300ms ease, background-color 300ms ease",
-              }}
-            />
+              className="flex items-center justify-center cursor-pointer border-none bg-transparent"
+              style={{ width: "24px", height: "24px" }}
+            >
+              <span
+                aria-hidden
+                className="rounded-full transition-colors duration-[300ms]"
+                style={{
+                  width:            i === displayIdx ? "24px"    : "8px",
+                  height:           "8px",
+                  backgroundColor:  i === displayIdx ? "var(--color-gold)" : "rgba(255,255,255,0.25)",
+                  transition:       "width 300ms ease, background-color 300ms ease",
+                }}
+              />
+            </button>
           ))}
         </div>
       )}

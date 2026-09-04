@@ -27,17 +27,18 @@
   --color-section-light: #f5f5f0;   /* light genre rows */
 
   /* Accent — ONLY ratings / CTAs / active states */
-  --color-gold:    #c9a843;
-  --color-gold-lt: #ddb84e;         /* gold hover */
+  --color-gold:      #c9a843;
+  --color-gold-lt:   #ddb84e;         /* gold hover */
+  --color-gold-ink:  #7a5d15;         /* gold accent on LIGHT backgrounds only — #c9a843 fails 4.5:1 on --color-section-light */
 
   /* Text on dark backgrounds */
   --color-white:       #ffffff;
   --color-muted:       #8a8a8a;     /* metadata, secondary labels */
-  --color-faint:       #4a4a4a;     /* extremely subtle text */
+  --color-faint:       #808080;     /* subtle text — kept just above 4.5:1 on --color-base / --color-section-dark */
 
   /* Text on light backgrounds */
   --color-ink:         #111111;
-  --color-ink-muted:   #777777;
+  --color-ink-muted:   #5c5c5c;     /* kept just above 4.5:1 on --color-section-light */
 
   /* Borders */
   --color-border:        rgba(255, 255, 255, 0.10);

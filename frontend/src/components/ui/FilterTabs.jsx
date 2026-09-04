@@ -16,7 +16,9 @@ const FilterTabs = ({ active, onChange, dark = true }) => (
             flex-shrink-0 font-body font-medium tracking-[0.18em] uppercase
             pb-[clamp(0.25rem,0.5vh,0.5rem)] border-b-[1.5px] transition-all duration-fast cursor-pointer bg-transparent border-x-0 border-t-0
             ${isActive
-              ? "text-gold border-gold"
+              ? dark
+                ? "text-gold border-gold"
+                : "text-gold-ink border-gold-ink"
               : dark
                 ? "text-white/35 border-transparent hover:text-white/60"
                 : "text-ink-muted border-transparent hover:text-ink"

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import LazyImage from "@/components/ui/LazyImage";
 import { posterUrl } from "@/lib/utils/tmdbImage";
 
-const FilmCard = ({ film, subtitle, className = "", eager = false, imageSize = "w342" }) => {
+const FilmCard = ({ film, subtitle, className = "", eager = false, imageSize = "w185", dark = true }) => {
   return (
     <Link
       to={`/film/${film.id}`}
@@ -27,7 +27,7 @@ const FilmCard = ({ film, subtitle, className = "", eager = false, imageSize = "
         {film.title}
       </p>
       {subtitle && (
-        <p className="mt-0.5 font-body text-muted line-clamp-1" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>
+        <p className={`mt-0.5 font-body line-clamp-1 ${dark ? "text-muted" : "text-ink-muted"}`} style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>
           {subtitle}
         </p>
       )}

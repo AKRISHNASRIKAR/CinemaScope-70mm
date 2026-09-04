@@ -279,7 +279,10 @@ const FilmHero = ({ id }) => {
   const us = releaseDates?.results?.find((e) => e.iso_3166_1 === "US");
   const certification = us?.release_dates?.[0]?.certification || "N/A";
 
-  const backdrop = backdropUrl(film.backdrop_path);
+  // Full-resolution backdrop for social/OG previews; a much lighter "w1280"
+  // for the on-page hero, which never renders wider than the viewport.
+  const backdropOg = backdropUrl(film.backdrop_path);
+  const backdrop = backdropUrl(film.backdrop_path, "w1280");
   const posterSrc = posterUrl(film.poster_path, "w500") ?? "/fallback-image-film.jpg";
   const description = toDescription(film);
 
@@ -288,7 +291,7 @@ const FilmHero = ({ id }) => {
       <SEO
         title={film.title}
         description={description}
-        image={backdrop || posterSrc}
+        image={backdropOg || posterSrc}
         type="video.movie"
         canonicalPath={`/film/${film.id}`}
         jsonLd={{
@@ -317,6 +320,7 @@ const FilmHero = ({ id }) => {
             src={backdrop}
             alt={film.title}
             loading="eager"
+            fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: "top center" }}
           />

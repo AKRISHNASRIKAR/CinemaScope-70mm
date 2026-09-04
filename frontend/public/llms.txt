@@ -1,0 +1,14 @@
+# CinemaScope
+
+> CinemaScope is a cinematic film discovery web app. Browse popular films, explore genre sections backed by live TMDB data, view detailed film pages, compare titles side by side, and search for movies and actors.
+
+## Pages
+
+- [Home](https://cscope.pages.dev/): Featured films hero, trending this week, and curated genre rows (Drama & Romance, Action & Adventure, Comedy).
+- [Search](https://cscope.pages.dev/search/): Search movies and actors by name.
+- [Compare](https://cscope.pages.dev/compare): Side-by-side comparison of two films — poster, rating, runtime, genres, and overview.
+
+## Notes
+
+- Film and person detail pages are served at `/film/:id` and `/person/:person_id`, generated dynamically from TMDB data and not enumerable as static links.
+- Data is sourced from [The Movie Database (TMDB)](https://www.themoviedb.org/) via a server-side proxy; TMDB is not affiliated with or endorsing CinemaScope.

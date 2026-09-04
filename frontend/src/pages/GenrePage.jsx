@@ -115,7 +115,7 @@ const GenreGrid = ({ genreId, sortBy, filterTab, setHeroPosterUrls }) => {
       const urls = data.results
         .filter((f) => f.poster_path)
         .slice(0, 8)
-        .map((f) => posterUrl(f.poster_path, "w342"));
+        .map((f) => posterUrl(f.poster_path, "w185"));
       setHeroPosterUrls(urls);
     }
   }, [data, genreId, sortBy, filterTab, setHeroPosterUrls]);
