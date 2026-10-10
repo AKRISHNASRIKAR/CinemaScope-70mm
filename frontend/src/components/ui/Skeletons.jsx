@@ -14,9 +14,9 @@ const Shimmer = ({ className = "", style = {}, showIcon = false }) => (
   </div>
 );
 
-/* ── Home Hero Skeleton (90vh — matches Hero section height) ───── */
+/* ── Home Hero Skeleton (full viewport — matches Hero section height) ───── */
 export const HomeHeroSkeleton = () => (
-  <div className="relative w-full overflow-hidden bg-base" style={{ height: "90vh", minHeight: "560px" }}>
+  <div className="relative min-h-screen w-full overflow-hidden bg-base" style={{ minHeight: "100svh" }}>
     <Shimmer className="absolute inset-0" />
     <div className="absolute inset-0 bg-gradient-to-t from-base via-base/60 to-transparent" />
     <div className="absolute inset-0 bg-gradient-to-r from-base/80 via-transparent to-transparent" />
@@ -98,23 +98,29 @@ export const CastSectionSkeleton = () => (
   </div>
 );
 
-/* ── Genre Row Grid Skeleton ───────────────────────────────────── */
+/* ── Genre Row Carousel Skeleton ───────────────────────────────── */
 /*
- * Used inside GenreRow — matches the 2/3/4 column grid of GenreRowContent.
- * Shows exactly 4 cards (FILMS_PER_PAGE).
+ * Used inside GenreRow — matches the wide editorial carousel treatment.
  */
 export const GenreRowSkeleton = () => (
   <div
-    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-    style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)", marginTop: "clamp(0.75rem, 1.5vh, 1rem)" }}
+    className="flex overflow-hidden"
+    style={{
+      gap: "clamp(0.75rem, 2vw, 1.25rem)",
+      marginTop: "clamp(1rem, 2vh, 1.5rem)",
+    }}
   >
-    {Array.from({ length: 4 }).map((_, i) => (
-      <div key={i} className="flex flex-col">
-        <div className="aspect-[2/3] rounded-card bg-white/5">
+    {Array.from({ length: 2 }).map((_, i) => (
+      <div
+        key={i}
+        className="flex-shrink-0"
+        style={{ width: "clamp(230px, 38vw, 460px)" }}
+      >
+        <div className="aspect-[16/9] overflow-hidden rounded-card bg-white/5">
           <Shimmer showIcon />
         </div>
-        <div className="skeleton rounded mt-2" style={{ height: "0.75rem", width: "75%" }} />
-        <div className="skeleton rounded mt-1" style={{ height: "0.6rem", width: "45%" }} />
+        <div className="skeleton rounded mt-2" style={{ height: "0.75rem", width: "74%" }} />
+        <div className="skeleton rounded mt-1" style={{ height: "0.55rem", width: "30%" }} />
       </div>
     ))}
   </div>

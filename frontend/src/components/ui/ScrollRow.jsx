@@ -26,6 +26,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const ScrollRow = ({
   label,
+  ariaLabel,
   showArrows = true,
   scrollAmount = 300,
   gap = "clamp(0.75rem, 1.5vw, 1.25rem)",
@@ -111,7 +112,7 @@ const ScrollRow = ({
         <div
           ref={stripRef}
           role="region"
-          aria-label={label ?? "Scroll row"}
+          aria-label={ariaLabel ?? label ?? "Scroll row"}
           tabIndex={0}
           onKeyDown={handleKeyDown}
           className="flex overflow-x-auto scrollbar-hide pb-2 outline-none focus-visible:ring-1 focus-visible:ring-gold/40 rounded"

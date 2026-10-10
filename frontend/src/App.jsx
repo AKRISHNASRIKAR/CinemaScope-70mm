@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, matchPath, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/ui/ProtectedRoute";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -18,6 +18,21 @@ const Person      = lazy(() => import("@/pages/Person"));
 const GenrePage   = lazy(() => import("@/pages/GenrePage"));
 const ComparePage = lazy(() => import("@/pages/ComparePage"));
 const NotFound    = lazy(() => import("@/pages/NotFound"));
+
+const HEADER_ROUTE_PATTERNS = [
+  "/",
+  "/login",
+  "/search",
+  "/search/:query",
+  "/film/:id",
+  "/person/:person_id",
+  "/genre/:id",
+  "/compare",
+  "/profile",
+];
+
+const shouldShowHeader = (pathname) =>
+  HEADER_ROUTE_PATTERNS.some((path) => matchPath({ path, end: true }, pathname));
 
 /* ── Minimal page-transition fallback ──────────────────────────── */
 const PageLoader = () => (
@@ -68,15 +83,25 @@ const ScrollManager = () => {
   return null;
 };
 
-function App() {
+const AppShell = () => {
+  const location = useLocation();
+
   return (
-    <Router>
+    <>
       <ScrollManager />
-      <Header />
+      {shouldShowHeader(location.pathname) && <Header />}
       {/* id="main-content" is the skip-nav target */}
       <main id="main-content">
         <AppRoutes />
       </main>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AppShell />
     </Router>
   );
 }

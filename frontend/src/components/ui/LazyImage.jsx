@@ -25,13 +25,12 @@ const LazyImage = ({
   style = {},
   fallbackType = "poster",
   eager = false,
-  fetchpriority = "auto",
+  fetchPriority = "auto",
   onLoad,
   ...rest
 }) => {
   const [loaded,  setLoaded]  = useState(false);
   const [errored, setErrored] = useState(false);
-  void fetchpriority; // Consume legacy call-site prop without rendering a noisy DOM attribute.
 
   useEffect(() => {
     setLoaded(!src);
@@ -79,6 +78,7 @@ const LazyImage = ({
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}

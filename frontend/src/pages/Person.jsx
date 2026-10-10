@@ -181,7 +181,7 @@ const PersonHeader = ({ person_id }) => {
             alt={person.name}
             fallbackType="person"
             eager={true}
-            fetchpriority="high"
+            fetchPriority="high"
             className="w-full aspect-[2/3] object-cover object-top sm:aspect-auto sm:h-auto"
             style={{ maxHeight: "clamp(50vw, 60vh, 600px)" }}
           />
