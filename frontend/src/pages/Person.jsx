@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
-import BookmarkIcon from "@mui/icons-material/Bookmark";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import LocalMoviesOutlinedIcon from "@mui/icons-material/LocalMoviesOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
@@ -13,43 +12,49 @@ import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
-import ScrollRow from "@/components/ui/ScrollRow";
 import SEO from "@/components/seo/SEO";
 import { PersonHeaderSkeleton, FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { profileUrl } from "@/lib/utils/tmdbImage";
 
 const ACTING = "Acting";
+const ALL_CREDITS = "all";
 
 const DEPARTMENT_LABELS = {
-  Acting: "Actor",
-  Directing: "Director",
-  Writing: "Writer",
-  Production: "Producer",
+  Acting: "Acting",
+  Directing: "Directing",
+  Writing: "Writing",
+  Production: "Production",
   Camera: "Cinematography",
-  Editing: "Editor",
+  Editing: "Editing",
   Sound: "Sound",
   Art: "Art",
   "Visual Effects": "Visual Effects",
-  "Costume & Make-Up": "Costume & Make-Up",
+  "Costume & Make-Up": "Costume",
   Crew: "Crew",
   Lighting: "Lighting",
 };
 
 const DEPARTMENT_PRIORITY = ["Acting", "Directing", "Writing", "Production", "Camera", "Editing"];
 
+const compareDatesNewest = (a, b) => {
+  if (!a.release_date && !b.release_date) return 0;
+  if (!a.release_date) return 1;
+  if (!b.release_date) return -1;
+  return b.release_date.localeCompare(a.release_date);
+};
+
+const compareDatesOldest = (a, b) => {
+  if (!a.release_date && !b.release_date) return 0;
+  if (!a.release_date) return 1;
+  if (!b.release_date) return -1;
+  return a.release_date.localeCompare(b.release_date);
+};
+
 const SORTS = [
   { key: "popularity", label: "Popular", compare: (a, b) => (b.popularity || 0) - (a.popularity || 0) },
+  { key: "newest", label: "Newest", compare: compareDatesNewest },
+  { key: "oldest", label: "Oldest", compare: compareDatesOldest },
   { key: "rating", label: "Rating", compare: (a, b) => (b.vote_average || 0) - (a.vote_average || 0) },
-  { key: "newest", label: "Newest", compare: (a, b) => (b.release_date || "").localeCompare(a.release_date || "") },
-  {
-    key: "oldest",
-    label: "Oldest",
-    compare: (a, b) => {
-      if (!a.release_date) return 1;
-      if (!b.release_date) return -1;
-      return a.release_date.localeCompare(b.release_date);
-    },
-  },
 ];
 
 function groupCredits(credits, knownFor) {
@@ -60,10 +65,12 @@ function groupCredits(credits, knownFor) {
     if (!buckets.has(dept)) buckets.set(dept, new Map());
     const byId = buckets.get(dept);
     const existing = byId.get(film.id);
+
     if (existing) {
       if (role && !existing.roles.includes(role)) existing.roles.push(role);
       return;
     }
+
     byId.set(film.id, { ...film, roles: role ? [role] : [] });
   };
 
@@ -88,14 +95,28 @@ function groupCredits(credits, knownFor) {
     });
 }
 
-const uniqueCredits = (groups) => [
-  ...new Map(
-    groups
-      .flatMap((group) => group.films)
-      .filter((film) => film?.id)
-      .map((film) => [film.id, film])
-  ).values(),
-];
+const mergeAllCredits = (groups) => {
+  const byId = new Map();
+
+  groups.forEach((group) => {
+    group.films.forEach((film) => {
+      if (!film?.id) return;
+      const roles = [group.label, ...(film.roles || [])].filter(Boolean);
+      const existing = byId.get(film.id);
+
+      if (existing) {
+        roles.forEach((role) => {
+          if (!existing.roles.includes(role)) existing.roles.push(role);
+        });
+        return;
+      }
+
+      byId.set(film.id, { ...film, roles });
+    });
+  });
+
+  return [...byId.values()];
+};
 
 const formatDate = (dateStr) =>
   dateStr
@@ -114,84 +135,63 @@ const yearsBetween = (start, end = new Date()) => {
   return Number.isFinite(years) ? years : null;
 };
 
-const titleOf = (film) => film?.title || film?.name || "Untitled";
-
 const subtitleFor = (film) =>
   [film.roles?.slice(0, 2).join(", "), formatYear(film.release_date)].filter(Boolean).join(" / ") || undefined;
 
-const RolePill = ({ active, onClick, children, size = "md" }) => (
+const ToggleButton = ({ active, onClick, children, size = "md" }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex-shrink-0 rounded-full border font-body font-semibold uppercase whitespace-nowrap transition-all duration-normal cursor-pointer ${
+    className={`flex-shrink-0 rounded-full border font-body font-semibold uppercase whitespace-nowrap transition-all duration-normal cursor-pointer focus-ring ${
       active
         ? "border-gold bg-gold text-black shadow-[0_0_28px_rgba(201,168,67,0.18)]"
-        : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/25 hover:text-white"
+        : "border-white/10 bg-white/[0.04] text-white/48 hover:border-white/25 hover:text-white"
     }`}
     style={
       size === "sm"
-        ? { fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.14em", padding: "0.42rem 0.82rem" }
-        : { fontSize: "clamp(0.52rem, 0.85vw, 0.66rem)", letterSpacing: "0.16em", padding: "0.56rem 0.95rem" }
+        ? { fontSize: "clamp(0.5rem, 0.72vw, 0.6rem)", letterSpacing: "0.14em", padding: "0.42rem 0.78rem" }
+        : { fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)", letterSpacing: "0.16em", padding: "0.52rem 0.9rem" }
     }
   >
     {children}
   </button>
 );
 
-const Fact = ({ icon: Icon, label, value, subvalue }) => {
+const MetaItem = ({ icon: Icon, label, value }) => {
   if (!value) return null;
 
   return (
-    <div className="min-w-0 border-t border-white/10 py-4 sm:border-t-0 sm:border-l sm:py-0 sm:pl-5">
-      <div className="flex items-center gap-2 text-gold">
-        <Icon sx={{ fontSize: "clamp(0.9rem, 1.2vw, 1.05rem)" }} />
-        <span
-          className="font-mono uppercase text-white/42"
-          style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.18em" }}
-        >
+    <div className="flex min-w-0 items-start gap-2 border-t border-white/10 py-3">
+      <Icon sx={{ fontSize: "0.95rem", color: "var(--color-gold)", marginTop: "0.15rem", flexShrink: 0 }} />
+      <div className="min-w-0">
+        <p className="font-mono uppercase text-white/38" style={{ fontSize: "0.55rem", letterSpacing: "0.18em" }}>
           {label}
-        </span>
-      </div>
-      <p
-        className="mt-2 truncate font-body font-semibold text-white"
-        style={{ fontSize: "clamp(0.78rem, 1.15vw, 0.95rem)" }}
-      >
-        {value}
-      </p>
-      {subvalue && (
-        <p className="mt-1 truncate font-body text-white/42" style={{ fontSize: "clamp(0.62rem, 0.9vw, 0.74rem)" }}>
-          {subvalue}
         </p>
-      )}
+        <p className="mt-1 font-body text-white/78" style={{ fontSize: "clamp(0.72rem, 1vw, 0.84rem)", lineHeight: 1.45 }}>
+          {value}
+        </p>
+      </div>
     </div>
   );
 };
 
-const GrainOverlay = ({ opacity = 0.13 }) => (
+const GrainOverlay = ({ opacity = 0.1 }) => (
   <div
     aria-hidden
-    className="absolute inset-0 mix-blend-overlay pointer-events-none"
+    className="pointer-events-none absolute inset-0 mix-blend-overlay"
     style={{
       opacity,
-      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
       backgroundRepeat: "repeat",
-      backgroundSize: "160px 160px",
+      backgroundSize: "150px 150px",
     }}
   />
 );
 
-const PersonHero = ({ personId }) => {
-  const { data: person } = useSWR(`/person/${personId}`, fetcher, { suspense: true });
+const ProfileRail = ({ person, totalCredits }) => {
   const [isBioExpanded, setIsBioExpanded] = useState(false);
-
   const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
-  const backgroundSrc = profileUrl(person.profile_path, "h632") ?? portraitSrc;
-  const bioText = person.biography || "";
-  const isLongBio = bioText.length > 520;
-  const displayBio = isLongBio && !isBioExpanded ? `${bioText.slice(0, 520).trim()}...` : bioText;
-  const description = bioText || `${person.name} biography, known films, and credits on CinemaScope.`;
-
   const born = formatDate(person.birthday);
   const died = formatDate(person.deathday);
   const age = person.birthday ? yearsBetween(person.birthday, person.deathday ? new Date(person.deathday) : new Date()) : null;
@@ -200,16 +200,255 @@ const PersonHero = ({ personId }) => {
     : age !== null
       ? `${age} years old`
       : null;
+  const bioText = person.biography || "";
+  const isLongBio = bioText.length > 420;
+  const displayBio = isLongBio && !isBioExpanded ? `${bioText.slice(0, 420).trim()}...` : bioText;
 
   return (
-    <section
-      className="relative isolate overflow-hidden bg-base"
-      style={{
-        minHeight: "min(100svh, 900px)",
-        paddingTop: "calc(var(--navbar-height, 3.5rem) + clamp(2.5rem, 6vh, 5.5rem))",
-        paddingBottom: "clamp(3rem, 8vh, 6rem)",
-      }}
-    >
+    <aside className="person-profile-rail min-w-0 lg:sticky lg:top-[calc(var(--navbar-height,3.5rem)+1.25rem)] lg:self-start">
+      <div
+        className="relative overflow-hidden rounded-card border border-white/10 bg-white/[0.035]"
+        style={{
+          padding: "clamp(0.72rem, 1.4vw, 1rem)",
+          boxShadow: "0 34px 120px rgba(0,0,0,0.32)",
+        }}
+      >
+        <div className="group relative aspect-[3/4] overflow-hidden rounded-card bg-surface">
+          <LazyImage
+            src={portraitSrc}
+            alt={person.name}
+            fallbackType="person"
+            eager={true}
+            fetchPriority="high"
+            className="h-full w-full object-cover object-top transition-transform duration-slow ease-cinematic group-hover:scale-[1.025]"
+          />
+          <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <p
+          className="font-mono uppercase text-gold"
+          style={{ fontSize: "clamp(0.52rem, 0.86vw, 0.64rem)", letterSpacing: "0.26em" }}
+        >
+          {person.known_for_department || "Profile"}
+        </p>
+        <h1
+          className="mt-2 font-wordmark font-black uppercase text-white"
+          style={{
+            fontSize: "clamp(1.9rem, 4vw, 3.35rem)",
+            lineHeight: 0.88,
+            letterSpacing: "-0.045em",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {person.name}
+        </h1>
+      </div>
+
+      <div className="mt-5 border-b border-white/10">
+        <MetaItem icon={CalendarTodayOutlinedIcon} label={person.deathday ? "Life" : "Age"} value={lifeValue} />
+        <MetaItem icon={CalendarTodayOutlinedIcon} label="Born" value={born} />
+        <MetaItem icon={PlaceOutlinedIcon} label="Origin" value={person.place_of_birth} />
+        <MetaItem icon={LocalMoviesOutlinedIcon} label="Credits" value={`${totalCredits} ${totalCredits === 1 ? "film" : "films"}`} />
+        {died && <MetaItem icon={CalendarTodayOutlinedIcon} label="Died" value={died} />}
+      </div>
+
+      {bioText && (
+        <section className="mt-5" aria-labelledby="person-biography-heading">
+          <h2
+            id="person-biography-heading"
+            className="font-mono uppercase text-white/42"
+            style={{ fontSize: "0.58rem", letterSpacing: "0.22em" }}
+          >
+            Biography
+          </h2>
+          <div
+            className="mt-3 font-body text-white/58"
+            style={{ fontSize: "clamp(0.72rem, 1vw, 0.86rem)", lineHeight: 1.68 }}
+          >
+            {displayBio.split("\n").map((paragraph, index) =>
+              paragraph.trim() ? (
+                <p key={index} className="mb-3 last:mb-0">
+                  {paragraph}
+                </p>
+              ) : null
+            )}
+            {isLongBio && (
+              <button
+                type="button"
+                onClick={() => setIsBioExpanded((value) => !value)}
+                aria-expanded={isBioExpanded}
+                className="mt-2 font-body font-semibold text-gold transition-colors duration-fast hover:text-gold-lt focus-ring cursor-pointer"
+                style={{ fontSize: "0.78rem" }}
+              >
+                {isBioExpanded ? "Read Less" : "Read More"}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+    </aside>
+  );
+};
+
+const FilmographyPanel = ({ groups, allFilms }) => {
+  const [activeDept, setActiveDept] = useState(ALL_CREDITS);
+  const [sortKey, setSortKey] = useState(SORTS[0].key);
+
+  const activeGroup = groups.find((group) => group.department === activeDept);
+  const sourceFilms = activeDept === ALL_CREDITS ? allFilms : activeGroup?.films ?? allFilms;
+  const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
+  const films = useMemo(() => [...sourceFilms].sort(sort.compare), [sourceFilms, sort]);
+  const label = activeDept === ALL_CREDITS ? "All Credits" : activeGroup?.label ?? "Filmography";
+  const firstYear = useMemo(
+    () => [...allFilms].filter((film) => film.release_date).sort(compareDatesOldest)[0],
+    [allFilms]
+  );
+  const latestYear = useMemo(
+    () => [...allFilms].filter((film) => film.release_date).sort(compareDatesNewest)[0],
+    [allFilms]
+  );
+  const years = [formatYear(firstYear?.release_date), formatYear(latestYear?.release_date)]
+    .filter(Boolean)
+    .join(" - ");
+
+  return (
+    <section className="min-w-0" aria-labelledby="filmography-heading">
+      <div
+        className="border-y border-white/10"
+        style={{ padding: "clamp(0.9rem, 2vw, 1.25rem) 0", marginBottom: "clamp(0.9rem, 2vw, 1.25rem)" }}
+      >
+        <div className="flex flex-wrap items-end justify-between" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
+          <div className="min-w-0">
+            <p
+              className="font-mono uppercase text-gold"
+              style={{ fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)", letterSpacing: "0.28em" }}
+            >
+              Archive
+            </p>
+            <h2
+              id="filmography-heading"
+              className="mt-2 font-wordmark font-black uppercase text-white"
+              style={{ fontSize: "clamp(2.2rem, 6vw, 5.25rem)", lineHeight: 0.84, letterSpacing: "-0.055em" }}
+            >
+              Filmography
+            </h2>
+          </div>
+          <div className="text-left sm:text-right">
+            <p
+              className="font-mono uppercase text-white/42"
+              style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.18em" }}
+            >
+              {films.length} {films.length === 1 ? "credit" : "credits"}
+            </p>
+            {years && (
+              <p className="mt-1 font-body text-white/45" style={{ fontSize: "clamp(0.7rem, 1vw, 0.82rem)" }}>
+                {years}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="rounded-card border border-white/10 bg-white/[0.025]"
+        style={{
+          padding: "clamp(0.8rem, 1.7vw, 1.15rem)",
+          marginBottom: "clamp(1rem, 2.6vw, 1.7rem)",
+        }}
+      >
+        <div className="flex flex-col" style={{ gap: "clamp(0.75rem, 1.6vw, 1rem)" }}>
+          <div>
+            <p className="font-mono uppercase text-white/35" style={{ fontSize: "0.55rem", letterSpacing: "0.2em", marginBottom: "0.55rem" }}>
+              Role
+            </p>
+            <div
+              className="flex min-w-0 items-center overflow-x-auto pb-1 scrollbar-hide"
+              style={{ gap: "clamp(0.4rem, 1vw, 0.65rem)" }}
+              role="group"
+              aria-label="Filter filmography by role"
+            >
+              <ToggleButton active={activeDept === ALL_CREDITS} onClick={() => setActiveDept(ALL_CREDITS)}>
+                All
+                <span className={activeDept === ALL_CREDITS ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
+                  {allFilms.length}
+                </span>
+              </ToggleButton>
+              {groups.map((group) => (
+                <ToggleButton key={group.department} active={group.department === activeDept} onClick={() => setActiveDept(group.department)}>
+                  {group.label}
+                  <span className={group.department === activeDept ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
+                    {group.films.length}
+                  </span>
+                </ToggleButton>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-body text-white/50" style={{ fontSize: "clamp(0.72rem, 1vw, 0.84rem)" }}>
+              Showing {label.toLowerCase()} sorted by {sort.label.toLowerCase()}.
+            </p>
+            <div
+              className="flex items-center overflow-x-auto pb-1 scrollbar-hide"
+              style={{ gap: "clamp(0.3rem, 0.8vw, 0.45rem)" }}
+              role="group"
+              aria-label="Sort filmography"
+            >
+              {SORTS.map((item) => (
+                <ToggleButton key={item.key} size="sm" active={item.key === sort.key} onClick={() => setSortKey(item.key)}>
+                  {item.label}
+                </ToggleButton>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {films.length > 0 ? (
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(clamp(112px, 13vw, 176px), 1fr))",
+            gap: "clamp(0.85rem, 2vw, 1.45rem)",
+          }}
+        >
+          {films.map((film, index) => (
+            <FilmCard
+              key={film.id}
+              film={film}
+              subtitle={subtitleFor(film)}
+              eager={index < 8}
+              imageSize={index < 8 ? "w342" : "w185"}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-card border border-white/10 bg-white/[0.035] p-8 text-center">
+          <p className="font-body text-white/58" style={{ fontSize: "clamp(0.85rem, 1.2vw, 1rem)" }}>
+            No film credits found for this role yet.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const PersonContent = ({ personId }) => {
+  const { data: person } = useSWR(`/person/${personId}`, fetcher, { suspense: true });
+  const { data: credits } = useSWR(`/person/${personId}/movie_credits`, fetcher, { suspense: true });
+
+  const groups = useMemo(
+    () => groupCredits(credits, person?.known_for_department),
+    [credits, person?.known_for_department]
+  );
+  const allFilms = useMemo(() => mergeAllCredits(groups), [groups]);
+  const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
+  const description = person.biography || `${person.name} biography, known films, and credits on CinemaScope.`;
+
+  return (
+    <>
       <SEO
         title={person.name}
         description={description}
@@ -228,288 +467,23 @@ const PersonHero = ({ personId }) => {
         }}
       />
 
-      <div className="absolute inset-0 -z-10" aria-hidden>
-        <img
-          src={backgroundSrc}
-          alt=""
-          className="absolute right-[-8vw] top-[-14vh] h-[115vh] w-[58vw] min-w-[28rem] object-cover opacity-20 blur-2xl saturate-[1.15]"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_12%,rgba(201,168,67,0.16),transparent_34%),linear-gradient(90deg,#090909_0%,rgba(9,9,9,0.9)_38%,rgba(9,9,9,0.58)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-base to-transparent" />
-        <GrainOverlay />
-      </div>
-
-      <div className="center-container relative z-10">
-        <div className="flex flex-col items-stretch lg:flex-row lg:items-end" style={{ gap: "clamp(2rem, 5vw, 5.5rem)" }}>
-          <div
-            className="group relative mx-auto w-full max-w-[min(76vw,22rem)] flex-shrink-0 lg:mx-0 lg:max-w-none"
-            style={{ flexBasis: "clamp(16rem, 31vw, 28rem)" }}
-          >
-            <div
-              className="relative aspect-[3/4] overflow-hidden rounded-card bg-surface"
-              style={{ boxShadow: "0 34px 100px rgba(0,0,0,0.62)" }}
-            >
-              <LazyImage
-                src={portraitSrc}
-                alt={person.name}
-                fallbackType="person"
-                eager={true}
-                fetchPriority="high"
-                className="h-full w-full object-cover object-top transition-transform duration-slow ease-cinematic group-hover:scale-[1.025]"
-              />
-              <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-            </div>
-            <div className="absolute -bottom-4 -left-4 hidden h-28 w-28 border-l border-b border-gold/40 lg:block" aria-hidden />
-            <div className="absolute -right-4 -top-4 hidden h-28 w-28 border-r border-t border-white/15 lg:block" aria-hidden />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p
-              className="font-mono uppercase text-gold"
-              style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.72rem)", letterSpacing: "0.32em" }}
-            >
-              {person.known_for_department || "Profile"}
-            </p>
-
-            <h1
-              className="mt-3 max-w-[12ch] font-wordmark font-black uppercase text-white"
-              style={{
-                fontSize: "clamp(3.1rem, 9vw, 8.5rem)",
-                lineHeight: 0.84,
-                letterSpacing: "-0.07em",
-                overflowWrap: "anywhere",
-                textShadow: "0 0.08em 0.32em rgba(0,0,0,0.52)",
-              }}
-            >
-              {person.name}
-            </h1>
-
-            <div
-              className="mt-8 grid grid-cols-1 border-y border-white/10 sm:grid-cols-3"
-              style={{ gap: "clamp(0.25rem, 2vw, 1.2rem)", padding: "clamp(0.5rem, 1.4vw, 1rem) 0" }}
-            >
-              <Fact icon={CalendarTodayOutlinedIcon} label={person.deathday ? "Life" : "Age"} value={lifeValue} subvalue={born ? `Born ${born}` : null} />
-              <Fact icon={PlaceOutlinedIcon} label="Origin" value={person.place_of_birth} />
-              <Fact icon={LocalMoviesOutlinedIcon} label="Known For" value={person.known_for_department} />
-            </div>
-
-            {died && (
-              <p className="mt-4 font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
-                Died {died}
-              </p>
-            )}
-
-            {bioText && (
-              <div className="mt-8 max-w-4xl">
-                <div className="flex items-center gap-2">
-                  <BookmarkIcon sx={{ fontSize: "clamp(0.95rem, 1.3vw, 1.1rem)", color: "var(--color-gold)" }} />
-                  <h2 className="font-mono uppercase text-white/50" style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.66rem)", letterSpacing: "0.24em" }}>
-                    Biography
-                  </h2>
-                </div>
-
-                <div
-                  className="mt-4 border-l border-white/12 pl-5 font-body text-white/68"
-                  style={{ fontSize: "clamp(0.88rem, 1.25vw, 1.05rem)", lineHeight: 1.75 }}
-                >
-                  {displayBio.split("\n").map((paragraph, index) => (
-                    paragraph.trim() ? <p key={index} className="mb-3 last:mb-0">{paragraph}</p> : null
-                  ))}
-                  {isLongBio && (
-                    <button
-                      type="button"
-                      onClick={() => setIsBioExpanded((value) => !value)}
-                      aria-expanded={isBioExpanded}
-                      className="mt-4 font-body font-semibold text-gold transition-colors duration-fast hover:text-gold-lt cursor-pointer"
-                      style={{ fontSize: "clamp(0.78rem, 1.1vw, 0.9rem)" }}
-                    >
-                      {isBioExpanded ? "Read Less" : "Read More"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const CareerMetric = ({ label, value, detail }) => (
-  <div className="border-t border-white/10 py-5 sm:border-t-0 sm:border-l sm:pl-6">
-    <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.22em" }}>
-      {label}
-    </p>
-    <p className="mt-2 truncate font-wordmark font-black uppercase text-white" style={{ fontSize: "clamp(1.1rem, 2.4vw, 2rem)", letterSpacing: "-0.04em" }}>
-      {value}
-    </p>
-    {detail && (
-      <p className="mt-1 truncate font-body text-white/42" style={{ fontSize: "clamp(0.65rem, 0.95vw, 0.76rem)" }}>
-        {detail}
-      </p>
-    )}
-  </div>
-);
-
-const KnownForRail = ({ films }) => {
-  if (!films.length) return null;
-
-  return (
-    <section className="w-full bg-section-dark text-white" style={{ padding: "clamp(2.25rem, 5vw, 4.75rem) 0" }}>
-      <div className="center-container">
-        <div
-          className="flex flex-wrap items-end justify-between border-y border-white/10"
-          style={{ gap: "clamp(1rem, 3vw, 2rem)", padding: "clamp(0.9rem, 2vw, 1.25rem) 0", marginBottom: "clamp(1.2rem, 3vw, 2rem)" }}
-        >
-          <div>
-            <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.82vw, 0.64rem)", letterSpacing: "0.3em" }}>
-              Spotlight
-            </p>
-            <h2 className="mt-2 font-wordmark font-black uppercase leading-[0.86]" style={{ fontSize: "clamp(2rem, 6vw, 5.6rem)", letterSpacing: "-0.06em" }}>
-              Known For
-            </h2>
-          </div>
-          <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
-            Popular / High-signal credits
-          </span>
+      <section
+        className="relative isolate overflow-hidden bg-base text-white"
+        style={{
+          paddingTop: "calc(var(--navbar-height, 3.5rem) + clamp(2rem, 4.5vw, 4rem))",
+          paddingBottom: "clamp(3rem, 7vw, 6rem)",
+        }}
+      >
+        <div className="absolute inset-0 -z-10" aria-hidden>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_8%,rgba(201,168,67,0.12),transparent_30%),radial-gradient(circle_at_90%_22%,rgba(255,255,255,0.06),transparent_24%)]" />
+          <div className="absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-black/70 to-transparent" />
+          <GrainOverlay />
         </div>
 
-        <ScrollRow
-          showArrows={films.length > 6}
-          scrollAmount={420}
-          gap="clamp(0.8rem, 1.8vw, 1.35rem)"
-          arrowSize="2.35rem"
-          ariaLabel="Known for films"
-        >
-          {films.map((film, index) => (
-            <div
-              key={film.id}
-              className="flex-shrink-0"
-              style={{ width: "clamp(118px, 13vw, 190px)", scrollSnapAlign: "start" }}
-            >
-              <FilmCard film={film} subtitle={subtitleFor(film)} eager={index < 3} />
-            </div>
-          ))}
-        </ScrollRow>
-      </div>
-    </section>
-  );
-};
-
-const Filmography = ({ personId }) => {
-  const { data: credits } = useSWR(`/person/${personId}/movie_credits`, fetcher, { suspense: true });
-  const { data: person } = useSWR(`/person/${personId}`, fetcher, { suspense: true });
-
-  const groups = useMemo(
-    () => groupCredits(credits, person?.known_for_department),
-    [credits, person?.known_for_department]
-  );
-  const allFilms = useMemo(() => uniqueCredits(groups), [groups]);
-  const [dept, setDept] = useState(groups[0]?.department ?? null);
-  const [sortKey, setSortKey] = useState(SORTS[0].key);
-
-  if (groups.length === 0) return null;
-
-  const active = groups.find((group) => group.department === dept) ?? groups[0];
-  const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
-  const films = [...active.films].sort(sort.compare);
-  const knownForFilms = [...allFilms]
-    .filter((film) => film.poster_path)
-    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, 14);
-  const ratedFilms = [...allFilms].filter((film) => film.vote_average);
-  const topRated = ratedFilms
-    .filter((film) => (film.vote_count || 0) >= 50)
-    .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0];
-  const fallbackTopRated = topRated ?? ratedFilms.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0];
-  const latest = [...allFilms]
-    .filter((film) => film.release_date)
-    .sort((a, b) => (b.release_date || "").localeCompare(a.release_date || ""))[0];
-
-  return (
-    <>
-      <section className="relative overflow-hidden bg-base text-white" style={{ padding: "clamp(2rem, 5vw, 4rem) 0" }}>
-        <GrainOverlay opacity={0.08} />
-        <div className="center-container relative">
-          <div className="grid grid-cols-1 border-y border-white/10 sm:grid-cols-3">
-            <CareerMetric label="Credits" value={allFilms.length} detail="Movies in TMDB filmography" />
-            <CareerMetric label="Top Rated" value={fallbackTopRated ? titleOf(fallbackTopRated) : "No rating"} detail={fallbackTopRated ? `${fallbackTopRated.vote_average?.toFixed(1)} / 10` : undefined} />
-            <CareerMetric label="Latest" value={latest ? titleOf(latest) : "No release"} detail={latest ? formatYear(latest.release_date) : undefined} />
-          </div>
-        </div>
-      </section>
-
-      <KnownForRail films={knownForFilms} />
-
-      <section className="relative overflow-hidden bg-base text-white" style={{ padding: "clamp(2.75rem, 6vw, 5.5rem) 0" }}>
         <div className="center-container">
-          <div
-            className="flex flex-wrap items-end justify-between border-y border-white/10"
-            style={{ gap: "clamp(1rem, 3vw, 2rem)", padding: "clamp(0.9rem, 2vw, 1.25rem) 0" }}
-          >
-            <div>
-              <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.82vw, 0.64rem)", letterSpacing: "0.3em" }}>
-                Archive
-              </p>
-              <h2 className="mt-2 font-wordmark font-black uppercase leading-[0.86]" style={{ fontSize: "clamp(2.15rem, 6.8vw, 6.2rem)", letterSpacing: "-0.06em" }}>
-                Filmography
-              </h2>
-            </div>
-            <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
-              {films.length} {films.length === 1 ? "credit" : "credits"} / {active.label}
-            </span>
-          </div>
-
-          <div
-            className="flex flex-wrap items-center justify-between border-b border-white/10"
-            style={{ gap: "clamp(0.75rem, 2vw, 1.5rem)", padding: "clamp(0.85rem, 1.8vw, 1.15rem) 0" }}
-          >
-            <div
-              className="flex min-w-0 flex-1 items-center overflow-x-auto scrollbar-hide"
-              style={{ gap: "clamp(0.4rem, 1vw, 0.65rem)" }}
-              role="group"
-              aria-label="Filter filmography by role"
-            >
-              {groups.map((group) => (
-                <RolePill key={group.department} active={group.department === active.department} onClick={() => setDept(group.department)}>
-                  {group.label}
-                  <span className={group.department === active.department ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
-                    {group.films.length}
-                  </span>
-                </RolePill>
-              ))}
-            </div>
-
-            <div
-              className="flex items-center overflow-x-auto scrollbar-hide"
-              style={{ gap: "clamp(0.25rem, 0.7vw, 0.4rem)" }}
-              role="group"
-              aria-label="Sort filmography"
-            >
-              <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.45rem, 0.72vw, 0.55rem)", letterSpacing: "0.2em", marginRight: "0.15rem" }}>
-                Sort
-              </span>
-              {SORTS.map((item) => (
-                <RolePill key={item.key} size="sm" active={item.key === sort.key} onClick={() => setSortKey(item.key)}>
-                  {item.label}
-                </RolePill>
-              ))}
-            </div>
-          </div>
-
-          <div
-            key={active.department}
-            className="grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(clamp(118px, 14vw, 190px), 1fr))",
-              gap: "clamp(0.85rem, 2vw, 1.5rem)",
-              marginTop: "clamp(1.25rem, 2.5vh, 1.75rem)",
-            }}
-          >
-            {films.map((film) => (
-              <FilmCard key={film.id} film={film} subtitle={subtitleFor(film)} />
-            ))}
+          <div className="person-page-grid">
+            <ProfileRail person={person} totalCredits={allFilms.length} />
+            <FilmographyPanel groups={groups} allFilms={allFilms} />
           </div>
         </div>
       </section>
@@ -527,15 +501,18 @@ const Person = () => {
         className="h-10 w-10 rounded-full border border-white/10 bg-black/35 backdrop-blur-md hover:bg-black/55"
       />
       <main className="flex-1">
-        <ErrorBoundary key={`header-${person_id}`}>
-          <Suspense fallback={<PersonHeaderSkeleton />}>
-            <PersonHero personId={person_id} />
-          </Suspense>
-        </ErrorBoundary>
-
-        <ErrorBoundary key={`films-${person_id}`}>
-          <Suspense fallback={<div className="center-container" style={{ padding: "clamp(3rem, 7vw, 6rem) 0" }}><FilmGridSkeleton count={10} /></div>}>
-            <Filmography personId={person_id} />
+        <ErrorBoundary key={`person-${person_id}`}>
+          <Suspense
+            fallback={
+              <section className="center-container" style={{ paddingTop: "calc(var(--navbar-height, 3.5rem) + 3rem)", paddingBottom: "4rem" }}>
+                <PersonHeaderSkeleton />
+                <div style={{ marginTop: "clamp(2rem, 5vw, 4rem)" }}>
+                  <FilmGridSkeleton count={10} />
+                </div>
+              </section>
+            }
+          >
+            <PersonContent personId={person_id} />
           </Suspense>
         </ErrorBoundary>
       </main>

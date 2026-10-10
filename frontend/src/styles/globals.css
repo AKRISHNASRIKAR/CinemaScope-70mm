@@ -45,6 +45,30 @@ body {
   padding-right: clamp(1rem, 3.5vw, 3rem) !important;
 }
 
+.person-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5.25rem);
+}
+
+.person-profile-rail {
+  width: 100%;
+  max-width: min(100%, 24rem);
+  margin-inline: auto;
+}
+
+@media (min-width: 56rem) {
+  .person-page-grid {
+    grid-template-columns: minmax(15rem, min(32vw, 24rem)) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .person-profile-rail {
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
 /* ── Shimmer skeleton ──────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
