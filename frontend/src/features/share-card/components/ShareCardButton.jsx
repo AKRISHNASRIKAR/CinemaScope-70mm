@@ -19,8 +19,14 @@ const ModalLoading = () => (
 /**
  * ShareCardButton — FilmPage entry point for the Collector Card.
  * Expects the full movie details object (with runtime + genres).
+ * `className` / `style` replace the default pill look when the button
+ * sits inside another surface (e.g. the film action card).
  */
-const ShareCardButton = ({ film }) => {
+const DEFAULT_CLASS =
+  "inline-flex flex-shrink-0 items-center gap-2 rounded-full border border-gold/40 bg-white/[0.04] font-body font-semibold uppercase whitespace-nowrap text-white/70 transition-all duration-normal cursor-pointer hover:border-gold/70 hover:bg-gold/10 hover:text-white focus-ring";
+const DEFAULT_STYLE = { fontSize: "clamp(0.56rem, 0.82vw, 0.66rem)", letterSpacing: "0.16em", padding: "0.68rem 1.15rem" };
+
+const ShareCardButton = ({ film, className = DEFAULT_CLASS, style = DEFAULT_STYLE }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,8 +34,8 @@ const ShareCardButton = ({ film }) => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/70 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card"
-        style={{ fontSize: "clamp(0.6rem, 0.9vw, 0.72rem)", padding: "0.7rem 1.6rem" }}
+        className={className}
+        style={style}
         aria-haspopup="dialog"
       >
         <StyleOutlinedIcon sx={{ fontSize: "clamp(0.85rem, 1.3vw, 1rem)" }} />

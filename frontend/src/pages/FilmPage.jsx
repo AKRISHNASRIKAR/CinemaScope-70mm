@@ -3,28 +3,20 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher, parallelFetcher } from "@/lib/api/fetcher";
 
-import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
-import BookmarkAddedOutlinedIcon from "@mui/icons-material/BookmarkAddedOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
-import TvIcon from "@mui/icons-material/Tv";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import Footer from "@/components/layout/Footer";
+import FilmActionCard from "@/components/sections/FilmActionCard";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
-import PersonCard from "@/components/ui/PersonCard";
+import LazyImage from "@/components/ui/LazyImage";
 import SEO from "@/components/seo/SEO";
 import { FilmDetailHeroSkeleton, CastSectionSkeleton, SimilarMoviesSkeleton } from "@/components/ui/Skeletons";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
-import { useSession } from "@/hooks/useSession";
-import { useWatchHistory } from "@/hooks/useWatchHistory";
-import { useWatchlist } from "@/hooks/useWatchlist";
-import { posterUrl, backdropUrl } from "@/lib/utils/tmdbImage";
-import { ShareCardButton } from "@/features/share-card";
+import { posterUrl, backdropUrl, profileUrl } from "@/lib/utils/tmdbImage";
 
 const INITIAL_CAST = 8;
 
@@ -71,8 +63,8 @@ const KeyCrew = ({ id }) => {
 
   if (!loading && rows.length === 0) return null;
 
-  const labelStyle = { fontSize: "clamp(0.45rem, 0.72vw, 0.58rem)", letterSpacing: "0.22em" };
-  const valueStyle = { fontSize: "clamp(0.68rem, 1.02vw, 0.85rem)" };
+  const labelStyle = { fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.2em" };
+  const valueStyle = { fontSize: "clamp(0.78rem, 1.1vw, 0.95rem)" };
 
   return (
     /* Stacked on phones, two-column from `sm` up — a genuine layout *change*
@@ -82,7 +74,6 @@ const KeyCrew = ({ id }) => {
       style={{
         columnGap: "clamp(0.6rem, 1.4vw, 1.1rem)",
         rowGap: "clamp(0.15rem, 0.4vh, 0.3rem)",
-        marginTop: "clamp(0.6rem, 1.5vh, 1rem)",
         minHeight: loading ? "clamp(1rem, 2vh, 1.3rem)" : undefined,
       }}
     >
@@ -96,7 +87,7 @@ const KeyCrew = ({ id }) => {
         : rows.map(({ label, people, extra }) => (
             <Fragment key={label}>
               <dt
-                className="font-mono text-muted uppercase whitespace-nowrap mt-[0.5rem] first:mt-0 sm:mt-0"
+                className="font-mono text-white/38 uppercase whitespace-nowrap mt-[0.5rem] first:mt-0 sm:mt-0"
                 style={labelStyle}
               >
                 {label}
@@ -138,134 +129,82 @@ const toDescription = (film) =>
   film.overview ||
   `${film.title} film details, cast, watch providers, similar movies, and ratings on CinemaScope.`;
 
-const FilmActions = ({ film }) => {
-  const { isAuthenticated } = useSession();
-  const { history, isLoading: historyLoading, logWatch } = useWatchHistory({
-    enabled: isAuthenticated,
-    limit: 12,
-  });
-  const {
-    isLoading: watchlistLoading,
-    addToWatchlist,
-    removeFromWatchlist,
-    isInWatchlist,
-  } = useWatchlist({ enabled: isAuthenticated });
-  const [status, setStatus] = useState("");
-  const [pendingAction, setPendingAction] = useState(null);
-
-  const inWatchlist = isAuthenticated && isInWatchlist(film.id);
-  const watched = isAuthenticated && history.some((item) => item.tmdb_id === film.id);
-  const payload = {
-    tmdb_id: film.id,
-    title: film.title,
-    poster_path: film.poster_path ?? null,
-  };
-
-  const handleWatchlist = async () => {
-    setPendingAction("watchlist");
-    setStatus("");
-    try {
-      if (inWatchlist) {
-        await removeFromWatchlist(film.id);
-        setStatus("Removed from watchlist.");
-      } else {
-        await addToWatchlist(payload);
-        setStatus("Added to watchlist.");
-      }
-    } catch (error) {
-      setStatus(error.message || "Could not update watchlist.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleWatched = async () => {
-    setPendingAction("watched");
-    setStatus("");
-    try {
-      await logWatch(payload);
-      setStatus(watched ? "Watch date refreshed." : "Marked as watched.");
-    } catch (error) {
-      setStatus(error.message || "Could not update watch history.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div
-        className="mt-8 flex flex-wrap items-center"
-        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
-      >
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 rounded-card border border-gold/35 bg-gold/10 px-4 py-2 font-body font-medium text-gold transition-all duration-normal hover:border-gold/70 hover:bg-gold/15 hover:text-gold-lt"
-          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
-        >
-          <LoginOutlinedIcon sx={{ fontSize: "1rem" }} />
-          Sign in to save
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-8">
-      <div
-        className="flex flex-wrap items-center"
-        style={{ gap: "clamp(0.6rem,1.2vw,0.85rem)" }}
-      >
-        <button
-          type="button"
-          onClick={handleWatchlist}
-          disabled={watchlistLoading || pendingAction === "watchlist"}
-          aria-pressed={inWatchlist}
-          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
-            inWatchlist
-              ? "border-gold/60 bg-gold/15 text-gold"
-              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
-          }`}
-          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
-        >
-          {inWatchlist ? (
-            <BookmarkAddedOutlinedIcon sx={{ fontSize: "1rem" }} />
-          ) : (
-            <BookmarkAddOutlinedIcon sx={{ fontSize: "1rem" }} />
-          )}
-          {inWatchlist ? "In Watchlist" : "Watchlist"}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleWatched}
-          disabled={historyLoading || pendingAction === "watched"}
-          aria-pressed={watched}
-          className={`inline-flex items-center gap-2 rounded-card border px-4 py-2 font-body font-medium transition-all duration-normal disabled:cursor-wait disabled:opacity-60 ${
-            watched
-              ? "border-white/20 bg-white/10 text-white"
-              : "border-white/12 bg-white/[0.04] text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
-          }`}
-          style={{ fontSize: "clamp(0.7rem,1vw,0.85rem)" }}
-        >
-          <VisibilityOutlinedIcon sx={{ fontSize: "1rem" }} />
-          {watched ? "Watched" : "Mark Watched"}
-        </button>
-      </div>
-
-      {status && (
-        <p
-          className="mt-3 font-body text-muted"
-          style={{ fontSize: "clamp(0.62rem,0.95vw,0.75rem)" }}
-          role="status"
-          aria-live="polite"
-        >
-          {status}
-        </p>
-      )}
-    </div>
-  );
+const formatRuntime = (minutes) => {
+  if (!minutes) return null;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return [hours ? `${hours}h` : null, mins ? `${mins}m` : null].filter(Boolean).join(" ");
 };
+
+const formatReleaseDate = (dateStr) =>
+  dateStr
+    ? new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+    : null;
+
+const GRAIN_URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`;
+
+const GrainOverlay = ({ opacity = 0.1 }) => (
+  <div
+    aria-hidden
+    className="pointer-events-none absolute inset-0 mix-blend-overlay"
+    style={{ opacity, backgroundImage: GRAIN_URL, backgroundRepeat: "repeat", backgroundSize: "150px 150px" }}
+  />
+);
+
+const SECTION_PADDING = { paddingTop: "clamp(2rem, 5vw, 4rem)", paddingBottom: "clamp(1rem, 2.5vw, 2rem)" };
+
+/* ── Section heading ──────────────────────────────────────────────
+   Same ruled eyebrow + wordmark treatment as the home sections and
+   the person page filmography.
+─────────────────────────────────────────────────────────────────── */
+const SectionHeading = ({ id, eyebrow, title, aside }) => (
+  <div
+    className="flex flex-wrap items-end justify-between border-y border-white/10"
+    style={{
+      gap: "clamp(0.75rem, 2vw, 1.25rem)",
+      padding: "clamp(0.9rem, 2vw, 1.25rem) 0",
+      marginBottom: "clamp(1.25rem, 3vw, 2rem)",
+    }}
+  >
+    <div className="min-w-0">
+      <p
+        className="font-mono uppercase text-gold"
+        style={{
+          fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)",
+          letterSpacing: "0.28em",
+          marginBottom: "clamp(0.6rem, 1.3vw, 0.9rem)",
+        }}
+      >
+        {eyebrow}
+      </p>
+      <h2
+        id={id}
+        className="font-wordmark font-black uppercase text-white"
+        style={{ fontSize: "clamp(1.8rem, 4.6vw, 3.9rem)", lineHeight: 0.86, letterSpacing: "-0.055em" }}
+      >
+        {title}
+      </h2>
+    </div>
+    {aside && (
+      <div
+        className="font-mono uppercase text-white/42"
+        style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.18em" }}
+      >
+        {aside}
+      </div>
+    )}
+  </div>
+);
+
+const PILL_CLASS =
+  "inline-flex flex-shrink-0 items-center rounded-full border font-body font-semibold uppercase whitespace-nowrap transition-all duration-normal focus-ring";
+const PILL_STYLE = {
+  gap: "0.5rem",
+  fontSize: "clamp(0.56rem, 0.82vw, 0.66rem)",
+  letterSpacing: "0.16em",
+  padding: "0.68rem 1.15rem",
+};
+const PILL_IDLE = "border-white/10 bg-white/[0.04] text-white/60 hover:border-white/25 hover:text-white";
 
 /* ── Film Hero Section ────────────────────────── */
 const FilmHero = ({ id }) => {
@@ -277,7 +216,7 @@ const FilmHero = ({ id }) => {
   useEffect(() => { addFilm(film); }, [film, addFilm]);
 
   const us = releaseDates?.results?.find((e) => e.iso_3166_1 === "US");
-  const certification = us?.release_dates?.[0]?.certification || "N/A";
+  const certification = us?.release_dates?.find((entry) => entry.certification)?.certification || null;
 
   // Full-resolution backdrop for social/OG previews; a much lighter "w1280"
   // for the on-page hero, which never renders wider than the viewport.
@@ -285,6 +224,8 @@ const FilmHero = ({ id }) => {
   const backdrop = backdropUrl(film.backdrop_path, "w1280");
   const posterSrc = posterUrl(film.poster_path, "w500") ?? "/fallback-image-film.jpg";
   const description = toDescription(film);
+  const facts = [formatReleaseDate(film.release_date), certification, formatRuntime(film.runtime)].filter(Boolean);
+  const genres = film.genres ?? [];
 
   return (
     <>
@@ -314,87 +255,190 @@ const FilmHero = ({ id }) => {
             : undefined,
         }}
       />
-      <section className="relative w-full overflow-hidden" style={{ height: "clamp(40vh,55vh,65vh)" }}>
-        {backdrop && (
-          <img
-            src={backdrop}
-            alt={film.title}
-            loading="eager"
-            fetchPriority="high"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: "top center" }}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-base via-base/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-base/80 via-transparent to-transparent" />
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            backgroundRepeat: "repeat", backgroundSize: "150px 150px",
-          }}
-        />
-      </section>
 
-      <div className="relative -mt-32 z-10 center-container" style={{ padding: "clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem)" }}>
-        <div className="flex flex-col md:flex-row" style={{ gap: "clamp(1.5rem,4vw,3rem)" }}>
-          <div className="flex-shrink-0 mx-auto md:mx-0" style={{ width: "clamp(180px,25vw,320px)" }}>
-            <div className="relative overflow-hidden rounded-card aspect-[2/3] bg-surface shadow-card-hover">
+      <section
+        className="relative isolate overflow-hidden bg-base text-white"
+        style={{
+          paddingTop: "calc(var(--navbar-height, 3.5rem) + clamp(2rem, 4.5vw, 4rem))",
+          paddingBottom: "clamp(1.5rem, 4vw, 3rem)",
+        }}
+      >
+        <div className="absolute inset-0 -z-10" aria-hidden>
+          {backdrop && (
+            <div className="absolute inset-x-0 top-0" style={{ height: "clamp(24rem, 82vh, 54rem)" }}>
               <img
-                src={posterSrc}
-                alt={film.title}
+                src={backdrop}
+                alt=""
                 loading="eager"
-                className="w-full h-full object-cover"
+                fetchPriority="high"
+                className="h-full w-full object-cover opacity-45"
+                style={{ objectPosition: "top center" }}
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-base via-base/70 to-base/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-base/85 via-base/20 to-transparent" />
             </div>
-          </div>
+          )}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_8%,rgba(201,168,67,0.1),transparent_30%)]" />
+          <GrainOverlay />
+        </div>
 
-          <div className="flex-1 min-w-0" style={{ paddingTop: "clamp(1rem,3vh,2rem)" }}>
-            <h1 className="font-display font-bold text-white leading-[0.95] tracking-tight" style={{ fontSize: "clamp(1.8rem,4vw,3.5rem)" }}>{film.title}</h1>
-            {film.tagline && (
-              <p className="font-body italic text-muted mt-2" style={{ fontSize: "clamp(0.75rem,1.2vw,1rem)" }}>{film.tagline}</p>
-            )}
-
-            {/* Key crew — director */}
-            <KeyCrew id={film.id} />
-            <div className="flex items-baseline mt-4" style={{ gap: "clamp(0.3rem,0.6vw,0.5rem)" }}>
-              <span className="text-gold font-mono font-semibold" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>⭐ {film.vote_average ? film.vote_average.toFixed(1) : "N/A"}</span>
-              <span className="font-mono text-muted" style={{ fontSize: "clamp(0.65rem,1vw,0.8rem)" }}>/ 10</span>
-            </div>
-            <div className="grid grid-cols-2 mt-6" style={{ gap: "clamp(0.5rem,1.5vw,1rem)" }}>
-              {[
-                ["Certification", certification],
-                ["Release",  film.release_date ? new Date(film.release_date).toDateString() : "N/A"],
-                ["Runtime",  film.runtime ? `${film.runtime} min` : "N/A"],
-                ["Genres",   film.genres?.map((g) => g.name).join(", ") || "N/A"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <span className="font-body font-medium text-gold uppercase tracking-[0.12em]" style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)" }}>{label}</span>
-                  <p className="font-body text-white/80 mt-0.5" style={{ fontSize: "clamp(0.7rem,1.1vw,0.85rem)" }}>{value}</p>
+        <div className="center-container">
+          <div className="film-hero-grid">
+            <div className="film-hero-poster min-w-0">
+              <div
+                className="relative overflow-hidden rounded-card border border-white/10 bg-white/[0.035]"
+                style={{ padding: "clamp(0.6rem, 1.2vw, 0.9rem)", boxShadow: "0 34px 120px rgba(0,0,0,0.45)" }}
+              >
+                <div className="relative aspect-[2/3] overflow-hidden rounded-card bg-surface">
+                  <img
+                    src={posterSrc}
+                    alt={`${film.title} poster`}
+                    loading="eager"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-              ))}
-            </div>
-            {film.overview && (
-              <div className="mt-8">
-                <h2 className="font-display font-bold text-gold" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>Overview</h2>
-                <p className="font-body text-white/70 leading-relaxed mt-2 line-clamp-3" style={{ fontSize: "clamp(0.75rem,1.1vw,0.9rem)" }}>{film.overview}</p>
               </div>
-            )}
-            <FilmActions film={film} />
-
-            {/* Share card — deliberately OUTSIDE FilmActions, which early-returns
-                a sign-in prompt when signed out. Building a card needs no account
-                (nothing is uploaded), so gating it behind auth would be wrong. */}
-            <div className="mt-4">
-              <ShareCardButton film={film} />
             </div>
+
+            <div className="min-w-0">
+              {facts.length > 0 && (
+                <p
+                  className="font-mono uppercase text-gold"
+                  style={{
+                    fontSize: "clamp(0.52rem, 0.86vw, 0.64rem)",
+                    letterSpacing: "0.26em",
+                    marginBottom: "clamp(0.75rem, 1.6vw, 1.1rem)",
+                  }}
+                >
+                  {facts.join(" / ")}
+                </p>
+              )}
+              <h1
+                className="font-wordmark font-black uppercase text-white"
+                style={{
+                  fontSize: "clamp(2.1rem, 5.6vw, 5rem)",
+                  lineHeight: 0.88,
+                  letterSpacing: "-0.05em",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {film.title}
+              </h1>
+              {film.tagline && (
+                <p
+                  className="font-body italic text-white/55"
+                  style={{ fontSize: "clamp(0.82rem, 1.25vw, 1.05rem)", marginTop: "clamp(0.75rem, 1.6vw, 1.1rem)" }}
+                >
+                  {film.tagline}
+                </p>
+              )}
+
+              <div
+                className="flex flex-wrap items-center border-y border-white/10"
+                style={{
+                  gap: "clamp(0.75rem, 2vw, 1.5rem)",
+                  padding: "clamp(0.8rem, 1.6vw, 1.05rem) 0",
+                  marginTop: "clamp(1.1rem, 2.4vw, 1.75rem)",
+                }}
+              >
+                <div className="flex items-baseline" style={{ gap: "0.4rem" }}>
+                  <span
+                    className="font-mono font-medium text-gold"
+                    style={{ fontSize: "clamp(1.5rem, 2.6vw, 2.1rem)", lineHeight: 1 }}
+                  >
+                    {film.vote_average ? film.vote_average.toFixed(1) : "N/A"}
+                  </span>
+                  <span className="font-mono text-white/38" style={{ fontSize: "clamp(0.6rem, 0.9vw, 0.74rem)" }}>
+                    / 10
+                  </span>
+                  {film.vote_count > 0 && (
+                    <span
+                      className="font-mono uppercase text-white/38"
+                      style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.18em", marginLeft: "0.5rem" }}
+                    >
+                      {film.vote_count.toLocaleString("en-US")} votes
+                    </span>
+                  )}
+                </div>
+
+                {genres.length > 0 && (
+                  <ul className="flex flex-wrap items-center" style={{ gap: "clamp(0.35rem, 0.8vw, 0.5rem)" }} aria-label="Genres">
+                    {genres.map((genre) => (
+                      <li key={genre.id}>
+                        <Link
+                          to={`/genre/${genre.id}`}
+                          className={`${PILL_CLASS} ${PILL_IDLE}`}
+                          style={{ fontSize: "clamp(0.5rem, 0.72vw, 0.6rem)", letterSpacing: "0.14em", padding: "0.42rem 0.78rem" }}
+                        >
+                          {genre.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Key crew — director */}
+              <div style={{ marginTop: "clamp(1rem, 2vw, 1.4rem)" }}>
+                <KeyCrew id={film.id} />
+              </div>
+
+              {film.overview && (
+                <div style={{ marginTop: "clamp(1.1rem, 2.4vw, 1.75rem)" }}>
+                  <h2 className="font-mono uppercase text-white/42" style={{ fontSize: "0.58rem", letterSpacing: "0.22em" }}>
+                    Synopsis
+                  </h2>
+                  <p
+                    className="mt-3 font-body text-white/62"
+                    style={{ fontSize: "clamp(0.8rem, 1.1vw, 0.95rem)", lineHeight: 1.68, maxWidth: "68ch" }}
+                  >
+                    {film.overview}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <FilmActionCard film={film} />
           </div>
         </div>
-      </div>
+      </section>
     </>
   );
 };
+
+/* ── Cast card — portrait + wordmark name, as in "People in Focus" ── */
+const CastCard = ({ member, deferImage }) => (
+  <Link
+    to={`/person/${member.id}`}
+    aria-label={`View ${member.name}${member.character ? `, ${member.character}` : ""}`}
+    className="group block min-w-0 rounded-card focus-ring"
+  >
+    <div className="relative aspect-[4/5] overflow-hidden rounded-card bg-surface shadow-card">
+      {deferImage ? (
+        <div className="skeleton h-full w-full" aria-hidden />
+      ) : (
+        <LazyImage
+          src={member.profile_path ? profileUrl(member.profile_path, "h632") : null}
+          alt=""
+          fallbackType="person"
+          className="h-full w-full object-cover object-top transition-transform duration-slow ease-cinematic group-hover:scale-[1.04]"
+        />
+      )}
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+    </div>
+    <h3
+      className="mt-3 truncate font-wordmark font-black uppercase text-white transition-colors duration-fast group-hover:text-gold"
+      style={{ fontSize: "clamp(0.72rem, 1.05vw, 0.92rem)" }}
+    >
+      {member.name}
+    </h3>
+    {member.character && (
+      <p className="mt-1 line-clamp-1 font-body text-white/45" style={{ fontSize: "clamp(0.58rem, 0.9vw, 0.72rem)" }}>
+        {member.character}
+      </p>
+    )}
+  </Link>
+);
 
 /* ── Cast Section ─────────────────────────────── */
 const CastSection = ({ id }) => {
@@ -420,51 +464,60 @@ const CastSection = ({ id }) => {
   if (cast.length === 0) return null;
 
   return (
-    <div
-      ref={castSectionRef}
-      className="center-container"
-      style={{ marginTop: "clamp(2.5rem,5vh,4rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
-    >
-      <div
-        className="relative rounded-card overflow-hidden"
-        style={{
-          padding: "clamp(1.5rem,3vw,2.5rem)",
-          background: "var(--color-section-dark)",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")`,
-        }}
-      >
-        <h2 className="font-display font-bold text-white text-center" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)", marginBottom: "clamp(1.5rem,3vh,2rem)" }}>
-          Cast
-        </h2>
+    <section ref={castSectionRef} className="center-container" style={SECTION_PADDING} aria-labelledby="film-cast-heading">
+      <SectionHeading
+        id="film-cast-heading"
+        eyebrow="Ensemble"
+        title="Cast"
+        aside={`${cast.length} ${cast.length === 1 ? "credit" : "credits"}`}
+      />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center transition-all duration-slow overflow-hidden" style={{ gap: "clamp(1rem,2vw,1.5rem)" }}>
-          {visibleCast.map((member, i) => (
-            <PersonCard
-              key={`${member.id}-${member.credit_id}`}
-              person={member}
-              subtitle={member.character}
-              index={i}
-              deferImage={!castInView}
-            />
-          ))}
-        </div>
-
-        {cast.length > INITIAL_CAST && (
-          <div className="flex justify-center" style={{ marginTop: "clamp(1.5rem,3vh,2rem)" }}>
-            <button
-              type="button"
-              onClick={() => setShowAllCast((v) => !v)}
-              className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.15em] border border-gold/40 text-white/60 hover:bg-gold/10 hover:text-white hover:border-gold/70 transition-all duration-normal cursor-pointer bg-transparent rounded-card"
-              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)", padding: "0.75rem 2rem" }}
-            >
-              {showAllCast ? <>Show Less <KeyboardArrowUpIcon /></> : <>View Full Cast <KeyboardArrowDownIcon /></>}
-            </button>
-          </div>
-        )}
+      {/* 2 / 4 / 8 columns so the initial eight always fill whole rows */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8" style={{ gap: "clamp(0.85rem, 1.8vw, 1.35rem)" }}>
+        {visibleCast.map((member) => (
+          <CastCard key={`${member.id}-${member.credit_id}`} member={member} deferImage={!castInView} />
+        ))}
       </div>
-    </div>
+
+      {cast.length > INITIAL_CAST && (
+        <div className="flex justify-center" style={{ marginTop: "clamp(1.5rem, 3vw, 2.25rem)" }}>
+          <button
+            type="button"
+            onClick={() => setShowAllCast((v) => !v)}
+            aria-expanded={showAllCast}
+            className={`${PILL_CLASS} ${PILL_IDLE} cursor-pointer`}
+            style={PILL_STYLE}
+          >
+            {showAllCast ? (
+              <>Show Less <KeyboardArrowUpIcon sx={{ fontSize: "1rem" }} /></>
+            ) : (
+              <>View Full Cast <KeyboardArrowDownIcon sx={{ fontSize: "1rem" }} /></>
+            )}
+          </button>
+        </div>
+      )}
+    </section>
   );
 };
+
+const ProviderLogo = ({ provider }) => (
+  <div className="flex flex-col items-center" style={{ gap: "0.4rem", width: "clamp(2.6rem, 4.6vw, 3.6rem)" }} title={provider.provider_name}>
+    <div
+      className="overflow-hidden rounded-card border border-white/10 bg-surface"
+      style={{ width: "clamp(2.25rem, 4vw, 3rem)", height: "clamp(2.25rem, 4vw, 3rem)" }}
+    >
+      <img
+        src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+        alt={provider.provider_name}
+        loading="lazy"
+        className="h-full w-full object-cover"
+      />
+    </div>
+    <span className="line-clamp-2 text-center font-mono leading-tight text-white/40" style={{ fontSize: "clamp(0.42rem, 0.65vw, 0.55rem)" }}>
+      {provider.provider_name}
+    </span>
+  </div>
+);
 
 /* ── 4. Watch Providers (Data-driven) ──────────────────────────── */
 const WatchProviders = ({ id }) => {
@@ -476,92 +529,59 @@ const WatchProviders = ({ id }) => {
 
   if (!regionData) return null;
 
-  const flatrate = regionData.flatrate ?? [];  // streaming
-  const rent     = regionData.rent     ?? [];  // rent
-  const buy      = regionData.buy      ?? [];  // buy
+  const groups = [
+    { label: "Stream", providers: regionData.flatrate ?? [] },
+    { label: "Rent", providers: regionData.rent ?? [] },
+    { label: "Buy", providers: regionData.buy ?? [] },
+  ].filter((group) => group.providers.length > 0);
 
-  if (!flatrate.length && !rent.length && !buy.length) return null;
-
-  const ProviderLogo = ({ p }) => (
-    <div
-      key={p.provider_id}
-      className="flex flex-col items-center"
-      style={{ gap: "0.35rem" }}
-      title={p.provider_name}
-    >
-      <div className="rounded-card overflow-hidden" style={{ width: "clamp(2rem,4vw,3rem)", height: "clamp(2rem,4vw,3rem)" }}>
-        <img
-          src={`https://image.tmdb.org/t/p/w92${p.logo_path}`}
-          alt={p.provider_name}
-          loading="lazy"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <span className="font-mono text-white/40 text-center leading-tight line-clamp-2" style={{ fontSize: "clamp(0.4rem,0.65vw,0.55rem)", maxWidth: "3.5rem" }}>
-        {p.provider_name}
-      </span>
-    </div>
-  );
+  if (groups.length === 0) return null;
 
   return (
-    <div className="center-container" style={{ marginBottom: "clamp(2rem,4vh,3rem)" }}>
-      <div
-        className="rounded-card border border-white/8 bg-white/[0.02]"
-        style={{ padding: "clamp(1.25rem,3vw,2rem)" }}
-      >
-        <div className="flex items-center justify-between" style={{ marginBottom: "clamp(1rem,2vh,1.5rem)" }}>
-          <div className="flex items-center gap-2">
-            <TvIcon sx={{ fontSize: "clamp(0.9rem,1.4vw,1.1rem)", color: "var(--color-gold)" }} />
-            <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem,1.8vw,1.3rem)" }}>
-              Where to Watch
-            </h2>
-          </div>
-          {regionData.link && (
+    <section className="center-container" style={SECTION_PADDING} aria-labelledby="film-watch-heading">
+      <SectionHeading
+        id="film-watch-heading"
+        eyebrow="Availability"
+        title="Where to Watch"
+        aside={
+          regionData.link && (
             <a
               href={regionData.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 font-body text-muted hover:text-gold transition-colors duration-fast"
-              style={{ fontSize: "clamp(0.6rem,0.9vw,0.75rem)" }}
+              className="inline-flex items-center gap-1 transition-colors duration-fast hover:text-gold focus-ring"
               aria-label="View all providers on TMDB"
             >
-              All providers <OpenInNewIcon sx={{ fontSize: "0.75rem" }} />
+              All providers <OpenInNewIcon sx={{ fontSize: "0.8rem" }} />
             </a>
-          )}
+          )
+        }
+      />
+
+      <div
+        className="rounded-card border border-white/10 bg-white/[0.025]"
+        style={{ padding: "clamp(1rem, 2.2vw, 1.6rem)" }}
+      >
+        <div className="flex flex-wrap" style={{ gap: "clamp(1.25rem, 3.5vw, 3rem)" }}>
+          {groups.map((group) => (
+            <div key={group.label} className="min-w-0">
+              <p className="font-mono uppercase text-white/35" style={{ fontSize: "0.55rem", letterSpacing: "0.2em", marginBottom: "0.75rem" }}>
+                {group.label}
+              </p>
+              <div className="flex flex-wrap" style={{ gap: "clamp(0.6rem, 1.3vw, 1rem)" }}>
+                {group.providers.map((provider) => (
+                  <ProviderLogo key={provider.provider_id} provider={provider} />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="flex flex-col" style={{ gap: "clamp(1rem,2vh,1.5rem)" }}>
-          {flatrate.length > 0 && (
-            <div>
-              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Stream</p>
-              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
-                {flatrate.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
-              </div>
-            </div>
-          )}
-          {rent.length > 0 && (
-            <div>
-              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Rent</p>
-              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
-                {rent.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
-              </div>
-            </div>
-          )}
-          {buy.length > 0 && (
-            <div>
-              <p className="font-mono text-muted uppercase tracking-[0.15em] mb-3" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>Buy</p>
-              <div className="flex flex-wrap" style={{ gap: "clamp(0.75rem,1.5vw,1.25rem)" }}>
-                {buy.map((p) => <ProviderLogo key={p.provider_id} p={p} />)}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <p className="font-body text-faint mt-4" style={{ fontSize: "clamp(0.5rem,0.75vw,0.6rem)" }}>
+        <p className="font-body text-faint" style={{ fontSize: "clamp(0.5rem, 0.75vw, 0.6rem)", marginTop: "clamp(1rem, 2vw, 1.4rem)" }}>
           Powered by JustWatch via TMDB
         </p>
       </div>
-    </div>
+    </section>
   );
 };
 
@@ -573,16 +593,22 @@ const SimilarMovies = ({ id }) => {
   if (movies.length === 0) return null;
 
   return (
-    <div className="center-container mt-16 pb-12">
-      <h2 className="font-display font-bold text-white mb-6" style={{ fontSize: "clamp(1.2rem,2vw,1.6rem)" }}>
-        Similar Movies
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}>
-        {movies.slice(0, 5).map((m) => (
-          <FilmCard key={m.id} film={m} />
+    <section
+      className="center-container"
+      style={{ ...SECTION_PADDING, paddingBottom: "clamp(3rem, 7vw, 6rem)" }}
+      aria-labelledby="film-similar-heading"
+    >
+      <SectionHeading id="film-similar-heading" eyebrow="Keep Watching" title="Similar Films" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" style={{ gap: "clamp(0.85rem, 2vw, 1.45rem)" }}>
+        {movies.slice(0, 6).map((m) => (
+          <FilmCard
+            key={m.id}
+            film={m}
+            subtitle={m.release_date ? m.release_date.slice(0, 4) : undefined}
+          />
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 
@@ -593,7 +619,10 @@ const FilmPage = () => {
   return (
     <div className="min-h-screen bg-base text-white">
       {/* Back Button — fixed position, no wrapper needed */}
-      <BackButton fallbackRoute="/" />
+      <BackButton
+        fallbackRoute="/"
+        className="h-10 w-10 rounded-full border border-white/10 bg-black/35 backdrop-blur-md hover:bg-black/55"
+      />
 
       {/* Hero Section - Highest Priority */}
       <ErrorBoundary>

@@ -7,14 +7,28 @@ import { CARD_THEMES } from "../constants/cardThemes";
 import { STAMPS } from "../constants/stamps";
 import CardRating from "./CardRating";
 
+/* Pill toggles — same treatment as the person page role / sort filters. */
+const PILL =
+  "flex-shrink-0 rounded-full border font-body font-semibold uppercase whitespace-nowrap transition-all duration-normal cursor-pointer focus-ring";
+const PILL_STYLE = { fontSize: "clamp(0.54rem, 0.78vw, 0.62rem)", letterSpacing: "0.14em", padding: "0.5rem 0.9rem" };
+const PILL_ACTIVE = "border-gold bg-gold text-black shadow-[0_0_28px_rgba(201,168,67,0.18)]";
+const PILL_IDLE = "border-white/10 bg-white/[0.04] text-white/48 hover:border-white/25 hover:text-white";
+
+const ACTION =
+  "flex items-center justify-center gap-2 rounded-full font-body font-semibold uppercase transition-all duration-normal cursor-pointer focus-ring disabled:opacity-50 disabled:cursor-wait";
+const ACTION_STYLE = { fontSize: "clamp(0.58rem, 0.82vw, 0.66rem)", letterSpacing: "0.16em", padding: "0.78rem 1.2rem" };
+const ACTION_SECONDARY = "border border-white/10 bg-white/[0.04] text-white/60 hover:border-white/25 hover:text-white";
+
+const GUTTER = "clamp(1rem, 2.4vw, 1.5rem)";
+
 /** Section label — mirrors the "Synopsis" label treatment on FilmPage. */
 const Label = ({ children, hint }) => (
-  <div className="flex items-baseline justify-between" style={{ marginBottom: "0.6rem" }}>
-    <p className="font-mono text-gold uppercase" style={{ fontSize: "0.58rem", letterSpacing: "0.28em" }}>
+  <div className="flex items-baseline justify-between" style={{ marginBottom: "0.65rem" }}>
+    <p className="font-mono uppercase text-white/42" style={{ fontSize: "0.58rem", letterSpacing: "0.22em" }}>
       {children}
     </p>
     {hint && (
-      <span className="font-mono text-faint" style={{ fontSize: "0.55rem", letterSpacing: "0.08em" }}>
+      <span className="font-mono text-white/30" style={{ fontSize: "0.55rem", letterSpacing: "0.08em" }}>
         {hint}
       </span>
     )}
@@ -100,8 +114,8 @@ const RatingControl = ({ value, tmdbValue, onChange }) => {
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="font-mono uppercase text-muted hover:text-white transition-colors duration-fast cursor-pointer bg-transparent border border-white/10 hover:border-white/25 rounded-full"
-          style={{ fontSize: "0.55rem", letterSpacing: "0.12em", padding: "0.3rem 0.7rem" }}
+          className={`${PILL} ${PILL_IDLE}`}
+          style={{ ...PILL_STYLE, padding: "0.32rem 0.7rem" }}
         >
           Use TMDB
         </button>
@@ -120,7 +134,11 @@ const ShareCardControls = ({
   onShare, onDownload, onCopy,
   exporting, error, status,
 }) => (
-  <div className="flex flex-col" style={{ gap: "1.4rem" }}>
+  <>
+  <div
+    className="flex min-h-0 flex-col md:flex-1 md:overflow-y-auto scrollbar-hide"
+    style={{ gap: "clamp(1.1rem, 2.2vw, 1.4rem)", padding: GUTTER }}
+  >
     {/* Theme */}
     <div>
       <Label>Theme</Label>
@@ -133,12 +151,8 @@ const ShareCardControls = ({
               type="button"
               aria-pressed={active}
               onClick={() => onThemeChange(t.id)}
-              className={`font-body uppercase tracking-[0.14em] rounded-card border transition-all duration-fast cursor-pointer ${
-                active
-                  ? "border-gold text-white bg-gold/10"
-                  : "border-white/10 text-white/50 bg-transparent hover:border-white/30 hover:text-white/80"
-              }`}
-              style={{ fontSize: "0.62rem", padding: "0.55rem 1rem" }}
+              className={`${PILL} ${active ? PILL_ACTIVE : PILL_IDLE}`}
+              style={PILL_STYLE}
             >
               {t.label}
             </button>
@@ -155,12 +169,8 @@ const ShareCardControls = ({
           type="button"
           aria-pressed={stampId == null}
           onClick={() => onStampChange(null)}
-          className={`font-mono uppercase rounded-card border transition-all duration-fast cursor-pointer ${
-            stampId == null
-              ? "border-white/40 text-white bg-white/[0.06]"
-              : "border-white/10 text-white/40 bg-transparent hover:border-white/30 hover:text-white/70"
-          }`}
-          style={{ fontSize: "0.58rem", letterSpacing: "0.12em", padding: "0.55rem 0.9rem" }}
+          className={`${PILL} ${stampId == null ? "border-white/40 bg-white/10 text-white" : PILL_IDLE}`}
+          style={PILL_STYLE}
         >
           None
         </button>
@@ -172,15 +182,13 @@ const ShareCardControls = ({
               type="button"
               aria-pressed={active}
               onClick={() => onStampChange(active ? null : s.id)}
-              className="font-mono uppercase rounded-card border transition-all duration-fast cursor-pointer bg-transparent"
-              style={{
-                fontSize: "0.58rem",
-                letterSpacing: "0.12em",
-                padding: "0.55rem 0.9rem",
-                borderColor: active ? s.ink : "rgba(255,255,255,0.10)",
-                color: active ? s.ink : "rgba(255,255,255,0.45)",
-                background: active ? `${s.ink}14` : "transparent",
-              }}
+              className={`${PILL} ${active ? "" : PILL_IDLE}`}
+              style={
+                // Active stamps wear their own ink colour, as on the card.
+                active
+                  ? { ...PILL_STYLE, borderColor: s.ink, color: s.ink, background: `${s.ink}1f` }
+                  : PILL_STYLE
+              }
             >
               {s.label}
             </button>
@@ -205,7 +213,7 @@ const ShareCardControls = ({
         onChange={(e) => onCaptionChange(e.target.value)}
         placeholder="Absolute cinema."
         aria-label="Card caption"
-        className="w-full font-body text-white/85 bg-white/[0.04] border border-white/10 rounded-card outline-none focus:border-gold/60 placeholder:text-faint transition-colors duration-fast"
+        className="w-full font-body text-white/85 bg-white/[0.04] border border-white/10 rounded-card outline-none focus:border-gold/60 placeholder:text-white/30 transition-colors duration-fast"
         style={{ fontSize: "0.85rem", padding: "0.65rem 0.9rem" }}
       />
     </div>
@@ -215,8 +223,8 @@ const ShareCardControls = ({
       <Label>Format</Label>
       <div className="flex" style={{ gap: "0.5rem" }} role="group" aria-label="Export format">
         {[
-          { id: "square", label: "Square · 1:1" },
-          { id: "story", label: "Story · 9:16" },
+          { id: "square", label: "Square / 1:1" },
+          { id: "story", label: "Story / 9:16" },
         ].map((f) => {
           const active = f.id === format;
           return (
@@ -225,12 +233,8 @@ const ShareCardControls = ({
               type="button"
               aria-pressed={active}
               onClick={() => onFormatChange(f.id)}
-              className={`font-mono uppercase rounded-card border transition-all duration-fast cursor-pointer ${
-                active
-                  ? "border-gold text-white bg-gold/10"
-                  : "border-white/10 text-white/50 bg-transparent hover:border-white/30 hover:text-white/80"
-              }`}
-              style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "0.55rem 1rem" }}
+              className={`${PILL} ${active ? PILL_ACTIVE : PILL_IDLE}`}
+              style={PILL_STYLE}
             >
               {f.label}
             </button>
@@ -270,8 +274,8 @@ const ShareCardControls = ({
           <button
             type="button"
             onClick={onAdjustClick}
-            className="flex items-center gap-2 font-mono uppercase text-muted hover:text-white border border-white/10 hover:border-white/30 rounded-full bg-transparent transition-all duration-fast cursor-pointer"
-            style={{ fontSize: "0.58rem", letterSpacing: "0.16em", padding: "0.35rem 0.9rem" }}
+            className={`${PILL} ${PILL_IDLE} flex items-center gap-2`}
+            style={PILL_STYLE}
           >
             <CropIcon sx={{ fontSize: "0.8rem" }} />
             Adjust Framing
@@ -280,14 +284,21 @@ const ShareCardControls = ({
       </div>
     )}
 
-    {/* Actions */}
-    <div className="flex flex-wrap items-center" style={{ gap: "0.75rem", marginTop: "0.25rem" }}>
+  </div>
+
+  {/* Export actions — pinned under the options (sticky on mobile, where the
+      whole modal body scrolls). */}
+  <div
+    className="sticky bottom-0 flex-shrink-0 border-t border-white/10 bg-base/95 backdrop-blur-md"
+    style={{ padding: `clamp(0.8rem, 1.8vw, 1rem) ${GUTTER}` }}
+  >
+    <div className="flex flex-wrap items-center" style={{ gap: "0.5rem" }}>
       <button
         type="button"
         onClick={onShare}
         disabled={exporting}
-        className="flex items-center gap-2 font-body font-semibold uppercase tracking-[0.14em] bg-gold text-ink hover:bg-gold-lt rounded-card transition-colors duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-        style={{ fontSize: "0.68rem", padding: "0.8rem 1.8rem" }}
+        className={`${ACTION} flex-1 bg-gold text-black hover:bg-gold-lt`}
+        style={ACTION_STYLE}
       >
         <IosShareIcon sx={{ fontSize: "0.95rem" }} />
         {exporting ? "Preparing…" : "Share"}
@@ -296,18 +307,19 @@ const ShareCardControls = ({
         type="button"
         onClick={onDownload}
         disabled={exporting}
-        className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.14em] border border-white/20 text-white/70 hover:text-white hover:border-gold/60 bg-transparent rounded-card transition-all duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-        style={{ fontSize: "0.68rem", padding: "0.8rem 1.6rem" }}
+        aria-label="Download PNG"
+        className={`${ACTION} ${ACTION_SECONDARY}`}
+        style={ACTION_STYLE}
       >
         <FileDownloadOutlinedIcon sx={{ fontSize: "1rem" }} />
-        Download PNG
+        PNG
       </button>
       <button
         type="button"
         onClick={onCopy}
         disabled={exporting}
-        className="flex items-center gap-2 font-body font-medium uppercase tracking-[0.14em] border border-white/20 text-white/70 hover:text-white hover:border-gold/60 bg-transparent rounded-card transition-all duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-        style={{ fontSize: "0.68rem", padding: "0.8rem 1.6rem" }}
+        className={`${ACTION} ${ACTION_SECONDARY}`}
+        style={ACTION_STYLE}
       >
         <ContentCopyIcon sx={{ fontSize: "1rem" }} />
         Copy
@@ -317,8 +329,8 @@ const ShareCardControls = ({
     {/* Status / errors — polite live region */}
     <p
       aria-live="polite"
-      className={`font-mono ${error ? "text-[#c96a5a]" : "text-muted"}`}
-      style={{ fontSize: "0.62rem", letterSpacing: "0.08em", minHeight: "1em", margin: 0 }}
+      className={`font-mono ${error ? "text-[#c96a5a]" : "text-white/45"}`}
+      style={{ fontSize: "0.6rem", letterSpacing: "0.08em", minHeight: "1em", margin: "0.55rem 0 0" }}
     >
       {error ||
         (status === "shared" && "Card shared.") ||
@@ -327,6 +339,7 @@ const ShareCardControls = ({
         ""}
     </p>
   </div>
+  </>
 );
 
 export default ShareCardControls;

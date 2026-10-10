@@ -27,9 +27,12 @@
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `VITE_API_KEY` | TMDB API key | Yes |
-| `VITE_BASE_URL` | TMDB API base (`https://api.themoviedb.org/3`) | Yes |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase project (auth, watchlist, watch history, ratings) | Yes |
+| `TMDB_DEV_PROXY` | Dev only: deployed TMDB proxy the Vite dev server forwards `/api/tmdb` to (e.g. `https://cscope.pages.dev/api/tmdb`) | One of these two |
+| `TMDB_API_KEY` | Dev only: TMDB key for calling TMDB directly from the Vite dev proxy. In production it is a Cloudflare Pages secret | One of these two |
 | `VITE_GITHUB_URL` | Developer's GitHub URL (footer credit link) | No |
+
+The TMDB key is never a `VITE_` variable and never reaches the browser bundle.
 
 See `.env.example` for template.
 
@@ -214,7 +217,9 @@ src/
 - **FilmPage:** Resolved waterfall by using `parallelFetcher` to request movie details and US certification release dates simultaneously.
 - **PersonPage:** Header data and filmography credits are requested in parallel using independent Suspense boundaries.
 - **HomePage:** Each `GenreRow` initiates its own fetch concurrently; a slow row doesn't block others.
-- **Shared Fetcher:** `src/lib/api/fetcher.js` provides a centralized `fetcher` and `parallelFetcher` to handle TMDB auth and endpoint resolution.
+- **Shared Fetcher:** `src/lib/api/fetcher.js` provides a centralized `fetcher` and `parallelFetcher`. Relative TMDB paths are requested from same-origin `/api/tmdb/<path>`.
+- **TMDB proxy:** `functions/api/tmdb/[[path]].js` (repo root) is a Cloudflare Pages Function that adds the TMDB key, caches at the edge per endpoint TTL, and serves a stale copy if TMDB is down. In `vite dev` the same path is served by the dev-server proxy in `frontend/vite.config.js`.
+- **Hosting:** frontend + TMDB proxy on Cloudflare Pages (`https://cscope.pages.dev`); Postgres, auth and the user-data Edge Functions on Supabase.
 
 ---
 

@@ -57,7 +57,17 @@ body {
   margin-inline: auto;
 }
 
+/* Biography only appears once the rail sits beside the filmography —
+   stacked above it on small screens it pushes the films too far down. */
+.person-biography {
+  display: none;
+}
+
 @media (min-width: 56rem) {
+  .person-biography {
+    display: block;
+  }
+
   .person-page-grid {
     grid-template-columns: minmax(15rem, min(32vw, 24rem)) minmax(0, 1fr);
     align-items: start;
@@ -66,6 +76,53 @@ body {
   .person-profile-rail {
     max-width: none;
     margin-inline: 0;
+  }
+}
+
+.film-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.5rem, 4.5vw, 4.5rem);
+}
+
+.film-hero-poster {
+  width: clamp(9.5rem, 44vw, 15rem);
+}
+
+@media (min-width: 48rem) {
+  .film-hero-grid {
+    grid-template-columns: minmax(13rem, min(27vw, 21rem)) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .film-hero-poster {
+    width: 100%;
+    grid-row: span 2;
+  }
+
+  /* Tablet: the action card tucks under the film details, beside the poster. */
+  .film-hero-actions {
+    grid-column: 2;
+    max-width: 22rem;
+  }
+}
+
+/* Desktop: action card becomes its own right-hand column. */
+@media (min-width: 75rem) {
+  .film-hero-grid {
+    grid-template-columns: minmax(13rem, min(24vw, 20rem)) minmax(0, 1fr) clamp(15rem, 19vw, 18rem);
+    column-gap: clamp(2rem, 3.5vw, 3.5rem);
+  }
+
+  .film-hero-poster {
+    grid-row: auto;
+  }
+
+  .film-hero-actions {
+    grid-column: 3;
+    max-width: none;
+    position: sticky;
+    top: calc(var(--navbar-height, 3.5rem) + 1.25rem);
   }
 }
 

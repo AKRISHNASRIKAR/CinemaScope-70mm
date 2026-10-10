@@ -202,7 +202,7 @@ const ShareCardModal = ({ film, onClose }) => {
       const blob = await exportCard(format);
       const result = await shareOrDownload(blob, cardFileName(film.title, format), {
         title: film.title,
-        text: "Try Yours Now : https://cscope.vercel.app/",
+        text: "Try Yours Now : https://cscope.pages.dev/",
       });
       if (result !== "cancelled") setStatus(result);
     } catch { /* surfaced via hook error state */ }
@@ -212,7 +212,7 @@ const ShareCardModal = ({ film, onClose }) => {
     setStatus(null);
     try {
       const blob = await exportCard(format);
-      await copyToClipboard(blob, { text: "Try Yours Now : https://cscope.vercel.app/" });
+      await copyToClipboard(blob, { text: "Try Yours Now : https://cscope.pages.dev/" });
       setStatus("copied");
     } catch { /* surfaced via hook error state */ }
   }, [exportCard, format]);
@@ -276,41 +276,50 @@ const ShareCardModal = ({ film, onClose }) => {
         aria-modal="true"
         aria-labelledby="share-card-title"
         onKeyDown={trapTab}
-        className="relative w-full bg-surface border border-white/10 rounded-card outline-none overflow-y-auto scrollbar-hide"
-        style={{ maxWidth: "62rem", maxHeight: "calc(100dvh - 1.5rem)", boxShadow: "0 40px 120px rgba(0,0,0,0.85)" }}
+        className="relative flex w-full flex-col overflow-hidden bg-base border border-white/10 rounded-card outline-none"
+        style={{ maxWidth: "64rem", maxHeight: "calc(100dvh - 1.5rem)", boxShadow: "0 40px 120px rgba(0,0,0,0.85)" }}
         {...entrance}
         transition={{ duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        {/* Header */}
+        {/* Header — ruled eyebrow + wordmark title, as on the film page */}
         <div
-          className="flex items-center justify-between border-b border-white/[0.06]"
-          style={{ padding: "clamp(1rem, 2vw, 1.4rem) clamp(1rem, 3vw, 1.75rem)" }}
+          className="flex flex-shrink-0 items-end justify-between border-b border-white/10"
+          style={{ gap: "1rem", padding: "clamp(0.9rem, 2vw, 1.25rem) clamp(1rem, 3vw, 1.75rem)" }}
         >
-          <div className="flex items-baseline flex-wrap" style={{ gap: "0.75rem" }}>
-            <h2 id="share-card-title" className="font-display font-bold text-white" style={{ fontSize: "clamp(1.05rem, 2vw, 1.35rem)" }}>
+          <div className="min-w-0">
+            <p
+              className="font-mono uppercase text-gold"
+              style={{ fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)", letterSpacing: "0.28em", marginBottom: "0.6rem" }}
+            >
               Share Card
-            </h2>
-            <span className="font-mono text-muted uppercase line-clamp-1" style={{ fontSize: "0.62rem", letterSpacing: "0.16em" }}>
+            </p>
+            <h2
+              id="share-card-title"
+              className="truncate font-wordmark font-black uppercase text-white"
+              style={{ fontSize: "clamp(1.3rem, 3vw, 2.2rem)", lineHeight: 0.9, letterSpacing: "-0.05em" }}
+            >
               {film.title}
-            </span>
+            </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close share card dialog"
-            className="flex items-center justify-center text-white/50 hover:text-white border border-white/10 hover:border-white/30 rounded-full bg-transparent transition-all duration-fast cursor-pointer"
-            style={{ width: "2.2rem", height: "2.2rem", padding: 0 }}
+            className="flex flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/55 transition-all duration-fast cursor-pointer hover:border-white/25 hover:text-white focus-ring"
+            style={{ width: "2.4rem", height: "2.4rem", padding: 0 }}
           >
             <CloseIcon sx={{ fontSize: "1.1rem" }} />
           </button>
         </div>
 
-        {/* Body — card first on mobile, side-by-side on desktop */}
-        <div className="grid md:grid-cols-[1.15fr_1fr]">
+        {/* Body — card first on mobile (whole body scrolls); side-by-side on
+            desktop, where only the options column scrolls and the export
+            actions stay pinned. */}
+        <div className="grid min-h-0 flex-1 overflow-y-auto scrollbar-hide md:grid-cols-[1.15fr_1fr] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
           {/* Preview */}
           <section
             aria-label="Card preview"
-            className="relative flex flex-col items-center justify-center bg-base overflow-hidden"
+            className="relative flex flex-col items-center justify-center overflow-hidden bg-section-dark md:border-r md:border-white/10"
             style={{ padding: "clamp(1.25rem, 3vw, 2rem)", minHeight: "min(30rem, 72vh)", touchAction: "none" }}
             onClick={() => {
               if (show3D) setFlipped((f) => !f);
@@ -320,7 +329,7 @@ const ShareCardModal = ({ film, onClose }) => {
             <div
               aria-hidden
               className="absolute inset-0 pointer-events-none"
-              style={{ background: "radial-gradient(ellipse at 50% 42%, rgba(201,168,67,0.05), transparent 60%)" }}
+              style={{ background: "radial-gradient(ellipse at 50% 42%, rgba(201,168,67,0.09), transparent 62%)" }}
             />
 
             {/* The WebGL canvas is aria-hidden, so the card's description
@@ -372,8 +381,8 @@ const ShareCardModal = ({ film, onClose }) => {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setFlipped((f) => !f); }}
                 aria-pressed={flipped}
-                className="flex items-center gap-2 font-mono uppercase text-muted hover:text-white border border-white/10 hover:border-white/30 rounded-full bg-transparent transition-all duration-fast cursor-pointer"
-                style={{ fontSize: "0.58rem", letterSpacing: "0.16em", padding: "0.45rem 1.1rem" }}
+                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] font-body font-semibold uppercase text-white/55 transition-all duration-fast cursor-pointer hover:border-white/25 hover:text-white focus-ring"
+                style={{ fontSize: "0.58rem", letterSpacing: "0.16em", padding: "0.5rem 1.1rem" }}
               >
                 <FlipIcon sx={{ fontSize: "0.8rem" }} />
                 {flipped ? "Show front" : "Flip card"}
@@ -384,7 +393,7 @@ const ShareCardModal = ({ film, onClose }) => {
           {/* Controls */}
           <section
             aria-label="Card options"
-            style={{ padding: "clamp(1.25rem, 3vw, 1.75rem)", minWidth: 0 }}
+            className="flex min-h-0 min-w-0 flex-col"
           >
             <ShareCardControls
               themeId={themeId}

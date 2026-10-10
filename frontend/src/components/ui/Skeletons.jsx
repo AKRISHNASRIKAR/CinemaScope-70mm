@@ -23,77 +23,83 @@ export const HomeHeroSkeleton = () => (
   </div>
 );
 
-/* ── Film Detail Hero Skeleton (matches FilmPage backdrop height) ─ */
-export const FilmDetailHeroSkeleton = () => (
+/* ── Film page section heading placeholder (ruled eyebrow + title) ─ */
+const SectionHeadingSkeleton = ({ width = "12rem" }) => (
   <div
-    className="relative w-full overflow-hidden bg-base"
-    style={{ height: "clamp(40vh, 55vh, 65vh)" }}
+    className="border-y border-white/10"
+    style={{ padding: "clamp(0.9rem, 2vw, 1.25rem) 0", marginBottom: "clamp(1.25rem, 3vw, 2rem)" }}
   >
-    <Shimmer className="absolute inset-0" />
-    <div className="absolute inset-0 bg-gradient-to-t from-base via-base/60 to-transparent" />
-    <div className="absolute inset-0 bg-gradient-to-r from-base/80 via-transparent to-transparent" />
+    <div className="skeleton rounded" style={{ height: "0.6rem", width: "5rem", marginBottom: "clamp(0.6rem, 1.3vw, 0.9rem)" }} />
+    <div className="skeleton rounded" style={{ height: "clamp(1.55rem, 3.95vw, 3.35rem)", width, maxWidth: "70%" }} />
   </div>
+);
+
+const FILM_SECTION_PADDING = { paddingTop: "clamp(2rem, 5vw, 4rem)", paddingBottom: "clamp(1rem, 2.5vw, 2rem)" };
+
+/* ── Film Detail Hero Skeleton (matches FilmHero: poster rail + text column) ─ */
+export const FilmDetailHeroSkeleton = () => (
+  <section
+    className="bg-base"
+    style={{
+      paddingTop: "calc(var(--navbar-height, 3.5rem) + clamp(2rem, 4.5vw, 4rem))",
+      paddingBottom: "clamp(1.5rem, 4vw, 3rem)",
+    }}
+  >
+    <div className="center-container">
+      <div className="film-hero-grid">
+        <div className="film-hero-poster">
+          <div
+            className="rounded-card border border-white/10 bg-white/[0.035]"
+            style={{ padding: "clamp(0.6rem, 1.2vw, 0.9rem)" }}
+          >
+            <div className="aspect-[2/3] rounded-card bg-white/5">
+              <Shimmer showIcon />
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <div className="skeleton rounded" style={{ height: "0.6rem", width: "11rem", marginBottom: "clamp(0.75rem, 1.6vw, 1.1rem)" }} />
+          <div className="skeleton rounded" style={{ height: "clamp(1.85rem, 4.9vw, 4.4rem)", width: "70%" }} />
+          <div
+            className="border-y border-white/10"
+            style={{ padding: "clamp(0.8rem, 1.6vw, 1.05rem) 0", marginTop: "clamp(1.1rem, 2.4vw, 1.75rem)" }}
+          >
+            <div className="skeleton rounded" style={{ height: "clamp(1.5rem, 2.6vw, 2.1rem)", width: "14rem", maxWidth: "80%" }} />
+          </div>
+          <div style={{ marginTop: "clamp(1.1rem, 2.4vw, 1.75rem)", maxWidth: "68ch" }}>
+            <div className="skeleton rounded" style={{ height: "0.85rem", width: "100%", marginBottom: "0.6rem" }} />
+            <div className="skeleton rounded" style={{ height: "0.85rem", width: "100%", marginBottom: "0.6rem" }} />
+            <div className="skeleton rounded" style={{ height: "0.85rem", width: "70%" }} />
+          </div>
+        </div>
+
+        <div className="film-hero-actions rounded-card border border-white/10 bg-white/[0.035]" style={{ height: "15rem" }}>
+          <Shimmer />
+        </div>
+      </div>
+    </div>
+  </section>
 );
 
 /* ── Cast Section Skeleton ─────────────────────────────────────── */
 /*
- * Real card: max-w-[clamp(110px,14vw,160px)], aspect-[3/4],
- *            white bg, padding clamp(6px,0.8vw,10px) on sides/top
- *            and clamp(18px,2.5vw,28px) on bottom (polaroid caption space).
- * Initial cast shown: INITIAL_CAST = 8
+ * Real card: aspect-[4/5] portrait + name + character lines,
+ * in a 2 / 4 / 8 column grid. Initial cast shown: INITIAL_CAST = 8
  */
 export const CastSectionSkeleton = () => (
-  <div
-    className="center-container"
-    style={{ marginTop: "clamp(2.5rem,5vh,4rem)", paddingBottom: "clamp(2rem,4vh,3rem)" }}
-  >
-    <div
-      className="relative rounded-card overflow-hidden"
-      style={{ padding: "clamp(1.5rem,3vw,2.5rem)", background: "var(--color-section-dark)" }}
-    >
-      {/* "Cast" heading placeholder */}
-      <div
-        className="skeleton rounded mx-auto"
-        style={{
-          height: "clamp(1.2rem,2vw,1.6rem)",
-          width: "4rem",
-          marginBottom: "clamp(1.5rem,3vh,2rem)",
-        }}
-      />
-
-      <div
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center"
-        style={{ gap: "clamp(1rem,2vw,1.5rem)" }}
-      >
-        {Array.from({ length: 8 }).map((_, i) => (
-          /* Outer wrapper matches real card max-width */
-          <div
-            key={i}
-            className="w-full mx-auto"
-            style={{ maxWidth: "clamp(110px,14vw,160px)" }}
-          >
-            {/* White polaroid shell */}
-            <div
-              className="bg-white/90 flex flex-col"
-              style={{
-                padding: `clamp(6px,0.8vw,10px) clamp(6px,0.8vw,10px) clamp(18px,2.5vw,28px)`,
-                borderRadius: "2px",
-                boxShadow: "3px 4px 14px rgba(0,0,0,0.35)",
-              }}
-            >
-              {/* Photo area — aspect-[3/4] */}
-              <div className="w-full aspect-[3/4]">
-                <Shimmer style={{ borderRadius: "1px" }} />
-              </div>
-              {/* Caption lines */}
-              <div style={{ paddingTop: "clamp(6px,0.8vw,10px)" }}>
-                <div className="skeleton rounded" style={{ height: "0.5rem", width: "80%" }} />
-                <div className="skeleton rounded mt-1" style={{ height: "0.4rem", width: "55%" }} />
-              </div>
-            </div>
+  <div className="center-container" style={FILM_SECTION_PADDING}>
+    <SectionHeadingSkeleton width="7rem" />
+    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8" style={{ gap: "clamp(0.85rem, 1.8vw, 1.35rem)" }}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="min-w-0">
+          <div className="aspect-[4/5] rounded-card bg-white/5">
+            <Shimmer />
           </div>
-        ))}
-      </div>
+          <div className="skeleton rounded mt-3" style={{ height: "0.75rem", width: "80%" }} />
+          <div className="skeleton rounded mt-1" style={{ height: "0.6rem", width: "55%" }} />
+        </div>
+      ))}
     </div>
   </div>
 );
@@ -151,21 +157,20 @@ export const FilmRowSkeleton = ({ count = 5 }) => (
 
 /* ── Similar Movies Row Skeleton ───────────────────────────────── */
 /*
- * Used for SimilarMovies section — 5 cards in a grid,
- * matching grid-cols-2 sm:3 lg:4 xl:5 with aspect-[2/3].
+ * Used for SimilarMovies section — 6 cards in a grid,
+ * matching grid-cols-2 sm:3 lg:6 with aspect-[2/3].
  */
 export const SimilarMoviesSkeleton = () => (
   <div
     className="center-container"
-    style={{ marginTop: "4rem", paddingBottom: "3rem" }}
+    style={{ ...FILM_SECTION_PADDING, paddingBottom: "clamp(3rem, 7vw, 6rem)" }}
   >
-    {/* Section heading placeholder */}
-    <div className="skeleton rounded" style={{ height: "clamp(1.2rem,2vw,1.6rem)", width: "10rem", marginBottom: "1.5rem" }} />
+    <SectionHeadingSkeleton width="16rem" />
     <div
-      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-      style={{ gap: "clamp(0.75rem, 2vw, 1.25rem)" }}
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+      style={{ gap: "clamp(0.85rem, 2vw, 1.45rem)" }}
     >
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex flex-col">
           <div className="aspect-[2/3] rounded-card bg-white/5">
             <Shimmer showIcon />

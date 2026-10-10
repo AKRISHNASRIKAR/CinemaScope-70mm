@@ -1,0 +1,32 @@
+name: Keep Supabase awake
+
+# Supabase pauses free-tier projects after about a week without activity.
+# One cheap read a day keeps the database counted as active.
+#
+# Uses the same secrets as deploy.yml:
+#   SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY
+#
+# Note: GitHub disables scheduled workflows after 60 days without a commit;
+# re-enable it from the Actions tab if the repo goes quiet.
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # daily, 05:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row through the REST API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_PROJECT_URL }}/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Supabase REST returned HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Keep-alive FAILED — expected 200, got $STATUS"
+            exit 1
+          fi

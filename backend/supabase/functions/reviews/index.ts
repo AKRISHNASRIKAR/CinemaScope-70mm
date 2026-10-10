@@ -2,8 +2,9 @@
 // Manages film reviews (rating 1-10 + optional written review body).
 //
 // Routes:
-//   GET    /functions/v1/reviews?tmdb_id=<id>   → all reviews for a film (public to authenticated)
-//   POST   /functions/v1/reviews                → create or update own review (upsert)
+//   GET    /functions/v1/reviews?tmdb_id=<id>          → all reviews for a film (public to authenticated)
+//   GET    /functions/v1/reviews/summary?tmdb_id=<id>  → caller's own rating + member average/count
+//   POST   /functions/v1/reviews                       → create or update own review (upsert)
 //   DELETE /functions/v1/reviews/:tmdbId        → delete own review
 //
 // Auth: required for all routes.
@@ -52,6 +53,45 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   logger.info('request', { method: req.method, user_id: user.id, request_id: requestId });
 
+  // ── GET /summary: own rating + aggregate, for the film page rating card ───
+  if (req.method === 'GET' && url.pathname.split('/').at(-1) === 'summary') {
+    const { data: query, error } = parseQueryParams(url, ReviewsQuerySchema);
+    if (error) return Errors.validation(corsHeaders, error.format());
+
+    const [mine, summary] = await Promise.all([
+      client
+        .from('reviews')
+        .select('rating, body, updated_at')
+        .eq('user_id', user.id)
+        .eq('tmdb_id', query.tmdb_id)
+        .maybeSingle(),
+      client.rpc('film_rating_summary', { p_tmdb_id: query.tmdb_id }),
+    ]);
+
+    if (mine.error || summary.error) {
+      logger.error('db_error', {
+        tmdb_id: query.tmdb_id,
+        error: String(mine.error?.message ?? summary.error?.message),
+      });
+      return Errors.internal(corsHeaders);
+    }
+
+    const aggregate = summary.data?.[0];
+    const count = Number(aggregate?.rating_count ?? 0);
+
+    return new Response(
+      JSON.stringify({
+        mine: mine.data ?? null,
+        count,
+        average: count > 0 ? Number(aggregate.rating_average) : null,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Request-ID': requestId },
+      },
+    );
+  }
+
   // ── GET: all reviews for a film, joined with reviewer profiles ────────────
   if (req.method === 'GET') {
     const { data: query, error } = parseQueryParams(url, ReviewsQuerySchema);
@@ -81,8 +121,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data, error } = await parseBody(req, ReviewUpsertSchema);
     if (error) return Errors.validation(corsHeaders, error.format());
 
-    const now = new Date().toISOString();
-
+    // On conflict only the supplied columns are updated, so:
+    //  - created_at is left to the DB default and survives later edits;
+    //  - body is sent only when the client included it, so re-rating from the
+    //    star control doesn't wipe a written review.
     const { data: row, error: dbError } = await client
       .from('reviews')
       .upsert(
@@ -91,9 +133,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           tmdb_id: data.tmdb_id,
           title: data.title,
           rating: data.rating,
-          body: data.body ?? null,
-          created_at: now,
-          updated_at: now,
+          ...(data.body !== undefined ? { body: data.body } : {}),
+          updated_at: new Date().toISOString(),
         },
         {
           onConflict: 'user_id,tmdb_id',

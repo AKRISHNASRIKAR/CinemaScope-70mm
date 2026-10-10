@@ -1,8 +1,9 @@
 name: Deploy — Migrations + Edge Functions
 
 # Runs on every push to master.
-# Vercel deploys the frontend automatically via its GitHub integration
-# (no action step needed here — just configure it once in the Vercel dashboard).
+# Cloudflare Pages deploys the frontend and the TMDB proxy (functions/api/tmdb)
+# automatically via its GitHub integration → https://cscope.pages.dev
+# (no action step needed here — configured once in the Cloudflare dashboard).
 #
 # Required GitHub Secrets (Settings → Secrets → Actions):
 #   SUPABASE_ACCESS_TOKEN   — your personal Supabase access token (supabase.com/dashboard/account/tokens)

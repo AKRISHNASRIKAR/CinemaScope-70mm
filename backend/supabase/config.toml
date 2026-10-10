@@ -3,7 +3,7 @@ project_id = "jdcwheqgijtzfbxxvnjx"
 [functions.tmdb]
 verify_jwt = false
 
-# watchlist and watch-history verify auth manually via requireAuth() (see
+# watchlist, watch-history and reviews verify auth manually via requireAuth() (see
 # _shared/auth.ts) so that the function can also serve CORS preflight
 # (OPTIONS) requests, which never carry an Authorization header. Leaving
 # verify_jwt at its default (true) makes the platform gateway reject every
@@ -13,4 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.watch-history]
+verify_jwt = false
+
+[functions.reviews]
 verify_jwt = false

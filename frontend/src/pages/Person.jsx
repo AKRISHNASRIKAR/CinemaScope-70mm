@@ -1,11 +1,11 @@
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import LocalMoviesOutlinedIcon from "@mui/icons-material/LocalMoviesOutlined";
-import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 import Footer from "@/components/layout/Footer";
 import LazyImage from "@/components/ui/LazyImage";
@@ -18,6 +18,7 @@ import { profileUrl } from "@/lib/utils/tmdbImage";
 
 const ACTING = "Acting";
 const ALL_CREDITS = "all";
+const FILMS_PER_PAGE = 20;
 
 const DEPARTMENT_LABELS = {
   Acting: "Acting",
@@ -176,6 +177,77 @@ const MetaItem = ({ icon: Icon, label, value }) => {
   );
 };
 
+/** Page numbers to render, with `null` marking a collapsed gap. */
+const pageWindow = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = new Set([1, total, current - 1, current, current + 1]);
+  const sorted = [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b);
+  return sorted.flatMap((page, index) => (index > 0 && page - sorted[index - 1] > 1 ? [null, page] : [page]));
+};
+
+const PAGE_BUTTON_CLASS =
+  "flex flex-shrink-0 items-center justify-center rounded-full border font-mono transition-all duration-normal focus-ring";
+const PAGE_BUTTON_STYLE = {
+  width: "clamp(2rem, 3vw, 2.4rem)",
+  height: "clamp(2rem, 3vw, 2.4rem)",
+  fontSize: "clamp(0.6rem, 0.85vw, 0.72rem)",
+};
+
+const Pagination = ({ page, totalPages, onChange }) => {
+  if (totalPages <= 1) return null;
+
+  const idle = "border-white/10 bg-white/[0.04] text-white/55 hover:border-white/25 hover:text-white cursor-pointer";
+  const disabled = "border-white/5 text-white/20 cursor-not-allowed";
+
+  return (
+    <nav
+      aria-label="Filmography pages"
+      className="flex flex-wrap items-center justify-center"
+      style={{ gap: "clamp(0.3rem, 0.8vw, 0.5rem)", marginTop: "clamp(1.5rem, 4vw, 2.75rem)" }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        aria-label="Previous page"
+        className={`${PAGE_BUTTON_CLASS} ${page === 1 ? disabled : idle}`}
+        style={PAGE_BUTTON_STYLE}
+      >
+        <ChevronLeftIcon sx={{ fontSize: "1.1rem" }} />
+      </button>
+      {pageWindow(page, totalPages).map((item, index) =>
+        item === null ? (
+          <span key={`gap-${index}`} aria-hidden className="font-mono text-white/30" style={{ fontSize: "0.7rem" }}>
+            …
+          </span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(item)}
+            aria-label={`Page ${item}`}
+            aria-current={item === page ? "page" : undefined}
+            className={`${PAGE_BUTTON_CLASS} ${item === page ? "border-gold bg-gold text-black cursor-default" : idle}`}
+            style={PAGE_BUTTON_STYLE}
+          >
+            {item}
+          </button>
+        )
+      )}
+      <button
+        type="button"
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        aria-label="Next page"
+        className={`${PAGE_BUTTON_CLASS} ${page === totalPages ? disabled : idle}`}
+        style={PAGE_BUTTON_STYLE}
+      >
+        <ChevronRightIcon sx={{ fontSize: "1.1rem" }} />
+      </button>
+    </nav>
+  );
+};
+
 const GrainOverlay = ({ opacity = 0.1 }) => (
   <div
     aria-hidden
@@ -189,17 +261,15 @@ const GrainOverlay = ({ opacity = 0.1 }) => (
   />
 );
 
-const ProfileRail = ({ person, totalCredits }) => {
+const ProfileRail = ({ person }) => {
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
   const born = formatDate(person.birthday);
   const died = formatDate(person.deathday);
   const age = person.birthday ? yearsBetween(person.birthday, person.deathday ? new Date(person.deathday) : new Date()) : null;
-  const lifeValue = person.deathday
-    ? [formatYear(person.birthday), formatYear(person.deathday)].filter(Boolean).join(" - ")
-    : age !== null
-      ? `${age} years old`
-      : null;
+  // One line: age with the date of birth in brackets (lifespan if deceased).
+  const ageValue =
+    age === null ? null : died ? `${age} (${born} - ${died})` : `${age} (${born})`;
   const bioText = person.biography || "";
   const isLongBio = bioText.length > 420;
   const displayBio = isLongBio && !isBioExpanded ? `${bioText.slice(0, 420).trim()}...` : bioText;
@@ -246,16 +316,12 @@ const ProfileRail = ({ person, totalCredits }) => {
         </h1>
       </div>
 
-      <div className="mt-5 border-b border-white/10">
-        <MetaItem icon={CalendarTodayOutlinedIcon} label={person.deathday ? "Life" : "Age"} value={lifeValue} />
-        <MetaItem icon={CalendarTodayOutlinedIcon} label="Born" value={born} />
-        <MetaItem icon={PlaceOutlinedIcon} label="Origin" value={person.place_of_birth} />
-        <MetaItem icon={LocalMoviesOutlinedIcon} label="Credits" value={`${totalCredits} ${totalCredits === 1 ? "film" : "films"}`} />
-        {died && <MetaItem icon={CalendarTodayOutlinedIcon} label="Died" value={died} />}
+      <div className={`mt-5 ${ageValue ? "border-b border-white/10" : ""}`}>
+        <MetaItem icon={CalendarTodayOutlinedIcon} label={died ? "Died at" : "Age"} value={ageValue} />
       </div>
 
       {bioText && (
-        <section className="mt-5" aria-labelledby="person-biography-heading">
+        <section className="person-biography mt-5" aria-labelledby="person-biography-heading">
           <h2
             id="person-biography-heading"
             className="font-mono uppercase text-white/42"
@@ -295,11 +361,32 @@ const ProfileRail = ({ person, totalCredits }) => {
 const FilmographyPanel = ({ groups, allFilms }) => {
   const [activeDept, setActiveDept] = useState(ALL_CREDITS);
   const [sortKey, setSortKey] = useState(SORTS[0].key);
+  const [page, setPage] = useState(1);
+  const sectionRef = useRef(null);
+
+  const selectDept = (department) => {
+    setActiveDept(department);
+    setPage(1);
+  };
+
+  const selectSort = (key) => {
+    setSortKey(key);
+    setPage(1);
+  };
+
+  const changePage = (next) => {
+    setPage(next);
+    sectionRef.current?.scrollIntoView({ block: "start" });
+  };
 
   const activeGroup = groups.find((group) => group.department === activeDept);
   const sourceFilms = activeDept === ALL_CREDITS ? allFilms : activeGroup?.films ?? allFilms;
   const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
   const films = useMemo(() => [...sourceFilms].sort(sort.compare), [sourceFilms, sort]);
+  const totalPages = Math.max(1, Math.ceil(films.length / FILMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * FILMS_PER_PAGE;
+  const pageFilms = films.slice(pageStart, pageStart + FILMS_PER_PAGE);
   const label = activeDept === ALL_CREDITS ? "All Credits" : activeGroup?.label ?? "Filmography";
   const firstYear = useMemo(
     () => [...allFilms].filter((film) => film.release_date).sort(compareDatesOldest)[0],
@@ -314,7 +401,12 @@ const FilmographyPanel = ({ groups, allFilms }) => {
     .join(" - ");
 
   return (
-    <section className="min-w-0" aria-labelledby="filmography-heading">
+    <section
+      ref={sectionRef}
+      className="min-w-0"
+      aria-labelledby="filmography-heading"
+      style={{ scrollMarginTop: "calc(var(--navbar-height, 3.5rem) + 1rem)" }}
+    >
       <div
         className="border-y border-white/10"
         style={{ padding: "clamp(0.9rem, 2vw, 1.25rem) 0", marginBottom: "clamp(0.9rem, 2vw, 1.25rem)" }}
@@ -323,13 +415,17 @@ const FilmographyPanel = ({ groups, allFilms }) => {
           <div className="min-w-0">
             <p
               className="font-mono uppercase text-gold"
-              style={{ fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)", letterSpacing: "0.28em" }}
+              style={{
+                fontSize: "clamp(0.52rem, 0.82vw, 0.64rem)",
+                letterSpacing: "0.28em",
+                marginBottom: "clamp(0.75rem, 1.6vw, 1.1rem)",
+              }}
             >
               Archive
             </p>
             <h2
               id="filmography-heading"
-              className="mt-2 font-wordmark font-black uppercase text-white"
+              className="font-wordmark font-black uppercase text-white"
               style={{ fontSize: "clamp(2.2rem, 6vw, 5.25rem)", lineHeight: 0.84, letterSpacing: "-0.055em" }}
             >
               Filmography
@@ -364,19 +460,19 @@ const FilmographyPanel = ({ groups, allFilms }) => {
               Role
             </p>
             <div
-              className="flex min-w-0 items-center overflow-x-auto pb-1 scrollbar-hide"
+              className="flex min-w-0 flex-wrap items-center sm:flex-nowrap sm:overflow-x-auto sm:pb-1 scrollbar-hide"
               style={{ gap: "clamp(0.4rem, 1vw, 0.65rem)" }}
               role="group"
               aria-label="Filter filmography by role"
             >
-              <ToggleButton active={activeDept === ALL_CREDITS} onClick={() => setActiveDept(ALL_CREDITS)}>
+              <ToggleButton active={activeDept === ALL_CREDITS} onClick={() => selectDept(ALL_CREDITS)}>
                 All
                 <span className={activeDept === ALL_CREDITS ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
                   {allFilms.length}
                 </span>
               </ToggleButton>
               {groups.map((group) => (
-                <ToggleButton key={group.department} active={group.department === activeDept} onClick={() => setActiveDept(group.department)}>
+                <ToggleButton key={group.department} active={group.department === activeDept} onClick={() => selectDept(group.department)}>
                   {group.label}
                   <span className={group.department === activeDept ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
                     {group.films.length}
@@ -388,16 +484,17 @@ const FilmographyPanel = ({ groups, allFilms }) => {
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="font-body text-white/50" style={{ fontSize: "clamp(0.72rem, 1vw, 0.84rem)" }}>
-              Showing {label.toLowerCase()} sorted by {sort.label.toLowerCase()}.
+              Showing {label.toLowerCase()} sorted by {sort.label.toLowerCase()}
+              {totalPages > 1 && ` / ${pageStart + 1}-${pageStart + pageFilms.length} of ${films.length}`}.
             </p>
             <div
-              className="flex items-center overflow-x-auto pb-1 scrollbar-hide"
+              className="flex flex-wrap items-center sm:flex-nowrap sm:overflow-x-auto sm:pb-1 scrollbar-hide"
               style={{ gap: "clamp(0.3rem, 0.8vw, 0.45rem)" }}
               role="group"
               aria-label="Sort filmography"
             >
               {SORTS.map((item) => (
-                <ToggleButton key={item.key} size="sm" active={item.key === sort.key} onClick={() => setSortKey(item.key)}>
+                <ToggleButton key={item.key} size="sm" active={item.key === sort.key} onClick={() => selectSort(item.key)}>
                   {item.label}
                 </ToggleButton>
               ))}
@@ -414,7 +511,7 @@ const FilmographyPanel = ({ groups, allFilms }) => {
             gap: "clamp(0.85rem, 2vw, 1.45rem)",
           }}
         >
-          {films.map((film, index) => (
+          {pageFilms.map((film, index) => (
             <FilmCard
               key={film.id}
               film={film}
@@ -431,6 +528,8 @@ const FilmographyPanel = ({ groups, allFilms }) => {
           </p>
         </div>
       )}
+
+      <Pagination page={currentPage} totalPages={totalPages} onChange={changePage} />
     </section>
   );
 };
@@ -482,7 +581,7 @@ const PersonContent = ({ personId }) => {
 
         <div className="center-container">
           <div className="person-page-grid">
-            <ProfileRail person={person} totalCredits={allFilms.length} />
+            <ProfileRail person={person} />
             <FilmographyPanel groups={groups} allFilms={allFilms} />
           </div>
         </div>
