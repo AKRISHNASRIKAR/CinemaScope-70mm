@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, matchPath, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Navbar";
 import ProtectedRoute from "@/components/ui/ProtectedRoute";
 import useScrollRestoration from "@/hooks/useScrollRestoration";
@@ -16,6 +16,19 @@ const SearchPage  = lazy(() => import("@/pages/SearchPage"));
 const Person      = lazy(() => import("@/pages/Person"));
 const GenrePage   = lazy(() => import("@/pages/GenrePage"));
 const ComparePage = lazy(() => import("@/pages/ComparePage"));
+const NotFound    = lazy(() => import("@/pages/NotFound"));
+
+const HEADER_ROUTE_PATTERNS = [
+  "/",
+  "/login",
+  "/search",
+  "/search/:query",
+  "/film/:id",
+  "/person/:person_id",
+  "/genre/:id",
+  "/profile",
+  "/compare",
+];
 
 /* ── Minimal page-transition fallback ──────────────────────────── */
 const PageLoader = () => (
@@ -37,11 +50,17 @@ const ScrollManager = () => {
   return null;
 };
 
-function App() {
+const shouldShowHeader = (pathname) =>
+  HEADER_ROUTE_PATTERNS.some((path) => matchPath({ path, end: true }, pathname));
+
+const AppShell = () => {
+  const location = useLocation();
+  const showHeader = shouldShowHeader(location.pathname);
+
   return (
-    <Router>
+    <>
       <ScrollManager />
-      <Header />
+      {showHeader && <Header />}
       {/* id="main-content" is the skip-nav target */}
       <main id="main-content">
         <Suspense fallback={<PageLoader />}>
@@ -58,9 +77,19 @@ function App() {
             {/* Protected routes — user-specific, require authentication */}
             <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/compare"        element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
+
+            <Route path="*"               element={<NotFound />} />
           </Routes>
         </Suspense>
       </main>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AppShell />
     </Router>
   );
 }

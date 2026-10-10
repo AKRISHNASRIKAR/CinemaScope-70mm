@@ -5,7 +5,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
-import LogoutIcon from "@mui/icons-material/Logout";
 
 import { fetcher } from "@/lib/api/fetcher";
 import { posterUrl, profileUrl } from "@/lib/utils/tmdbImage";
@@ -19,11 +18,13 @@ const Header = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const { user, isAuthenticated, logout } = useAuth0();
+  const { user, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const navbarRef = useRef(null);
   const searchWrapRef = useRef(null);
+  const mobileSearchRef = useRef(null);
+  const [isCompactSearch, setIsCompactSearch] = useState(false);
 
   /* ── Expose navbar height as CSS var for offset calculations ── */
   useEffect(() => {
@@ -38,6 +39,15 @@ const Header = () => {
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsCompactSearch(media.matches);
+    update();
+
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   const openSearch = () => {
@@ -127,20 +137,128 @@ const Header = () => {
   useEffect(() => {
     if (!searchExpanded) return;
     const onDown = (e) => {
-      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) closeSearch();
+      const clickedInlineSearch = searchWrapRef.current?.contains(e.target);
+      const clickedMobileSearch = mobileSearchRef.current?.contains(e.target);
+      if (!clickedInlineSearch && !clickedMobileSearch) closeSearch();
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [searchExpanded, closeSearch]);
 
+  const searchControlSize = "clamp(2rem, 3.5vw, 2.5rem)";
+  const inlineSearchOpen = searchExpanded && !isCompactSearch;
+  const inlineSearchWidth = inlineSearchOpen ? "clamp(200px, 28vw, 340px)" : searchControlSize;
+
+  const renderSuggestions = (compact = false) => (
+    <ul
+      id="navbar-search-suggestions"
+      role="listbox"
+      aria-label="Search suggestions"
+      className={
+        compact
+          ? "mt-2 max-h-[min(60vh,26rem)] overflow-y-auto rounded-card border border-white/10 bg-elevated/95 backdrop-blur-md"
+          : "absolute left-0 rounded-card border border-white/10 bg-elevated/95 backdrop-blur-md overflow-hidden"
+      }
+      style={{
+        ...(compact
+          ? { boxShadow: "0 20px 60px rgba(0,0,0,0.75)" }
+          : {
+              top: "calc(100% + 0.5rem)",
+              width: "clamp(240px, 32vw, 380px)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.75)",
+              zIndex: 60,
+            }),
+      }}
+    >
+      {suggestions.map((item, i) => {
+        const isPerson = item.media_type === "person";
+        const img = isPerson
+          ? profileUrl(item.profile_path, "w92")
+          : posterUrl(item.poster_path, "w92");
+        const sub = isPerson
+          ? item.known_for_department || "Person"
+          : item.release_date
+            ? item.release_date.slice(0, 4)
+            : "Film";
+
+        return (
+          <li
+            key={`${item.media_type}-${item.id}`}
+            id={`suggestion-${i}`}
+            role="option"
+            aria-selected={i === activeIndex}
+            onMouseEnter={() => setActiveIndex(i)}
+            onMouseDown={(e) => { e.preventDefault(); goToSuggestion(item); }}
+            className="flex items-center cursor-pointer transition-colors duration-fast"
+            style={{
+              gap: "clamp(0.5rem, 1vw, 0.75rem)",
+              padding: "clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.6rem, 1.2vw, 0.9rem)",
+              background: i === activeIndex ? "rgba(255,255,255,0.07)" : "transparent",
+            }}
+          >
+            <div
+              className="flex-shrink-0 overflow-hidden rounded-card bg-surface flex items-center justify-center"
+              style={{ width: "clamp(1.75rem, 2.6vw, 2.25rem)", height: "clamp(2.5rem, 3.9vw, 3.35rem)" }}
+            >
+              {img ? (
+                <img src={img} alt="" loading="lazy" className="w-full h-full object-cover" />
+              ) : isPerson ? (
+                <PersonOutlineIcon sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.2)" }} />
+              ) : (
+                <MovieCreationOutlinedIcon sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.2)" }} />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p
+                className="font-body font-medium text-white/90 line-clamp-1"
+                style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}
+              >
+                {item.title || item.name}
+              </p>
+              <p
+                className="font-mono text-muted line-clamp-1"
+                style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.65rem)", marginTop: "2px" }}
+              >
+                {isPerson ? "Person" : "Film"} · {sub}
+              </p>
+            </div>
+
+            {!isPerson && item.vote_average > 0 && (
+              <span
+                className="font-mono text-gold flex-shrink-0"
+                style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)" }}
+              >
+                {item.vote_average.toFixed(1)}
+              </span>
+            )}
+          </li>
+        );
+      })}
+
+      <li
+        onMouseDown={(e) => { e.preventDefault(); handleSearch(); }}
+        className="cursor-pointer border-t border-white/[0.06] text-center font-body text-muted hover:text-gold transition-colors duration-fast"
+        style={{
+          padding: "clamp(0.4rem, 0.8vw, 0.6rem)",
+          fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)",
+        }}
+      >
+        See all results for “{searchQuery.trim()}”
+      </li>
+    </ul>
+  );
+
   return (
     <header ref={navbarRef} className="absolute top-0 left-0 right-0 z-50">
-      {/* Translucent glassmorphism bar */}
-      <div className="w-full bg-black/20 backdrop-blur-md border-b border-white/[0.06]">
+      <div className="w-full">
         <div className="center-container">
           <nav
             className="flex items-center justify-between"
-            style={{ height: "clamp(2.75rem, 5vw, 3.5rem)" }}
+            style={{
+              height: "clamp(2.75rem, 5vw, 3.5rem)",
+              filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.45))",
+            }}
           >
 
             {/* ── LEFT: Search capsule + suggestions ────────────── */}
@@ -149,10 +267,10 @@ const Header = () => {
                 <div
                   className="relative flex items-center rounded-full border border-white/10 bg-white/[0.06] overflow-hidden cursor-pointer"
                   style={{
-                    height: "clamp(2rem, 3.5vw, 2.5rem)",
-                    width: searchExpanded ? "clamp(200px, 28vw, 340px)" : "clamp(2rem, 3.5vw, 2.5rem)",
+                    height: searchControlSize,
+                    width: inlineSearchWidth,
                     transition: "width 350ms cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 200ms ease",
-                    boxShadow: searchExpanded ? "0 0 0 1px rgba(255,255,255,0.15)" : "none",
+                    boxShadow: inlineSearchOpen ? "0 0 0 1px rgba(255,255,255,0.15)" : "none",
                   }}
                   onClick={!searchExpanded ? openSearch : undefined}
                 >
@@ -162,46 +280,48 @@ const Header = () => {
                     aria-label={searchExpanded ? "Submit search" : "Open search"}
                     className="flex-shrink-0 flex items-center justify-center text-white/50 hover:text-white transition-colors duration-fast cursor-pointer"
                     style={{
-                      width: "clamp(2rem, 3.5vw, 2.5rem)",
-                      height: "clamp(2rem, 3.5vw, 2.5rem)",
+                      width: searchControlSize,
+                      height: searchControlSize,
                     }}
                   >
                     <SearchIcon sx={{ fontSize: "clamp(0.95rem, 1.6vw, 1.2rem)" }} />
                   </button>
 
                   {/* Input — slides in when expanded */}
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleSearchKey}
-                    placeholder="Search films, people…"
-                    aria-label="Search"
-                    role="combobox"
-                    aria-expanded={suggestOpen}
-                    aria-controls="navbar-search-suggestions"
-                    aria-autocomplete="list"
-                    aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
-                    className="flex-1 min-w-0 bg-transparent text-white placeholder-white/30 outline-none font-body"
-                    style={{
-                      fontSize: "clamp(0.75rem, 1.2vw, 0.875rem)",
-                      opacity: searchExpanded ? 1 : 0,
-                      pointerEvents: searchExpanded ? "auto" : "none",
-                      transition: "opacity 200ms ease",
-                      paddingRight: searchExpanded ? "0.25rem" : 0,
-                    }}
-                  />
+                  {!isCompactSearch && (
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleSearchKey}
+                      placeholder="Search films, people…"
+                      aria-label="Search"
+                      role="combobox"
+                      aria-expanded={suggestOpen}
+                      aria-controls="navbar-search-suggestions"
+                      aria-autocomplete="list"
+                      aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
+                      className="flex-1 min-w-0 bg-transparent text-white placeholder-white/30 outline-none font-body"
+                      style={{
+                        fontSize: "clamp(0.75rem, 1.2vw, 0.875rem)",
+                        opacity: inlineSearchOpen ? 1 : 0,
+                        pointerEvents: inlineSearchOpen ? "auto" : "none",
+                        transition: "opacity 200ms ease",
+                        paddingRight: inlineSearchOpen ? "0.25rem" : 0,
+                      }}
+                    />
+                  )}
 
                   {/* Close button */}
-                  {searchExpanded && (
+                  {inlineSearchOpen && (
                     <button
                       onClick={closeSearch}
                       aria-label="Close search"
                       className="flex-shrink-0 flex items-center justify-center text-white/30 hover:text-white/80 transition-colors duration-fast cursor-pointer"
                       style={{
                         width: "clamp(1.75rem, 3vw, 2.25rem)",
-                        height: "clamp(2rem, 3.5vw, 2.5rem)",
+                        height: searchControlSize,
                       }}
                     >
                       <CloseIcon sx={{ fontSize: "clamp(0.8rem, 1.3vw, 1rem)" }} />
@@ -210,97 +330,7 @@ const Header = () => {
                 </div>
 
                 {/* ── Suggestions dropdown ──────────────────────── */}
-                {searchExpanded && suggestOpen && (
-                  <ul
-                    id="navbar-search-suggestions"
-                    role="listbox"
-                    aria-label="Search suggestions"
-                    className="absolute left-0 rounded-card border border-white/10 bg-elevated/95 backdrop-blur-md overflow-hidden"
-                    style={{
-                      top: "calc(100% + 0.5rem)",
-                      width: "clamp(240px, 32vw, 380px)",
-                      boxShadow: "0 20px 60px rgba(0,0,0,0.75)",
-                      zIndex: 60,
-                    }}
-                  >
-                    {suggestions.map((item, i) => {
-                      const isPerson = item.media_type === "person";
-                      const img = isPerson
-                        ? profileUrl(item.profile_path, "w92")
-                        : posterUrl(item.poster_path, "w92");
-                      const sub = isPerson
-                        ? item.known_for_department || "Person"
-                        : item.release_date
-                          ? item.release_date.slice(0, 4)
-                          : "Film";
-
-                      return (
-                        <li
-                          key={`${item.media_type}-${item.id}`}
-                          id={`suggestion-${i}`}
-                          role="option"
-                          aria-selected={i === activeIndex}
-                          onMouseEnter={() => setActiveIndex(i)}
-                          onMouseDown={(e) => { e.preventDefault(); goToSuggestion(item); }}
-                          className="flex items-center cursor-pointer transition-colors duration-fast"
-                          style={{
-                            gap: "clamp(0.5rem, 1vw, 0.75rem)",
-                            padding: "clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.6rem, 1.2vw, 0.9rem)",
-                            background: i === activeIndex ? "rgba(255,255,255,0.07)" : "transparent",
-                          }}
-                        >
-                          <div
-                            className="flex-shrink-0 overflow-hidden rounded-card bg-surface flex items-center justify-center"
-                            style={{ width: "clamp(1.75rem, 2.6vw, 2.25rem)", height: "clamp(2.5rem, 3.9vw, 3.35rem)" }}
-                          >
-                            {img ? (
-                              <img src={img} alt="" loading="lazy" className="w-full h-full object-cover" />
-                            ) : isPerson ? (
-                              <PersonOutlineIcon sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.2)" }} />
-                            ) : (
-                              <MovieCreationOutlinedIcon sx={{ fontSize: "1rem", color: "rgba(255,255,255,0.2)" }} />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="font-body font-medium text-white/90 line-clamp-1"
-                              style={{ fontSize: "clamp(0.7rem, 1.1vw, 0.85rem)" }}
-                            >
-                              {item.title || item.name}
-                            </p>
-                            <p
-                              className="font-mono text-muted line-clamp-1"
-                              style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.65rem)", marginTop: "2px" }}
-                            >
-                              {isPerson ? "Person" : "Film"} · {sub}
-                            </p>
-                          </div>
-
-                          {!isPerson && item.vote_average > 0 && (
-                            <span
-                              className="font-mono text-gold flex-shrink-0"
-                              style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)" }}
-                            >
-                              {item.vote_average.toFixed(1)}
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-
-                    <li
-                      onMouseDown={(e) => { e.preventDefault(); handleSearch(); }}
-                      className="cursor-pointer border-t border-white/[0.06] text-center font-body text-muted hover:text-gold transition-colors duration-fast"
-                      style={{
-                        padding: "clamp(0.4rem, 0.8vw, 0.6rem)",
-                        fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)",
-                      }}
-                    >
-                      See all results for “{searchQuery.trim()}”
-                    </li>
-                  </ul>
-                )}
+                {inlineSearchOpen && suggestOpen && renderSuggestions(false)}
               </div>
             </div>
 
@@ -311,7 +341,10 @@ const Header = () => {
             >
               <span
                 className="font-wordmark font-black italic text-white hover:text-white/80 transition-colors duration-fast tracking-tight"
-                style={{ fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)" }}
+                style={{
+                  fontSize: "clamp(1.1rem, 2.2vw, 1.5rem)",
+                  textShadow: "0 2px 14px rgba(0,0,0,0.5)",
+                }}
               >
                 CinemaScope
               </span>
@@ -356,27 +389,66 @@ const Header = () => {
                     </div>
                   )}
                 </button>
-
-                {isAuthenticated && (
-                  <button
-                    onClick={() => logout({ logoutParams: { returnTo: `${window.location.origin}/` } })}
-                    aria-label="Sign out"
-                    className="flex items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white/50 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all duration-normal cursor-pointer hover:scale-105 active:scale-95 ml-1"
-                    style={{
-                      width: "clamp(1.75rem, 3vw, 2.25rem)",
-                      height: "clamp(1.75rem, 3vw, 2.25rem)",
-                    }}
-                    title="Sign Out"
-                  >
-                    <LogoutIcon sx={{ fontSize: "clamp(0.9rem, 1.4vw, 1.05rem)" }} />
-                  </button>
-                )}
               </div>
             </div>
 
           </nav>
         </div>
       </div>
+
+      {searchExpanded && isCompactSearch && (
+        <div
+          className="absolute left-0 right-0 top-full px-4 pt-2"
+          style={{ zIndex: 70 }}
+        >
+          <div
+            ref={mobileSearchRef}
+            className="rounded-card border border-white/10 bg-black/80 p-2 backdrop-blur-xl"
+            style={{ boxShadow: "0 24px 80px rgba(0,0,0,0.78)" }}
+          >
+            <div className="flex items-center rounded-full border border-white/10 bg-white/[0.08]">
+              <button
+                type="button"
+                onClick={handleSearch}
+                aria-label="Submit search"
+                className="flex items-center justify-center text-white/55 hover:text-white transition-colors duration-fast"
+                style={{ width: "2.5rem", height: "2.5rem" }}
+              >
+                <SearchIcon sx={{ fontSize: "1.15rem" }} />
+              </button>
+
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKey}
+                placeholder="Search films, people…"
+                aria-label="Search"
+                role="combobox"
+                aria-expanded={suggestOpen}
+                aria-controls="navbar-search-suggestions"
+                aria-autocomplete="list"
+                aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
+                autoComplete="off"
+                className="min-w-0 flex-1 bg-transparent font-body text-sm text-white outline-none placeholder-white/35"
+              />
+
+              <button
+                type="button"
+                onClick={closeSearch}
+                aria-label="Close search"
+                className="flex items-center justify-center text-white/40 hover:text-white/85 transition-colors duration-fast"
+                style={{ width: "2.5rem", height: "2.5rem" }}
+              >
+                <CloseIcon sx={{ fontSize: "1rem" }} />
+              </button>
+            </div>
+
+            {suggestOpen && renderSuggestions(true)}
+          </div>
+        </div>
+      )}
     </header>
   );
 };

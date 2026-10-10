@@ -132,27 +132,29 @@ export const TrendingRowSkeleton = ({ count = 6 }) => (
   </section>
 );
 
-/* ── Genre Row Grid Skeleton ───────────────────────────────────── */
+/* ── Genre Row Carousel Skeleton ───────────────────────────────── */
 /*
- * Used inside GenreRow — matches the auto-fill grid of GenreRowContent.
- * Shows exactly 4 cards (FILMS_PER_PAGE).
+ * Used inside GenreRow — matches the wide editorial carousel treatment.
  */
 export const GenreRowSkeleton = () => (
   <div
-    className="grid"
+    className="flex overflow-hidden"
     style={{
-      gridTemplateColumns: "repeat(auto-fill, minmax(clamp(120px, 15vw, 190px), 1fr))",
       gap: "clamp(0.75rem, 2vw, 1.25rem)",
-      marginTop: "clamp(0.75rem, 1.5vh, 1rem)",
+      marginTop: "clamp(1rem, 2vh, 1.5rem)",
     }}
   >
-    {Array.from({ length: 4 }).map((_, i) => (
-      <div key={i} className="flex flex-col">
-        <div className="aspect-[2/3] rounded-card bg-white/5">
+    {Array.from({ length: 2 }).map((_, i) => (
+      <div
+        key={i}
+        className="flex-shrink-0"
+        style={{ width: "clamp(230px, 38vw, 460px)" }}
+      >
+        <div className="aspect-[16/9] overflow-hidden rounded-card bg-white/5">
           <Shimmer showIcon />
         </div>
-        <div className="skeleton rounded mt-2" style={{ height: "0.75rem", width: "75%" }} />
-        <div className="skeleton rounded mt-1" style={{ height: "0.6rem", width: "45%" }} />
+        <div className="skeleton rounded mt-2" style={{ height: "0.75rem", width: "74%" }} />
+        <div className="skeleton rounded mt-1" style={{ height: "0.55rem", width: "30%" }} />
       </div>
     ))}
   </div>

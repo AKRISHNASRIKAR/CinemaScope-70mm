@@ -1,72 +1,28 @@
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
+import ComingSoonSection from "@/components/sections/ComingSoonSection";
+import FreshTrailersSection from "@/components/sections/FreshTrailersSection";
 import Hero from "@/components/sections/Hero";
-import GenreRow from "@/components/sections/GenreRow";
-import TrendingRow from "@/components/sections/TrendingRow";
+import InTheatersSection from "@/components/sections/InTheatersSection";
+import PeopleInFocusSection from "@/components/sections/PeopleInFocusSection";
+import StreamingSection from "@/components/sections/StreamingSection";
 import Footer from "@/components/layout/Footer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import FilmCard from "@/components/ui/FilmCard";
-import ScrollRow from "@/components/ui/ScrollRow";
-import SectionHeader from "@/components/ui/SectionHeader";
 import { HomeHeroSkeleton, TrendingRowSkeleton } from "@/components/ui/Skeletons";
-import { GENRE_SECTIONS } from "@/lib/constants";
-import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+
+const EMPTY_MOVIES = [];
 
 /* ── Hero Data Wrapper ────────────────────────────────────────── */
 const HeroSection = () => {
   const { data } = useSWR("/movie/popular", fetcher, { suspense: true });
-  const movies = data.results || [];
+  const movies = data?.results ?? EMPTY_MOVIES;
   const featuredFilm = movies[0] ?? null;
-  const carouselFilms = movies.slice(1, 8);
+  const carouselFilms = useMemo(() => movies.slice(1, 8), [movies]);
 
   return <Hero film={featuredFilm} relatedFilms={carouselFilms} />;
-};
-
-/* ── Recently Viewed Row ─────────────────────────────────────── */
-const RecentlyViewedRow = () => {
-  const { recentFilms, clearRecent } = useRecentlyViewed();
-  if (recentFilms.length === 0) return null;
-
-  return (
-    <section className="w-full bg-base" style={{ paddingTop: "clamp(1.5rem,3vw,2.5rem)", paddingBottom: "clamp(0.5rem,1vw,1rem)" }}>
-      <div className="center-container">
-        <SectionHeader
-          eyebrow="Pick up where you left off"
-          title="Recently Viewed"
-          action={
-            <button
-              onClick={clearRecent}
-              className="font-body text-muted hover:text-white/80 transition-colors duration-fast cursor-pointer"
-              style={{ fontSize: "clamp(0.55rem,0.85vw,0.7rem)" }}
-            >
-              Clear
-            </button>
-          }
-        />
-
-        <ScrollRow
-          showArrows={recentFilms.length > 5}
-          scrollAmount={280}
-          gap="clamp(0.75rem,1.5vw,1.25rem)"
-          arrowSize="2.25rem"
-          ariaLabel="Recently viewed films"
-        >
-          {recentFilms.map((film) => (
-            <div
-              key={film.id}
-              className="flex-shrink-0 transition-all duration-300 hover:scale-[1.02]"
-              style={{ width: "clamp(100px,11vw,160px)", scrollSnapAlign: "start" }}
-            >
-              <FilmCard film={film} />
-            </div>
-          ))}
-        </ScrollRow>
-      </div>
-    </section>
-  );
 };
 
 /* ── Membership CTA — only for signed-out visitors ───────────── */
@@ -138,34 +94,36 @@ const Home = () => (
       </Suspense>
     </ErrorBoundary>
 
-    {/* Recently Viewed — client-only, no Suspense needed */}
-    <RecentlyViewedRow />
-
-    {/* Trending — independent boundary so a slow/failed fetch is contained */}
     <ErrorBoundary>
       <Suspense fallback={<TrendingRowSkeleton />}>
-        <TrendingRow />
+        <ComingSoonSection />
       </Suspense>
     </ErrorBoundary>
 
-    {/* Genre sections */}
-    <div className="w-full bg-base" style={{ paddingTop: "clamp(2rem, 4vw, 3rem)", paddingBottom: "clamp(0.25rem, 0.5vw, 0.5rem)" }}>
-      <div className="center-container">
-        <SectionHeader eyebrow="Curated" title="Top Picks by Genre" divider={false} />
-      </div>
-    </div>
+    {/* In theaters — wide landscape carousel inspired by NEON's editorial rhythm */}
+    <ErrorBoundary>
+      <Suspense fallback={<TrendingRowSkeleton count={3} />}>
+        <InTheatersSection />
+      </Suspense>
+    </ErrorBoundary>
 
-    {GENRE_SECTIONS.map((section) => (
-      <GenreRow
-        key={section.id}
-        genre={section.genre}
-        tagline={section.tagline}
-        genreIds={section.genreIds}
-        genreId={section.genreId ?? section.genreIds[0]}
-        alignment={section.alignment}
-        theme={section.theme}
-      />
-    ))}
+    <ErrorBoundary>
+      <Suspense fallback={<TrendingRowSkeleton />}>
+        <PeopleInFocusSection />
+      </Suspense>
+    </ErrorBoundary>
+
+    <ErrorBoundary>
+      <Suspense fallback={<TrendingRowSkeleton count={3} />}>
+        <FreshTrailersSection />
+      </Suspense>
+    </ErrorBoundary>
+
+    <ErrorBoundary>
+      <Suspense fallback={<TrendingRowSkeleton count={3} />}>
+        <StreamingSection />
+      </Suspense>
+    </ErrorBoundary>
 
     <MembershipBanner />
 

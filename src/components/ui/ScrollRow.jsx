@@ -62,7 +62,7 @@ const ScrollRow = ({
             onClick={() => scrollBy(-1)}
             aria-label="Scroll left"
             className="
-              flex flex-shrink-0
+              hidden sm:flex flex-shrink-0
               items-center justify-center rounded-full
               bg-white/[0.06] hover:bg-white/10 backdrop-blur-md
               border border-white/10
@@ -101,7 +101,7 @@ const ScrollRow = ({
             onClick={() => scrollBy(1)}
             aria-label="Scroll right"
             className="
-              flex flex-shrink-0
+              hidden sm:flex flex-shrink-0
               items-center justify-center rounded-full
               bg-white/[0.06] hover:bg-white/10 backdrop-blur-md
               border border-white/10
