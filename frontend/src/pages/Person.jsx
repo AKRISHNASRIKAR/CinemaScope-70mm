@@ -4,26 +4,20 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/api/fetcher";
 
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import LocalMoviesOutlinedIcon from "@mui/icons-material/LocalMoviesOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 
 import Footer from "@/components/layout/Footer";
 import LazyImage from "@/components/ui/LazyImage";
 import BackButton from "@/components/ui/BackButton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import FilmCard from "@/components/ui/FilmCard";
+import ScrollRow from "@/components/ui/ScrollRow";
 import SEO from "@/components/seo/SEO";
 import { PersonHeaderSkeleton, FilmGridSkeleton } from "@/components/ui/Skeletons";
 import { profileUrl } from "@/lib/utils/tmdbImage";
 
-/* ── Filmography model ─────────────────────────────────────────────
-   TMDB returns two flat arrays — `cast` and `crew` — where crew entries
-   carry a `department` ("Directing") and a `job` ("Director"). Grouping
-   by department gives the Letterboxd-style role tabs.
-
-   DEPARTMENT_LABELS renames TMDB's internal names into something a
-   person would actually read; anything not listed falls through with
-   its raw department name rather than being dropped, so unusual roles
-   (Costume & Make-Up, Visual Effects…) still get a tab.
-─────────────────────────────────────────────────────────────────── */
 const ACTING = "Acting";
 
 const DEPARTMENT_LABELS = {
@@ -41,27 +35,23 @@ const DEPARTMENT_LABELS = {
   Lighting: "Lighting",
 };
 
-/* Ties are broken toward the roles people care about most. */
 const DEPARTMENT_PRIORITY = ["Acting", "Directing", "Writing", "Production", "Camera", "Editing"];
 
 const SORTS = [
   { key: "popularity", label: "Popular", compare: (a, b) => (b.popularity || 0) - (a.popularity || 0) },
-  { key: "rating",     label: "Rating",  compare: (a, b) => (b.vote_average || 0) - (a.vote_average || 0) },
-  { key: "newest",     label: "Newest",  compare: (a, b) => (b.release_date || "").localeCompare(a.release_date || "") },
-  { key: "oldest",     label: "Oldest",  compare: (a, b) => {
-      // Undated credits are usually unreleased — keep them last either way.
+  { key: "rating", label: "Rating", compare: (a, b) => (b.vote_average || 0) - (a.vote_average || 0) },
+  { key: "newest", label: "Newest", compare: (a, b) => (b.release_date || "").localeCompare(a.release_date || "") },
+  {
+    key: "oldest",
+    label: "Oldest",
+    compare: (a, b) => {
       if (!a.release_date) return 1;
       if (!b.release_date) return -1;
       return a.release_date.localeCompare(b.release_date);
-    } },
+    },
+  },
 ];
 
-/**
- * Bucket every credit by department.
- * A person can hold several jobs on one film (writer *and* director), so
- * credits are deduped by movie id *within* each department and their jobs
- * merged — otherwise Nolan's "Directing" tab lists Inception twice.
- */
 function groupCredits(credits, knownFor) {
   const buckets = new Map();
 
@@ -77,8 +67,8 @@ function groupCredits(credits, knownFor) {
     byId.set(film.id, { ...film, roles: role ? [role] : [] });
   };
 
-  (credits?.cast || []).forEach((c) => push(ACTING, c, c.character));
-  (credits?.crew || []).forEach((c) => push(c.department || "Crew", c, c.job));
+  (credits?.cast || []).forEach((credit) => push(ACTING, credit, credit.character));
+  (credits?.crew || []).forEach((credit) => push(credit.department || "Crew", credit, credit.job));
 
   return [...buckets.entries()]
     .map(([department, byId]) => ({
@@ -87,11 +77,6 @@ function groupCredits(credits, knownFor) {
       films: [...byId.values()],
     }))
     .sort((a, b) => {
-      /* What the person is known for leads, even when it isn't their
-         biggest bucket — TMDB counts every documentary "Self" appearance
-         as an acting credit, so Spielberg has ~190 of those against ~46
-         directing. Sorting purely by count would bury Director third and
-         leave the default tab scrolled off-screen on mobile. */
       const aKnown = a.department === knownFor;
       const bKnown = b.department === knownFor;
       if (aKnown !== bKnown) return aKnown ? -1 : 1;
@@ -103,58 +88,128 @@ function groupCredits(credits, knownFor) {
     });
 }
 
-/* ── Role / sort pill ─────────────────────────────────────────────
-   Matches GenrePage's filter bar so the two browse surfaces read as
-   one system. `size` steps it down for the secondary sort row. */
+const uniqueCredits = (groups) => [
+  ...new Map(
+    groups
+      .flatMap((group) => group.films)
+      .filter((film) => film?.id)
+      .map((film) => [film.id, film])
+  ).values(),
+];
+
+const formatDate = (dateStr) =>
+  dateStr
+    ? new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+const formatYear = (dateStr) => (dateStr ? dateStr.slice(0, 4) : null);
+
+const yearsBetween = (start, end = new Date()) => {
+  if (!start) return null;
+  const startDate = new Date(start);
+  const endDate = end instanceof Date ? end : new Date(end);
+  let years = endDate.getFullYear() - startDate.getFullYear();
+  const monthDelta = endDate.getMonth() - startDate.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && endDate.getDate() < startDate.getDate())) years -= 1;
+  return Number.isFinite(years) ? years : null;
+};
+
+const titleOf = (film) => film?.title || film?.name || "Untitled";
+
+const subtitleFor = (film) =>
+  [film.roles?.slice(0, 2).join(", "), formatYear(film.release_date)].filter(Boolean).join(" / ") || undefined;
+
 const RolePill = ({ active, onClick, children, size = "md" }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex-shrink-0 font-body font-medium uppercase whitespace-nowrap rounded-full border transition-all duration-300 cursor-pointer ${
+    className={`flex-shrink-0 rounded-full border font-body font-semibold uppercase whitespace-nowrap transition-all duration-normal cursor-pointer ${
       active
-        ? "bg-gold text-black border-gold"
-        : "bg-white/[0.04] text-white/55 border-white/10 hover:text-white hover:border-white/25 hover:scale-[1.03]"
+        ? "border-gold bg-gold text-black shadow-[0_0_28px_rgba(201,168,67,0.18)]"
+        : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/25 hover:text-white"
     }`}
     style={
       size === "sm"
-        ? { fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.14em", padding: "0.38rem 0.85rem" }
-        : { fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)", letterSpacing: "0.14em", padding: "0.5rem 1.15rem" }
+        ? { fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.14em", padding: "0.42rem 0.82rem" }
+        : { fontSize: "clamp(0.52rem, 0.85vw, 0.66rem)", letterSpacing: "0.16em", padding: "0.56rem 0.95rem" }
     }
   >
     {children}
   </button>
 );
 
-/* ── helpers ─────────────────────────────────────────────── */
-const fmtDate = (dateStr) => {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-  return { day: d.getDate(), month: months[d.getMonth()], year: d.getFullYear() };
-};
-
-/* ── 1. Person Header (Data-driven) ────────────────────────────── */
-const PersonHeader = ({ person_id }) => {
-  const { data: person } = useSWR(`/person/${person_id}`, fetcher, { suspense: true });
-  const [isBioExpanded, setIsBioExpanded] = useState(false);
-
-  const born = fmtDate(person.birthday);
-  const died = fmtDate(person.deathday);
-  
-  const bioText = person.biography || "";
-  const isLongBio = bioText.length > 400;
-  const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
-  const description =
-    bioText ||
-    `${person.name} biography, known films, and credits on CinemaScope.`;
-  
-  const displayBio = isLongBio && !isBioExpanded 
-    ? bioText.slice(0, 400) + "..." 
-    : bioText;
+const Fact = ({ icon: Icon, label, value, subvalue }) => {
+  if (!value) return null;
 
   return (
-    <>
+    <div className="min-w-0 border-t border-white/10 py-4 sm:border-t-0 sm:border-l sm:py-0 sm:pl-5">
+      <div className="flex items-center gap-2 text-gold">
+        <Icon sx={{ fontSize: "clamp(0.9rem, 1.2vw, 1.05rem)" }} />
+        <span
+          className="font-mono uppercase text-white/42"
+          style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.18em" }}
+        >
+          {label}
+        </span>
+      </div>
+      <p
+        className="mt-2 truncate font-body font-semibold text-white"
+        style={{ fontSize: "clamp(0.78rem, 1.15vw, 0.95rem)" }}
+      >
+        {value}
+      </p>
+      {subvalue && (
+        <p className="mt-1 truncate font-body text-white/42" style={{ fontSize: "clamp(0.62rem, 0.9vw, 0.74rem)" }}>
+          {subvalue}
+        </p>
+      )}
+    </div>
+  );
+};
+
+const GrainOverlay = ({ opacity = 0.13 }) => (
+  <div
+    aria-hidden
+    className="absolute inset-0 mix-blend-overlay pointer-events-none"
+    style={{
+      opacity,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+      backgroundRepeat: "repeat",
+      backgroundSize: "160px 160px",
+    }}
+  />
+);
+
+const PersonHero = ({ personId }) => {
+  const { data: person } = useSWR(`/person/${personId}`, fetcher, { suspense: true });
+  const [isBioExpanded, setIsBioExpanded] = useState(false);
+
+  const portraitSrc = profileUrl(person.profile_path, "h632") ?? "/fallback-image.jpg";
+  const backgroundSrc = profileUrl(person.profile_path, "h632") ?? portraitSrc;
+  const bioText = person.biography || "";
+  const isLongBio = bioText.length > 520;
+  const displayBio = isLongBio && !isBioExpanded ? `${bioText.slice(0, 520).trim()}...` : bioText;
+  const description = bioText || `${person.name} biography, known films, and credits on CinemaScope.`;
+
+  const born = formatDate(person.birthday);
+  const died = formatDate(person.deathday);
+  const age = person.birthday ? yearsBetween(person.birthday, person.deathday ? new Date(person.deathday) : new Date()) : null;
+  const lifeValue = person.deathday
+    ? [formatYear(person.birthday), formatYear(person.deathday)].filter(Boolean).join(" - ")
+    : age !== null
+      ? `${age} years old`
+      : null;
+
+  return (
+    <section
+      className="relative isolate overflow-hidden bg-base"
+      style={{
+        minHeight: "min(100svh, 900px)",
+        paddingTop: "calc(var(--navbar-height, 3.5rem) + clamp(2.5rem, 6vh, 5.5rem))",
+        paddingBottom: "clamp(3rem, 8vh, 6rem)",
+      }}
+    >
       <SEO
         title={person.name}
         description={description}
@@ -172,259 +227,318 @@ const PersonHeader = ({ person_id }) => {
           jobTitle: person.known_for_department || undefined,
         }}
       />
-      <div className="flex flex-col sm:flex-row" style={{ gap: "clamp(1.5rem, 4vw, 3rem)" }}>
-      {/* LEFT: Portrait */}
-      <div className="sm:w-[38%] lg:w-[35%] flex-shrink-0">
-        <div className="relative overflow-hidden" style={{ borderRadius: "8px" }}>
-          <LazyImage
-            src={portraitSrc}
-            alt={person.name}
-            fallbackType="person"
-            eager={true}
-            fetchPriority="high"
-            className="w-full aspect-[2/3] object-cover object-top sm:aspect-auto sm:h-auto"
-            style={{ maxHeight: "clamp(50vw, 60vh, 600px)" }}
-          />
-          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-base to-transparent" />
-        </div>
 
-        {born && (
-          <div className="hidden sm:flex items-start mt-6" style={{ gap: "clamp(1rem, 2vw, 2rem)" }}>
-            <div>
-              <span className="font-mono text-muted uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem, 0.75vw, 0.6rem)" }}>Born</span>
-              <p className="font-display font-bold text-gold leading-none" style={{ fontSize: "clamp(1.2rem, 2.2vw, 1.8rem)", marginTop: "clamp(0.2rem, 0.4vh, 0.3rem)" }}>
-                {born.day} {born.month} {born.year}
-              </p>
-              {person.place_of_birth && (
-                <p className="font-body text-muted leading-snug" style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)", marginTop: "clamp(0.15rem, 0.3vh, 0.25rem)" }}>
-                  {person.place_of_birth}
-                </p>
-              )}
+      <div className="absolute inset-0 -z-10" aria-hidden>
+        <img
+          src={backgroundSrc}
+          alt=""
+          className="absolute right-[-8vw] top-[-14vh] h-[115vh] w-[58vw] min-w-[28rem] object-cover opacity-20 blur-2xl saturate-[1.15]"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_12%,rgba(201,168,67,0.16),transparent_34%),linear-gradient(90deg,#090909_0%,rgba(9,9,9,0.9)_38%,rgba(9,9,9,0.58)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-base to-transparent" />
+        <GrainOverlay />
+      </div>
+
+      <div className="center-container relative z-10">
+        <div className="flex flex-col items-stretch lg:flex-row lg:items-end" style={{ gap: "clamp(2rem, 5vw, 5.5rem)" }}>
+          <div
+            className="group relative mx-auto w-full max-w-[min(76vw,22rem)] flex-shrink-0 lg:mx-0 lg:max-w-none"
+            style={{ flexBasis: "clamp(16rem, 31vw, 28rem)" }}
+          >
+            <div
+              className="relative aspect-[3/4] overflow-hidden rounded-card bg-surface"
+              style={{ boxShadow: "0 34px 100px rgba(0,0,0,0.62)" }}
+            >
+              <LazyImage
+                src={portraitSrc}
+                alt={person.name}
+                fallbackType="person"
+                eager={true}
+                fetchPriority="high"
+                className="h-full w-full object-cover object-top transition-transform duration-slow ease-cinematic group-hover:scale-[1.025]"
+              />
+              <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            </div>
+            <div className="absolute -bottom-4 -left-4 hidden h-28 w-28 border-l border-b border-gold/40 lg:block" aria-hidden />
+            <div className="absolute -right-4 -top-4 hidden h-28 w-28 border-r border-t border-white/15 lg:block" aria-hidden />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p
+              className="font-mono uppercase text-gold"
+              style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.72rem)", letterSpacing: "0.32em" }}
+            >
+              {person.known_for_department || "Profile"}
+            </p>
+
+            <h1
+              className="mt-3 max-w-[12ch] font-wordmark font-black uppercase text-white"
+              style={{
+                fontSize: "clamp(3.1rem, 9vw, 8.5rem)",
+                lineHeight: 0.84,
+                letterSpacing: "-0.07em",
+                overflowWrap: "anywhere",
+                textShadow: "0 0.08em 0.32em rgba(0,0,0,0.52)",
+              }}
+            >
+              {person.name}
+            </h1>
+
+            <div
+              className="mt-8 grid grid-cols-1 border-y border-white/10 sm:grid-cols-3"
+              style={{ gap: "clamp(0.25rem, 2vw, 1.2rem)", padding: "clamp(0.5rem, 1.4vw, 1rem) 0" }}
+            >
+              <Fact icon={CalendarTodayOutlinedIcon} label={person.deathday ? "Life" : "Age"} value={lifeValue} subvalue={born ? `Born ${born}` : null} />
+              <Fact icon={PlaceOutlinedIcon} label="Origin" value={person.place_of_birth} />
+              <Fact icon={LocalMoviesOutlinedIcon} label="Known For" value={person.known_for_department} />
             </div>
 
             {died && (
-              <>
-                <span className="font-display text-muted self-center" style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)" }}>—</span>
-                <div>
-                  <span className="font-mono text-muted uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem, 0.75vw, 0.6rem)" }}>Died</span>
-                  <p className="font-display font-bold text-white/80 leading-none" style={{ fontSize: "clamp(1.2rem, 2.2vw, 1.8rem)", marginTop: "clamp(0.2rem, 0.4vh, 0.3rem)" }}>
-                    {died.day} {died.month} {died.year}
-                  </p>
-                </div>
-              </>
+              <p className="mt-4 font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
+                Died {died}
+              </p>
             )}
-          </div>
-        )}
-      </div>
 
-      {/* RIGHT: Bio */}
-      <div className="flex-1 min-w-0">
-        {person.known_for_department && (
-          <p className="font-mono text-gold uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.55rem, 0.9vw, 0.7rem)", marginBottom: "clamp(0.5rem, 1vh, 0.75rem)" }}>
-            {person.known_for_department}
-          </p>
-        )}
+            {bioText && (
+              <div className="mt-8 max-w-4xl">
+                <div className="flex items-center gap-2">
+                  <BookmarkIcon sx={{ fontSize: "clamp(0.95rem, 1.3vw, 1.1rem)", color: "var(--color-gold)" }} />
+                  <h2 className="font-mono uppercase text-white/50" style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.66rem)", letterSpacing: "0.24em" }}>
+                    Biography
+                  </h2>
+                </div>
 
-        <h1 className="font-display font-bold text-white leading-[0.95] tracking-tight" style={{ fontSize: "clamp(2rem, 5vw, 4rem)" }}>
-          {person.name}
-        </h1>
-
-        {bioText && (
-          <div style={{ marginTop: "clamp(1.5rem, 3vh, 2.5rem)" }}>
-            <div className="flex items-center" style={{ gap: "clamp(0.3rem, 0.6vw, 0.5rem)", marginBottom: "clamp(0.5rem, 1vh, 0.75rem)" }}>
-              <BookmarkIcon sx={{ fontSize: "clamp(0.9rem, 1.3vw, 1.1rem)", color: "var(--color-gold)" }} />
-              <h2 className="font-display font-bold text-white" style={{ fontSize: "clamp(1rem, 1.6vw, 1.3rem)" }}>Biography</h2>
-            </div>
-            <div className="font-body text-white/55 leading-relaxed" style={{ fontSize: "clamp(0.85rem, 1.5vw, 1rem)" }}>
-              {displayBio.split("\n").map((para, i) => para.trim() && <p key={i} className="mb-3">{para}</p>)}
-              {isLongBio && (
-                <button 
-                  type="button"
-                  onClick={() => setIsBioExpanded(!isBioExpanded)}
-                  aria-expanded={isBioExpanded}
-                  className="text-gold hover:text-gold-lt transition-colors font-medium cursor-pointer"
+                <div
+                  className="mt-4 border-l border-white/12 pl-5 font-body text-white/68"
+                  style={{ fontSize: "clamp(0.88rem, 1.25vw, 1.05rem)", lineHeight: 1.75 }}
                 >
-                  {isBioExpanded ? "Read Less" : "Read More"}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Mobile-only Birth/Death */}
-        {born && (
-          <div className="flex sm:hidden items-center flex-wrap" style={{ gap: "clamp(0.75rem, 2vw, 1.5rem)", marginTop: "clamp(1.5rem, 3vh, 2rem)" }}>
-            <div>
-              <span className="font-mono text-muted uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.6rem)" }}>Born</span>
-              <p className="font-display font-bold text-gold leading-none" style={{ fontSize: "clamp(1rem, 2vw, 1.4rem)", marginTop: "2px" }}>
-                {born.day} {born.month} {born.year}
-              </p>
-              {person.place_of_birth && (
-                <p className="font-body text-muted" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.65rem)", marginTop: "2px" }}>
-                  {person.place_of_birth}
-                </p>
-              )}
-            </div>
-            {died && (
-              <>
-                <span className="font-display text-muted" style={{ fontSize: "clamp(0.9rem, 1.5vw, 1.2rem)" }}>—</span>
-                <div>
-                  <span className="font-mono text-muted uppercase tracking-[0.2em]" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.6rem)" }}>Died</span>
-                  <p className="font-display font-bold text-white/80 leading-none" style={{ fontSize: "clamp(1rem, 2vw, 1.4rem)", marginTop: "2px" }}>
-                    {died.day} {died.month} {died.year}
-                  </p>
+                  {displayBio.split("\n").map((paragraph, index) => (
+                    paragraph.trim() ? <p key={index} className="mb-3 last:mb-0">{paragraph}</p> : null
+                  ))}
+                  {isLongBio && (
+                    <button
+                      type="button"
+                      onClick={() => setIsBioExpanded((value) => !value)}
+                      aria-expanded={isBioExpanded}
+                      className="mt-4 font-body font-semibold text-gold transition-colors duration-fast hover:text-gold-lt cursor-pointer"
+                      style={{ fontSize: "clamp(0.78rem, 1.1vw, 0.9rem)" }}
+                    >
+                      {isBioExpanded ? "Read Less" : "Read More"}
+                    </button>
+                  )}
                 </div>
-              </>
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
-      </div>
-    </>
+    </section>
   );
 };
 
-/* ── 2. Filmography (role tabs + sorting) ─────────────────────────
-   Both SWR keys are shared with <PersonHeader/>, so the page still makes
-   exactly two person requests through the Edge Function proxy.
-─────────────────────────────────────────────────────────────────── */
-const Filmography = ({ person_id }) => {
-  const { data: credits } = useSWR(`/person/${person_id}/movie_credits`, fetcher, { suspense: true });
-  const { data: person } = useSWR(`/person/${person_id}`, fetcher, { suspense: true });
+const CareerMetric = ({ label, value, detail }) => (
+  <div className="border-t border-white/10 py-5 sm:border-t-0 sm:border-l sm:pl-6">
+    <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.78vw, 0.6rem)", letterSpacing: "0.22em" }}>
+      {label}
+    </p>
+    <p className="mt-2 truncate font-wordmark font-black uppercase text-white" style={{ fontSize: "clamp(1.1rem, 2.4vw, 2rem)", letterSpacing: "-0.04em" }}>
+      {value}
+    </p>
+    {detail && (
+      <p className="mt-1 truncate font-body text-white/42" style={{ fontSize: "clamp(0.65rem, 0.95vw, 0.76rem)" }}>
+        {detail}
+      </p>
+    )}
+  </div>
+);
+
+const KnownForRail = ({ films }) => {
+  if (!films.length) return null;
+
+  return (
+    <section className="w-full bg-section-dark text-white" style={{ padding: "clamp(2.25rem, 5vw, 4.75rem) 0" }}>
+      <div className="center-container">
+        <div
+          className="flex flex-wrap items-end justify-between border-y border-white/10"
+          style={{ gap: "clamp(1rem, 3vw, 2rem)", padding: "clamp(0.9rem, 2vw, 1.25rem) 0", marginBottom: "clamp(1.2rem, 3vw, 2rem)" }}
+        >
+          <div>
+            <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.82vw, 0.64rem)", letterSpacing: "0.3em" }}>
+              Spotlight
+            </p>
+            <h2 className="mt-2 font-wordmark font-black uppercase leading-[0.86]" style={{ fontSize: "clamp(2rem, 6vw, 5.6rem)", letterSpacing: "-0.06em" }}>
+              Known For
+            </h2>
+          </div>
+          <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
+            Popular / High-signal credits
+          </span>
+        </div>
+
+        <ScrollRow
+          showArrows={films.length > 6}
+          scrollAmount={420}
+          gap="clamp(0.8rem, 1.8vw, 1.35rem)"
+          arrowSize="2.35rem"
+          ariaLabel="Known for films"
+        >
+          {films.map((film, index) => (
+            <div
+              key={film.id}
+              className="flex-shrink-0"
+              style={{ width: "clamp(118px, 13vw, 190px)", scrollSnapAlign: "start" }}
+            >
+              <FilmCard film={film} subtitle={subtitleFor(film)} eager={index < 3} />
+            </div>
+          ))}
+        </ScrollRow>
+      </div>
+    </section>
+  );
+};
+
+const Filmography = ({ personId }) => {
+  const { data: credits } = useSWR(`/person/${personId}/movie_credits`, fetcher, { suspense: true });
+  const { data: person } = useSWR(`/person/${personId}`, fetcher, { suspense: true });
 
   const groups = useMemo(
     () => groupCredits(credits, person?.known_for_department),
     [credits, person?.known_for_department]
   );
-
-  /* groupCredits already floats the known-for department to the front and
-     falls back to the largest bucket, so the first group is the default. */
+  const allFilms = useMemo(() => uniqueCredits(groups), [groups]);
   const [dept, setDept] = useState(groups[0]?.department ?? null);
   const [sortKey, setSortKey] = useState(SORTS[0].key);
 
   if (groups.length === 0) return null;
 
-  const active = groups.find((g) => g.department === dept) ?? groups[0];
-  const sort = SORTS.find((s) => s.key === sortKey) ?? SORTS[0];
+  const active = groups.find((group) => group.department === dept) ?? groups[0];
+  const sort = SORTS.find((item) => item.key === sortKey) ?? SORTS[0];
   const films = [...active.films].sort(sort.compare);
+  const knownForFilms = [...allFilms]
+    .filter((film) => film.poster_path)
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+    .slice(0, 14);
+  const ratedFilms = [...allFilms].filter((film) => film.vote_average);
+  const topRated = ratedFilms
+    .filter((film) => (film.vote_count || 0) >= 50)
+    .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0];
+  const fallbackTopRated = topRated ?? ratedFilms.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))[0];
+  const latest = [...allFilms]
+    .filter((film) => film.release_date)
+    .sort((a, b) => (b.release_date || "").localeCompare(a.release_date || ""))[0];
 
   return (
-    <div style={{ marginTop: "clamp(2.5rem, 5vh, 4rem)", paddingBottom: "clamp(2rem, 4vh, 3rem)" }}>
-      {/* ── Section heading ──────────────────────────────────── */}
-      <div
-        className="flex items-baseline border-b border-white/[0.08]"
-        style={{ gap: "0.6rem", paddingBottom: "clamp(0.5rem,1vh,0.75rem)" }}
-      >
-        <h2
-          className="font-display font-bold text-white tracking-tight"
-          style={{ fontSize: "clamp(1.2rem, 2.2vw, 1.8rem)" }}
-        >
-          Filmography
-        </h2>
-        <span className="font-mono text-muted" style={{ fontSize: "clamp(0.55rem, 0.85vw, 0.7rem)" }}>
-          {films.length} {films.length === 1 ? "film" : "films"}
-        </span>
-      </div>
-
-      {/* ── Controls: roles left, sort right ─────────────────────
-          Wraps to two rows on narrow screens; each row scrolls on its
-          own rather than squashing the other. */}
-      <div
-        className="flex flex-wrap items-center justify-between"
-        style={{ gap: "clamp(0.6rem, 1.6vh, 1rem)", marginTop: "clamp(0.9rem, 2vh, 1.25rem)" }}
-      >
-        <div
-          className="flex items-center overflow-x-auto scrollbar-hide"
-          style={{ gap: "clamp(0.35rem, 1vw, 0.6rem)", flex: "1 1 auto", minWidth: 0 }}
-          role="group"
-          aria-label="Filter filmography by role"
-        >
-          {groups.map((g) => (
-            <RolePill key={g.department} active={g.department === active.department} onClick={() => setDept(g.department)}>
-              {g.label}
-              <span className={g.department === active.department ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
-                {g.films.length}
-              </span>
-            </RolePill>
-          ))}
+    <>
+      <section className="relative overflow-hidden bg-base text-white" style={{ padding: "clamp(2rem, 5vw, 4rem) 0" }}>
+        <GrainOverlay opacity={0.08} />
+        <div className="center-container relative">
+          <div className="grid grid-cols-1 border-y border-white/10 sm:grid-cols-3">
+            <CareerMetric label="Credits" value={allFilms.length} detail="Movies in TMDB filmography" />
+            <CareerMetric label="Top Rated" value={fallbackTopRated ? titleOf(fallbackTopRated) : "No rating"} detail={fallbackTopRated ? `${fallbackTopRated.vote_average?.toFixed(1)} / 10` : undefined} />
+            <CareerMetric label="Latest" value={latest ? titleOf(latest) : "No release"} detail={latest ? formatYear(latest.release_date) : undefined} />
+          </div>
         </div>
+      </section>
 
-        <div
-          className="flex items-center overflow-x-auto scrollbar-hide"
-          style={{ gap: "clamp(0.25rem, 0.7vw, 0.4rem)" }}
-          role="group"
-          aria-label="Sort filmography"
-        >
-          <span
-            className="font-mono text-faint uppercase whitespace-nowrap"
-            style={{ fontSize: "clamp(0.45rem, 0.72vw, 0.55rem)", letterSpacing: "0.2em", marginRight: "0.15rem" }}
+      <KnownForRail films={knownForFilms} />
+
+      <section className="relative overflow-hidden bg-base text-white" style={{ padding: "clamp(2.75rem, 6vw, 5.5rem) 0" }}>
+        <div className="center-container">
+          <div
+            className="flex flex-wrap items-end justify-between border-y border-white/10"
+            style={{ gap: "clamp(1rem, 3vw, 2rem)", padding: "clamp(0.9rem, 2vw, 1.25rem) 0" }}
           >
-            Sort
-          </span>
-          {SORTS.map((s) => (
-            <RolePill key={s.key} size="sm" active={s.key === sort.key} onClick={() => setSortKey(s.key)}>
-              {s.label}
-            </RolePill>
-          ))}
-        </div>
-      </div>
+            <div>
+              <p className="font-mono uppercase text-gold" style={{ fontSize: "clamp(0.5rem, 0.82vw, 0.64rem)", letterSpacing: "0.3em" }}>
+                Archive
+              </p>
+              <h2 className="mt-2 font-wordmark font-black uppercase leading-[0.86]" style={{ fontSize: "clamp(2.15rem, 6.8vw, 6.2rem)", letterSpacing: "-0.06em" }}>
+                Filmography
+              </h2>
+            </div>
+            <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.5rem, 0.8vw, 0.62rem)", letterSpacing: "0.18em" }}>
+              {films.length} {films.length === 1 ? "credit" : "credits"} / {active.label}
+            </span>
+          </div>
 
-      {/* ── Grid ─────────────────────────────────────────────────
-          Every credit is rendered — no cap. LazyImage already defers the
-          posters with loading="lazy", so even a 300-credit actor only
-          costs DOM nodes. Keyed by department so switching roles remounts
-          the cards rather than diffing two unrelated lists. */}
-      <div
-        key={active.department}
-        className="grid"
-        style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(clamp(120px, 15vw, 190px), 1fr))",
-          gap: "clamp(0.75rem, 2vw, 1.5rem)",
-          marginTop: "clamp(1.25rem, 2.5vh, 1.75rem)",
-        }}
-      >
-        {films.map((film) => (
-          <FilmCard
-            key={film.id}
-            film={film}
-            subtitle={
-              [film.roles.join(", "), film.release_date?.slice(0, 4)].filter(Boolean).join(" · ") || undefined
-            }
-          />
-        ))}
-      </div>
-    </div>
+          <div
+            className="flex flex-wrap items-center justify-between border-b border-white/10"
+            style={{ gap: "clamp(0.75rem, 2vw, 1.5rem)", padding: "clamp(0.85rem, 1.8vw, 1.15rem) 0" }}
+          >
+            <div
+              className="flex min-w-0 flex-1 items-center overflow-x-auto scrollbar-hide"
+              style={{ gap: "clamp(0.4rem, 1vw, 0.65rem)" }}
+              role="group"
+              aria-label="Filter filmography by role"
+            >
+              {groups.map((group) => (
+                <RolePill key={group.department} active={group.department === active.department} onClick={() => setDept(group.department)}>
+                  {group.label}
+                  <span className={group.department === active.department ? "text-black/55" : "text-white/30"} style={{ marginLeft: "0.45rem" }}>
+                    {group.films.length}
+                  </span>
+                </RolePill>
+              ))}
+            </div>
+
+            <div
+              className="flex items-center overflow-x-auto scrollbar-hide"
+              style={{ gap: "clamp(0.25rem, 0.7vw, 0.4rem)" }}
+              role="group"
+              aria-label="Sort filmography"
+            >
+              <span className="font-mono uppercase text-white/35" style={{ fontSize: "clamp(0.45rem, 0.72vw, 0.55rem)", letterSpacing: "0.2em", marginRight: "0.15rem" }}>
+                Sort
+              </span>
+              {SORTS.map((item) => (
+                <RolePill key={item.key} size="sm" active={item.key === sort.key} onClick={() => setSortKey(item.key)}>
+                  {item.label}
+                </RolePill>
+              ))}
+            </div>
+          </div>
+
+          <div
+            key={active.department}
+            className="grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(clamp(118px, 14vw, 190px), 1fr))",
+              gap: "clamp(0.85rem, 2vw, 1.5rem)",
+              marginTop: "clamp(1.25rem, 2.5vh, 1.75rem)",
+            }}
+          >
+            {films.map((film) => (
+              <FilmCard key={film.id} film={film} subtitle={subtitleFor(film)} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   );
 };
 
-/* ── Main Page Container ───────────────────────────────────────── */
 const Person = () => {
   const { person_id } = useParams();
 
   return (
     <div className="min-h-screen bg-base text-white flex flex-col">
-      <BackButton fallbackRoute="/" />
-      <div className="flex-1 center-container" style={{ paddingTop: "clamp(5rem, 10vh, 7rem)" }}>
-
-        {/* Header Section */}
-        {/* key={person_id}: the route element stays mounted when you navigate
-            from one person to another, so without this the expanded-bio and
-            selected-role state would carry over to the next person — and a
-            role tab like "Directing" may not even exist for them. */}
+      <BackButton
+        fallbackRoute="/"
+        className="h-10 w-10 rounded-full border border-white/10 bg-black/35 backdrop-blur-md hover:bg-black/55"
+      />
+      <main className="flex-1">
         <ErrorBoundary key={`header-${person_id}`}>
           <Suspense fallback={<PersonHeaderSkeleton />}>
-            <PersonHeader person_id={person_id} />
+            <PersonHero personId={person_id} />
           </Suspense>
         </ErrorBoundary>
 
-        {/* Filmography */}
         <ErrorBoundary key={`films-${person_id}`}>
-          <Suspense fallback={<FilmGridSkeleton count={10} />}>
-            <Filmography person_id={person_id} />
+          <Suspense fallback={<div className="center-container" style={{ padding: "clamp(3rem, 7vw, 6rem) 0" }}><FilmGridSkeleton count={10} /></div>}>
+            <Filmography personId={person_id} />
           </Suspense>
         </ErrorBoundary>
-
-      </div>
+      </main>
       <Footer />
     </div>
   );

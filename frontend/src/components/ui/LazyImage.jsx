@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useEffect } from "react";
+import { memo, useState, useCallback, useEffect, useRef } from "react";
 import BrokenImageIcon from "@mui/icons-material/BrokenImage";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
@@ -31,10 +31,21 @@ const LazyImage = ({
 }) => {
   const [loaded,  setLoaded]  = useState(false);
   const [errored, setErrored] = useState(false);
+  const imgRef = useRef(null);
 
   useEffect(() => {
     setLoaded(!src);
     setErrored(!src);
+
+    const img = imgRef.current;
+    if (!src || !img?.complete) return;
+
+    if (img.naturalWidth > 0) {
+      setLoaded(true);
+    } else {
+      setErrored(true);
+      setLoaded(true);
+    }
   }, [src]);
 
   const handleLoad = useCallback(() => {
@@ -75,6 +86,7 @@ const LazyImage = ({
       {/* Actual image — hidden until loaded */}
       {!errored && (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
