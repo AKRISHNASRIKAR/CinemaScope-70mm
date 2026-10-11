@@ -48,6 +48,17 @@ const LazyImage = ({
     }
   }, [src]);
 
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+
+    if (fetchPriority && fetchPriority !== "auto") {
+      img.setAttribute("fetchpriority", fetchPriority);
+    } else {
+      img.removeAttribute("fetchpriority");
+    }
+  }, [fetchPriority, src]);
+
   const handleLoad = useCallback(() => {
     setLoaded(true);
     onLoad?.();
@@ -90,7 +101,6 @@ const LazyImage = ({
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
-          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
